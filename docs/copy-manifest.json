@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "copied_on": "2026-10-29",
+  "source": {
+    "repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+    "commit": "41795750847972262ba6bbf9edb2bd033b1fc59a"
+  },
+  "maintenance": "independent",
+  "baseline_policy": "Import-time provenance only. Subsequent local edits are maintained in this repository; no automatic sync or dependency on the source checkout.",
+  "components": [
+    {
+      "path": "skill/organization-collaboration",
+      "version": "1.5.0",
+      "file_count": 11
+    },
+    {
+      "path": "skill/github-projects-operations",
+      "version": "1.1.0",
+      "file_count": 5
+    },
+    {
+      "path": "scripts/check_repository.py",
+      "version": null,
+      "file_count": 1
+    },
+    {
+      "path": "tests",
+      "version": null,
+      "file_count": 2
+    }
+  ],
+  "files": [
+    {
+      "source_path": "scripts/check_repository.py",
+      "path": "scripts/check_repository.py",
+      "sha256": "3a829c13e5800ca9dba0d83ac6cc650ef33a98e4907ebb5a843883c41d4b66bc",
+      "bytes": 2897
+    },
+    {
+      "source_path": "skill/github-projects-operations/SKILL.md",
+      "path": "skill/github-projects-operations/SKILL.md",
+      "sha256": "abe13172f13a2277a92c214ecb7d34cae0e7154d665f7ae7eb400c596c387914",
+      "bytes": 4272
+    },
+    {
+      "source_path": "skill/github-projects-operations/references/changes.md",
+      "path": "skill/github-projects-operations/references/changes.md",
+      "sha256": "ac76d494a9b98256f1cc763c51f2934f85187df970892548bfbd2b36b659bcd4",
+      "bytes": 8409
+    },
+    {
+      "source_path": "skill/github-projects-operations/references/iterations.md",
+      "path": "skill/github-projects-operations/references/iterations.md",
+      "sha256": "3893911be2989b74ac546ed404d8480de0854d5bcd96540c6b22c71406816409",
+      "bytes": 3421
+    },
+    {
+      "source_path": "skill/github-projects-operations/references/query.md",
+      "path": "skill/github-projects-operations/references/query.md",
+      "sha256": "a01588f8c5928b46f88a2f0ea55c22163dc0d8d0f071f65457c1f9c036720dfb",
+      "bytes": 4646
+    },
+    {
+      "source_path": "skill/github-projects-operations/scripts/plan_iterations.py",
+      "path": "skill/github-projects-operations/scripts/plan_iterations.py",
+      "sha256": "95db033399135fbec1e51a0bd4012a43b0a3c500fc05975f039f2a35fa4493c5",
+      "bytes": 1788
+    },
+    {
+      "source_path": "skill/organization-collaboration/SKILL.md",
+      "path": "skill/organization-collaboration/SKILL.md",
+      "sha256": "1a3275ac345df822d61cbbdfb977b589d27c44470e88fb81d1ad1755de82920a",
+      "bytes": 5761
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/asset-archiving.md",
+      "path": "skill/organization-collaboration/references/asset-archiving.md",
+      "sha256": "6a6b418a4b81f26ac9c618b9f6486f20e2eab3c56a2d74e629e918364580aee3",
+      "bytes": 8677
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/auditor.md",
+      "path": "skill/organization-collaboration/references/auditor.md",
+      "sha256": "767512506d0f2cfed58d078163c4bbaaa0fa243820e1ee62655340877bd1b9f0",
+      "bytes": 5259
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/authorized-recording.md",
+      "path": "skill/organization-collaboration/references/authorized-recording.md",
+      "sha256": "e709239136f85c141a91e9f7b7f15d7bc5f6ba8d7971c8354f605fdefd6956bc",
+      "bytes": 10083
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/context-and-reporting.md",
+      "path": "skill/organization-collaboration/references/context-and-reporting.md",
+      "sha256": "3ced569b1dad11da4a2c64c506a1d0ab3e45aa57a765aa16a1bf2bb9cc691598",
+      "bytes": 9884
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/execution-and-review.md",
+      "path": "skill/organization-collaboration/references/execution-and-review.md",
+      "sha256": "7e67ded9bd1e1cfd7beb27fbf975d259dbd9ca448d7bbdef070835949ce5662e",
+      "bytes": 6805
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/maintenance.md",
+      "path": "skill/organization-collaboration/references/maintenance.md",
+      "sha256": "8e2bdb2b0aa5d8916ac58888eae21d19eec8c61725619de87f2cfcc826713684",
+      "bytes": 7579
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/organization-lead.md",
+      "path": "skill/organization-collaboration/references/organization-lead.md",
+      "sha256": "99d1efea0455fb0788d2670a37d510b92f4cfb117d14cb2a88215fc5123624ad",
+      "bytes": 6179
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/planning-and-progress.md",
+      "path": "skill/organization-collaboration/references/planning-and-progress.md",
+      "sha256": "bf26784a0efc45a2a33d2135cef24deae1677d02a2fce7f6193683cca48deda2",
+      "bytes": 14406
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/project-owner.md",
+      "path": "skill/organization-collaboration/references/project-owner.md",
+      "sha256": "a8904085bc1351879a70998fe196938ba196422fd2c5c6ac31334eea43ce0a78",
+      "bytes": 6476
+    },
+    {
+      "source_path": "skill/organization-collaboration/references/task-traceability.md",
+      "path": "skill/organization-collaboration/references/task-traceability.md",
+      "sha256": "a5f3c6002c8da6358dc4bdb647b588aac1325bdd2f8b73a93c978c27de265545",
+      "bytes": 8950
+    },
+    {
+      "source_path": "tests/test_check_repository.py",
+      "path": "tests/test_check_repository.py",
+      "sha256": "508d656f242a5a6c77342870819562df9a257e0a5a2805ba96ca5b9ff939fa1d",
+      "bytes": 4243
+    },
+    {
+      "source_path": "tests/test_projects_iterations.py",
+      "path": "tests/test_projects_iterations.py",
+      "sha256": "93260318e5a6ac13330c6abd944857c125efc29a9ae8a7727e7b88d191752f14",
+      "bytes": 3059
+    }
+  ]
+}
