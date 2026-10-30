@@ -10,6 +10,7 @@
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
 | 理解职责、目录和采用边界 | [架构与范围](docs/architecture.md) |
+| 选择跨 Agent 通信路线与准备 core 对照试点 | [跨 Agent 通信与协作指引](docs/agent-communication.md) |
 | 准备一次有明确退出条件的真实试点 | [试点指引](docs/pilot.md) · [任务交接模板](docs/templates/pilot-task.md) |
 | 明确岗位、派发、回报与负责人验收 | [组织协作 1.5.0](skill/organization-collaboration/SKILL.md) |
 | 查询或按授权维护 GitHub Projects | [Projects 操作 1.1.0](skill/github-projects-operations/SKILL.md) |

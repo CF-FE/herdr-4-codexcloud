@@ -2,6 +2,8 @@
 
 本页准备一条“云端 Dot 经 Tailscale＋SSH，在真实执行机完成可追溯任务”的验证路径。初始化未执行这条路径；实际进度统一见[本仓状态](status.md)。
 
+本页具体命令和恢复说明适用于 **Herdr TUI（`herdr`）**。2026-10-30 的[通信指引](agent-communication.md)建议先验证 **herdr-core（`hc`）** 的适配条件；准备新试点先读该指引，不能直接替换本页命令名或套用生命周期结论。本页继续作为 TUI 对照路线与通用任务绑定的参考。
+
 ## 启动前绑定
 
 选择一台已获授权的执行机和非生产目录，用[任务模板](templates/pilot-task.md)关联现有任务。复用[组织上下文与汇报](../skill/organization-collaboration/references/context-and-reporting.md)、[规划与进度](../skill/organization-collaboration/references/planning-and-progress.md)中的有效责任和授权，不为读取或实现步骤重复建单。
