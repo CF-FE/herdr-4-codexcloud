@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "initial_manifest": "copy-manifest.json",
+  "maintenance": "independent",
+  "updates": [
+    {
+      "id": "2026-10-31-organization-collaboration-1.5.1",
+      "copied_on": "2026-10-31",
+      "target_base_commit": "9daa7787f129658dec79e38c6dd60776ea1f6246",
+      "source": {
+        "repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+        "commit": "130e6ef26afcbf0ff7f863e8ffe484769515f7d5",
+        "pull_request": "https://github.com/CF-FE/mymcp-4-codexcloud/pull/10",
+        "pull_request_state_at_copy": "draft_unmerged"
+      },
+      "component": "skill/organization-collaboration",
+      "protocol_version": "1.5.1",
+      "release_status": "unreleased_candidate",
+      "scope": "Three generic collaboration-rule files only; no source runtime, platform-specific bindings, historical validation reports or automatic synchronization.",
+      "adoption_boundary": "Repository source alignment only. Does not claim source-main publication, runtime loading, service recovery, business acceptance or migration of existing task/version bindings.",
+      "files": [
+        {
+          "source_path": "skill/organization-collaboration/SKILL.md",
+          "path": "skill/organization-collaboration/SKILL.md",
+          "previous_sha256": "1a3275ac345df822d61cbbdfb977b589d27c44470e88fb81d1ad1755de82920a",
+          "sha256": "32a63971fe733e963e7deb008c7aad5cc767a51c7ee2ec15a348f9df6d3798fe",
+          "bytes": 6086,
+          "mode": "100644"
+        },
+        {
+          "source_path": "skill/organization-collaboration/references/authorized-recording.md",
+          "path": "skill/organization-collaboration/references/authorized-recording.md",
+          "previous_sha256": "e709239136f85c141a91e9f7b7f15d7bc5f6ba8d7971c8354f605fdefd6956bc",
+          "sha256": "27357c428c17c7b1861c7aff79ca904a557f5998199bafb5d8d2e0a7377ca93f",
+          "bytes": 12689,
+          "mode": "100644"
+        },
+        {
+          "source_path": "skill/organization-collaboration/references/planning-and-progress.md",
+          "path": "skill/organization-collaboration/references/planning-and-progress.md",
+          "previous_sha256": "bf26784a0efc45a2a33d2135cef24deae1677d02a2fce7f6193683cca48deda2",
+          "sha256": "c816fcab88b8c83ce2b86bb1954fc9d0dc233435ca068113e46285ca3e18ca61",
+          "bytes": 17840,
+          "mode": "100644"
+        }
+      ]
+    }
+  ]
+}
