@@ -8,15 +8,28 @@
 - 初始从固定提交 `41795750847972262ba6bbf9edb2bd033b1fc59a` 复制组织协议 1.5.0、Projects 技能 1.1.0 及离线检查/测试。[初始逐文件来源](copy-manifest.json)保留当时的字节摘要与版本。
 - 已建立本仓说明、精简 AGENTS、三分类索引、架构和试点交接模板。复制件在本仓独立维护。
 - 已沉淀[跨 Agent 通信与协作指引](agent-communication.md)，建议为 core 适配条件优先验证的 PILOT；TUI 保留对照，尚未切换运行时或任务入口。
-- 2026-10-31 完成组织协议 1.5.1 候选的 3 文件通用规则同步；源 PR 仍为 Draft、未合并，范围与验证见下节及[增量来源](copy-updates.json)。
+- 2026-10-31 先完成组织协议 1.5.1 候选的 3 文件通用规则同步；复制时源 PR 为 Draft、未合并，保留其历史快照。
+- 本轮从已合并的源 PR #11 固定提交同步组织协议 1.5.2 的 3 文件通用规则，范围与采用边界见下节及[增量来源](copy-updates.json)。
 
-## 2026-10-31 通用规则有限同步
+## 2026-10-31 可达汇报规则有限同步（1.5.2）
+
+固定来源为 `CF-FE/mymcp-4-codexcloud@a9d287cab87c31b74b6c4dbff90a24a9fd391ccb`、[源 PR #11](https://github.com/CF-FE/mymcp-4-codexcloud/pull/11)；复制时已合并至源 main。仅按相同路径、原字节和 `100644` 权限复制 `SKILL.md`、`references/context-and-reporting.md`、`references/planning-and-progress.md`。本仓复制前基线为 `973ba1958297da902fd92b8d97f1c654cff03ff7`。
+
+规则补充派发时明确成果落点、已验证且获准的通道与接收者；执行端无推送时，派发者负责落实拉取者、检查点和承接。保存、发送、受理、指定接收者实际读取、采用／验收、写权交还分别取证；通知失败不阻塞独立授权工作，UNKNOWN 沿原引用对账，不重派，不暗设定时监控。
+
+初始 [copy-manifest.json](copy-manifest.json)保持原字节，已有 1.5.1 增量对象及其复制时 Draft／候选事实原样保留；[copy-updates.json](copy-updates.json)只追加本轮固定来源、已合并状态和 3 文件前后摘要、大小、权限。其余 16 个导入文件相对 `973ba19` 未变，其中包括上轮已更新的 `authorized-recording.md`。核当前复制件时按初始清单顺序叠加两轮增量，不能把其余文件一律与 1.5.0 比较。
+
+源源码合并不证明发布 tag、Herdr 端加载、通信可达或负责人验收；源端 R01–R05 文档判据、Dot 读取和云端回执均不作为本仓证据。本轮不复制源 Lody 绑定、组合包或运行工具；不更新旧安装、运行环境、任务入口及在途版本绑定。Herdr/core 通信指引与试点 UNKNOWN 仍沿原范围。
+
+本轮本地验证通过：结构为 `mcp=0 skill=2 plugin=0`；11 项既有测试通过、无跳过。3 文件的固定 Git 对象、SHA-256、大小及 `100644` 权限一致，其余 16 个导入件相对 `973ba19` 未变；初始清单原字节、1.5.1 增量对象及既有 Herdr/core 指引均保留。独立只读复核通过，无阻断：25 份 Markdown 的 162 处仓内链接、62 处带锚点引用有效，其中组织技能闭包 93 处、同步 3 文件内 41 处引用有效；无软链接，差异空白检查通过。这里只记录本仓源码与离线检查，不构成真实通信或业务验收。
+
+## 2026-10-31 通用规则有限同步（1.5.1 历史快照）
 
 固定来源为 `CF-FE/mymcp-4-codexcloud@130e6ef26afcbf0ff7f863e8ffe484769515f7d5`、[源 PR #10](https://github.com/CF-FE/mymcp-4-codexcloud/pull/10)。复制时该 PR 为 Draft、未合并，组织协议 1.5.1 是未发布候选，不报告为源 main 正式发布或部署。
 
 仅按相同路径、原字节和权限复制 `SKILL.md`、`references/authorized-recording.md`、`references/planning-and-progress.md`。规则补充同源排障复用、独立主线继续、逐项最小变更包，以及主协调者负责落实、回读和反馈；代办结果、原服务恢复和写入职责交还分别取证。UNKNOWN 先沿原请求对账，明确拒绝不换路绕过，不能循环转派延长预算。
 
-初始 [copy-manifest.json](copy-manifest.json)保持字节不变，继续记录 1.5.0 和最初 19 文件；[copy-updates.json](copy-updates.json)保存本次 3 文件的前后摘要、固定来源及候选状态。当前对初始清单应有且仅有这 3 文件不同，其余 16 文件保持原样，不能再宣称当前 19 文件全部匹配旧清单。
+初始 [copy-manifest.json](copy-manifest.json)保持字节不变，继续记录 1.5.0 和最初 19 文件；[copy-updates.json](copy-updates.json)保存该轮 3 文件的前后摘要、固定来源及候选状态。该轮完成时，对初始清单有且仅有这 3 文件不同，其余 16 文件保持原样，不能宣称当时 19 文件全部匹配旧清单。
 
 本次未复制源 Lody 专属故障绑定、运行工具、组合包、历史验证报告或评测体系；源端测试与离线场景结果不当作本仓重跑。Herdr/core 通信指引、试点 UNKNOWN、旧 Lody 入口和在途版本绑定保持原范围。这里的规则同步不证明端侧加载、服务恢复或真实代办完成。
 

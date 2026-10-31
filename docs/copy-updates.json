@@ -44,6 +44,48 @@
           "mode": "100644"
         }
       ]
+    },
+    {
+      "id": "2026-10-31-organization-collaboration-1.5.2",
+      "copied_on": "2026-10-31",
+      "target_base_commit": "973ba1958297da902fd92b8d97f1c654cff03ff7",
+      "source": {
+        "repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+        "commit": "a9d287cab87c31b74b6c4dbff90a24a9fd391ccb",
+        "pull_request": "https://github.com/CF-FE/mymcp-4-codexcloud/pull/11",
+        "pull_request_state_at_copy": "merged"
+      },
+      "component": "skill/organization-collaboration",
+      "protocol_version": "1.5.2",
+      "release_status": "release_unverified",
+      "scope": "Three generic collaboration-rule files only; no source runtime, platform-specific bindings, cloud receipts, historical validation reports or automatic synchronization.",
+      "adoption_boundary": "Repository source alignment from a merged source-main commit only. Does not establish a release tag, target runtime loading, communication reachability, business acceptance or migration of existing installations and in-flight task/version bindings.",
+      "files": [
+        {
+          "source_path": "skill/organization-collaboration/SKILL.md",
+          "path": "skill/organization-collaboration/SKILL.md",
+          "previous_sha256": "32a63971fe733e963e7deb008c7aad5cc767a51c7ee2ec15a348f9df6d3798fe",
+          "sha256": "397483cada72d611bd1bd76e6e4ff8b3aa4c52e602f3d6c4ff6c86a813c766f8",
+          "bytes": 6351,
+          "mode": "100644"
+        },
+        {
+          "source_path": "skill/organization-collaboration/references/context-and-reporting.md",
+          "path": "skill/organization-collaboration/references/context-and-reporting.md",
+          "previous_sha256": "3ced569b1dad11da4a2c64c506a1d0ab3e45aa57a765aa16a1bf2bb9cc691598",
+          "sha256": "59c98f2244da9fd603933d2570311bab5dac6db3997bc4415cd2d9b02a3b36fa",
+          "bytes": 12291,
+          "mode": "100644"
+        },
+        {
+          "source_path": "skill/organization-collaboration/references/planning-and-progress.md",
+          "path": "skill/organization-collaboration/references/planning-and-progress.md",
+          "previous_sha256": "c816fcab88b8c83ce2b86bb1954fc9d0dc233435ca068113e46285ca3e18ca61",
+          "sha256": "0b009df444d95ed657c731131f1608c811c98351c2a8022f25860a01f27b2f4b",
+          "bytes": 18001,
+          "mode": "100644"
+        }
+      ]
     }
   ]
 }
