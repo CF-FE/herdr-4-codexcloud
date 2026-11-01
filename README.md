@@ -10,6 +10,7 @@
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
 | 理解职责、目录和采用边界 | [架构与范围](docs/architecture.md) |
+| 分阶段搭建并验证多项目协作架构 | [多项目协作迭代指引](docs/collaboration-iteration-guide.md) |
 | 准备轻量 VPS 制作控制端与分阶段接入测试 | [VPS 控制端试点方案](docs/vps-control-pilot.md) |
 | 选择跨 Agent 通信路线与准备 core 对照试点 | [跨 Agent 通信与协作指引](docs/agent-communication.md) |
 | 准备一次有明确退出条件的真实试点 | [试点指引](docs/pilot.md) · [任务交接模板](docs/templates/pilot-task.md) |
