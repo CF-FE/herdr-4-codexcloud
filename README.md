@@ -10,9 +10,11 @@
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
 | 理解职责、目录和采用边界 | [架构与范围](docs/architecture.md) |
+| 准备轻量 VPS 制作控制端与分阶段接入测试 | [VPS 控制端试点方案](docs/vps-control-pilot.md) |
 | 选择跨 Agent 通信路线与准备 core 对照试点 | [跨 Agent 通信与协作指引](docs/agent-communication.md) |
 | 准备一次有明确退出条件的真实试点 | [试点指引](docs/pilot.md) · [任务交接模板](docs/templates/pilot-task.md) |
 | 明确岗位、派发、可达汇报与负责人验收 | [组织协作 1.5.2](skill/organization-collaboration/SKILL.md) |
+| 按需评阅协作情境与查看旧路线交接边界 | [组织评测与资料接收](docs/organization-collaboration/README.md) |
 | 查询或按授权维护 GitHub Projects | [Projects 操作 1.1.0](skill/github-projects-operations/SKILL.md) |
 | 核对复制路径、固定版本和 SHA-256 | [初始复制清单](docs/copy-manifest.json) · [增量复制记录](docs/copy-updates.json) |
 

@@ -86,6 +86,174 @@
           "mode": "100644"
         }
       ]
+    },
+    {
+      "id": "2026-11-01-organization-evaluation-materials",
+      "copied_on": "2026-11-01",
+      "target_base_commit": "f9e3b0f644a2ca0afe369e720089e9ac8d230788",
+      "source": {
+        "repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+        "commit": "8481136f3a24289978ba207317c8b9b8397318e7"
+      },
+      "component": "docs/organization-collaboration",
+      "release_status": "documentation_only",
+      "scope": "Two new files copied verbatim and one derived R01-R05 document page. Optional roles and diagrams are fixed references only, not imported or activated.",
+      "adoption_boundary": "Offline review material only. No 55-case run, blind evaluation, skill default loading, real dispatch, Lody shutdown, board/Issue routing migration, runtime configuration or in-flight task/version transfer. Receiver-owned VPS plan is preserved. Receipt was prepared as uncommitted review material; subsequent documentation publication requires separate user authorization.",
+      "handoff_review": {
+        "state_at_receipt": "Uncommitted source worktree documents, separate from the fixed historical source commit.",
+        "subsequent_publication": {
+          "repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+          "commit": "02e6ca4c1cb201904abd2ef2f107f6dce957e051",
+          "verification": "Remote main read back at this commit; both handoff document byte hashes match the original receipt. Historical evaluation assets remain sourced from 8481136f3a24289978ba207317c8b9b8397318e7."
+        },
+        "documents": [
+          {
+            "source_path": "docs/lody4dot/herdr-handoff.md",
+            "bytes": 12311,
+            "sha256": "541e777ea81aea191384dd81df8e2443847e998165a55cf4394cb33302906b2c",
+            "in_fixed_source_commit": false
+          },
+          {
+            "source_path": "docs/lody4dot/herdr-handoff-manifest.json",
+            "bytes": 36896,
+            "sha256": "a5302a9f98f8248caf6641596c8cafdaccfab755c00fa359232f4939dfdce029",
+            "in_fixed_source_commit": false
+          }
+        ],
+        "archive": {
+          "bytes": 61836,
+          "sha256": "d055655442efa8d23356775ce0cccfa80a0a9504d39d8b1cd0144c60fa83ee4a",
+          "file_entries": 17,
+          "receipt_sha256": "7c0ff8f0cb1ce08798ce5d3fc497b1f77124e3c2011225f9b5e71b3ea72bb48e",
+          "retention": "Review package checked in place; not copied into receiver repository."
+        }
+      },
+      "license_note": "No top-level license file was found in this fixed snapshot; do not infer a new license for optional role excerpts or external bundled:false methods. Preserve source attribution.",
+      "files": [
+        {
+          "source_path": "docs/organization-collaboration/eval-inputs.json",
+          "path": "docs/organization-collaboration/eval-inputs.json",
+          "operation": "copy",
+          "previous_sha256": null,
+          "sha256": "a65d987f1ef7e587dfca7449f31a509d593a3ce2791dd82a3fbfeb3f77419b8b",
+          "bytes": 33009,
+          "mode": "100644"
+        },
+        {
+          "source_path": "docs/organization-collaboration/eval-rubric.md",
+          "path": "docs/organization-collaboration/eval-rubric.md",
+          "operation": "copy",
+          "previous_sha256": null,
+          "sha256": "821e143f883fa72bebd3373a2da727554021e34c1d2a0ba3084827ee0f6b5ccb",
+          "bytes": 22188,
+          "mode": "100644"
+        },
+        {
+          "source_path": "docs/organization-collaboration/reporting-contract-requirements.md",
+          "path": "docs/organization-collaboration/reporting-evals.md",
+          "operation": "adapt",
+          "previous_sha256": null,
+          "sha256": "9dbe367c099695fc1f012badbddb95fc0e66d94ef1cf7ea0bc7b0182536eb2d6",
+          "bytes": 2842,
+          "mode": "100644",
+          "source_sha256": "2308c2ef06ab41ec5c8f730013dcb3611c85da5f2531b05d8467274b01624366",
+          "source_bytes": 3364,
+          "source_mode": "100644",
+          "adaptation": "Preserve R01-R05 inputs and criteria; remove source candidate/review status and version history; link receiver canonical protocol. Document criteria only; no blind test or runtime claim."
+        }
+      ],
+      "reference_only_sources": [
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/visual.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/visual.md",
+          "sha256": "da0e15773516c363d0a3ca1d4cf03bea4199d295649fe75d7577b986f161306b",
+          "bytes": 1041,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/research.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/research.md",
+          "sha256": "d1ab9382235024287ea1de6b6bab2df554425feeb652570d90aa7f18ff6b55a2",
+          "bytes": 962,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/quality.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/quality.md",
+          "sha256": "96950ddd10c6a9594ac586a5180f6a68b3aae8f74e7c2e56a5c3d383fb78649a",
+          "bytes": 1194,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/runtime.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/runtime.md",
+          "sha256": "ebddfc187abb4d9ac1de4a4649acd390f83863f417707dd3e4b52266da6469fb",
+          "bytes": 1225,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/knowledge.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/knowledge.md",
+          "sha256": "32c0518c29418c2f5e7bb8b75a9a2011a1a129375919c592d6a630853829f7a7",
+          "bytes": 948,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "skill/lody4dot/references/roles/workspace/dialectic.md",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/skill/lody4dot/references/roles/workspace/dialectic.md",
+          "sha256": "a8e1004244361405340983316a8699fba835da305f6051fb5be7fd90ea5cb7fe",
+          "bytes": 1937,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "docs/organization-collaboration/diagrams/traceability-and-audit.mmd",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/docs/organization-collaboration/diagrams/traceability-and-audit.mmd",
+          "sha256": "f7123efb5a964a43595e38d63e5e274c059b1d5b8c9350eb3a2bdb932fc420c9",
+          "bytes": 2372,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "docs/organization-collaboration/diagrams/traceability-and-audit.svg",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/docs/organization-collaboration/diagrams/traceability-and-audit.svg",
+          "sha256": "63880c0426ff980f7245af2ed23717b5d746051afc6132d83e2570610a2d5a12",
+          "bytes": 42708,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "docs/github-projects-operations/diagrams/operation-flow.mmd",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/docs/github-projects-operations/diagrams/operation-flow.mmd",
+          "sha256": "6fdf2a2b6f103e6e4627db684f2d3e66320401e2bb49ea165e0e8cc3061793ca",
+          "bytes": 1346,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        },
+        {
+          "source_path": "docs/github-projects-operations/diagrams/operation-flow.svg",
+          "source_url": "https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/docs/github-projects-operations/diagrams/operation-flow.svg",
+          "sha256": "5b44eac6252b4123b44714ab72530502fe52b917146bfb8b2e954138385cad84",
+          "bytes": 34813,
+          "mode": "100644",
+          "classification": "reference_only_not_imported",
+          "review_scope": "manifest_and_fixed_byte_integrity_only"
+        }
+      ]
     }
   ]
 }
