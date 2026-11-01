@@ -4,7 +4,11 @@
 
 本指引与[仓库架构](architecture.md)共同说明候选边界；[本仓状态](status.md)记录实际进度。[现有试点指引](pilot.md)保留 TUI 路线的准备与检查；原任务上下文继续使用[交接模板](templates/pilot-task.md)和组织协议，不另建任务数据库。本文不是安装、入网、派发或扩大权限的执行授权；具体任务复用其有效授权，不重复确认已经获准的步骤。
 
-2026-11-01 编制的[多项目协作迭代指引](collaboration-iteration-guide.md)维护后续搭建次序、优化取舍和多项目验收。本文保留通信选型及研究快照；资源配置可升级，具体采用仍需按实际接口与授权验证。
+2026-11-01 编制的[多项目协作迭代指引](collaboration-iteration-guide.md)维护后续搭建次序、资源整合、优化取舍和多项目验收。Codex Cloud 与机器两类后端共用任务间无隐式业务状态的执行契约，运行实例、宿主资产及控制层仍按真实状态管理。本文聚焦机器侧通信选型并保留研究快照；Codex Cloud 不要求经过 Herdr／hc，不能把下文机器通信图当整套执行架构。资源配置可升级，具体采用仍需按实际接口与授权验证。
+
+当前分工已选 mac-work 承载 Codex 项目 Lead，VPS 收窄为 hc／SSH 控制与原执行查询，执行机保管实际工作进程及本地资产；不再默认在 VPS 常驻项目规划 Codex。完整图和[各端组件](architecture.md#各端组件清单)以架构为准；本文下方通信图及固定版本判断保留原研究范围，不能据其简图跳过 Mac 依赖和授权核验。Mac 仅通过 SSH 调用 VPS 原入口时无需本地 hc，Cloud 也不因此必须安装 Herdr；两端如需额外能力再按实际接口采用。
+
+Space 资料协作与机器控制分开接线：Dot 以及任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 可直接读写相应获准资料，不把 Dot 设为云任务资料的必经中转。Space 工具不等于 VM 文件挂载，也不继承 hc 通知语义；实际工具、资源权限、唯一写者及报告承接按上述迭代指引核验。
 
 ## 1. 当前建议与理由
 
@@ -99,7 +103,7 @@ flowchart TD
 
 ### 启动配置与状态报告
 
-core 只保存程序报告的 OSC 7501 状态。模板不安装 Agent，也不自动配置状态报告；`ready: quiet` 只是等待启动输出安静，不会产生 Agent 状态。无状态的长驻交互程序不能直接套用 Agent 的等待语义。[模板条件](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/templates.md#L62-L88)
+core 只保存程序报告的 OSC 7501 状态。模板不安装 Agent，也不自动配置状态报告；`ready: quiet` 只是等待启动输出安静，不会产生 Agent 状态。未报告状态的长驻交互程序不能直接套用 Agent 的等待语义；这与上文任务间无隐式业务状态是不同含义。[模板条件](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/templates.md#L62-L88)
 
 该源码快照的内嵌手册要求 Codex 使用 `--no-daemon`，包括模板，否则命令可能在 hc 之外执行。这是该路线的待核适配条件，不是可以机械附加到任意 Codex 版本的默认参数。核对实际 CLI 支持、执行位置，以及 win-work 的 `codex over Claude` 供应商、模型、认证和权限映射；不得静默替换。[固定手册](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/SKILL.md)
 

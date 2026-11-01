@@ -1,6 +1,6 @@
 # herdr-4-codexcloud
 
-面向云端 Dot 与执行机器的 Herdr 协作环境仓库。候选路线是 **Tailscale 私有网络＋SSH＋执行机上的 Herdr server**；本仓库维护协作知识、试点指引和离线检查。
+面向多项目的协作环境仓库：**Dot 全局协调 → mac-work 项目 Lead → VPS／hc 轻控制 → 执行机**；Codex Cloud 沿获准云任务入口独立执行。Dot 与实际提供获准 Pages 工具的 Cloud Worker 可直接参与 Space 协作，各机器保管本地资产。本仓维护候选架构、组件清单、资源整合与离线检查，尚未部署或接通新链路。
 
 本仓库独立维护。从 `mymcp-4-codexcloud` 复制的文件已落在本仓库内，运行与检查无需原仓库。复制不继承原仓库的连接、任职、任务或验收结果。
 
@@ -10,8 +10,9 @@
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
 | 理解职责、目录和采用边界 | [架构与范围](docs/architecture.md) |
-| 分阶段搭建并验证多项目协作架构 | [多项目协作迭代指引](docs/collaboration-iteration-guide.md) |
-| 准备轻量 VPS 制作控制端与分阶段接入测试 | [VPS 控制端试点方案](docs/vps-control-pilot.md) |
+| 查询 mac-work、VPS、Cloud 与 win-work 的组件 | [各端组件清单](docs/architecture.md#各端组件清单) |
+| 整合 Worker、协作空间、本地资产并分阶段验证 | [多项目协作迭代指引](docs/collaboration-iteration-guide.md) |
+| 准备 Mac Lead → VPS 轻控制 → 执行机的分阶段接入 | [VPS 控制端试点方案](docs/vps-control-pilot.md) |
 | 选择跨 Agent 通信路线与准备 core 对照试点 | [跨 Agent 通信与协作指引](docs/agent-communication.md) |
 | 准备一次有明确退出条件的真实试点 | [试点指引](docs/pilot.md) · [任务交接模板](docs/templates/pilot-task.md) |
 | 明确岗位、派发、可达汇报与负责人验收 | [组织协作 1.5.2](skill/organization-collaboration/SKILL.md) |
