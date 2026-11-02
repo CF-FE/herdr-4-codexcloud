@@ -28,9 +28,9 @@ flowchart TD
         M["远端机器 · CPU / GPU / 桌面"]
     end
     D --> C
-    A -->|"SSH · 候选私网"| V["可扩容 VPS · 轻量控制"]
+    A -->|"SSH · EasyTier"| V["可扩容 VPS · 轻量控制"]
     V --> H["hc · SSH · 原执行查询"]
-    H -->|"候选私网"| M
+    H -->|"EasyTier"| M
     D <-->|"获准 Pages 工具"| SP["ChatGPT Space<br/>资料 · 交接 · 精选成果"]
     C <-->|"获准 Pages 工具"| SP
     A <-->|"按实际工具授权"| SP
@@ -64,7 +64,55 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 
 ## 各端组件清单
 
-下表区分本分工所需能力和按需组件，先核目标端已有安装与版本，不能把表格当成已部署清单或安装脚本。普通执行账号、允许动作、认证配置和私密落点分别绑定；凭证不进入文档。私网保留 Tailscale 候选基线，EasyTier 作为对照候选，选型与网络细节统一见[独立组网方案](networking-plan.md)，不因画了连接线就自动入网或切换。
+2026-11-02 公子已选定 **EasyTier** 作为三机组网组件。以下是部署准备清单，**必需指能力需具备，已有且满足条件就复用，不表示全部需要新装或已经安装**。普通执行账号、允许动作、认证配置和私密落点分别绑定；凭证不进入文档。网络配置、版本与接入条件统一见[独立组网方案](networking-plan.md)，本轮只整理表格和图，未实施安装或入网。
+
+### 三机部署速查
+
+| 组件 | mac-work：协调 | VPS：轻控制 | win-work：执行 | 用途 |
+| --- | --- | --- | --- | --- |
+| EasyTier core＋cli | 必需 | 必需 | 必需，带匹配驱动／DLL | 三机私网连通；core 运行隧道，cli 查询节点与网络状态 |
+| ChatGPT 桌面应用／本地 Codex | 必需，优先复用 | 不需要 | 本执行路线不需要 | Mac 上承载项目 Lead，接收 Dot 原生委派 |
+| Codex CLI／指定 Agent CLI | 按需：终端 Lead 才需另核 | 不需要 | 必需，复用现有指定 CLI | 实际执行 Agent 任务；Win 保持 `codex over Claude` 原绑定 |
+| herdr-core／hc | 按需：管理 Mac 本地终端才需 | 必需 | 必需，核兼容版本 | VPS 控制／查询 Win 等执行机上的 Agent 终端 |
+| OpenSSH Client | 必需，先核已有 | 必需，先核已有 | 主动 SSH／SSH 方式 Git 等任务才需 | Mac → VPS、VPS → Win 的出站命令与所需传输 |
+| OpenSSH Server／sshd | 本出站路线不需要 | 必需 | 必需 | VPS 接收 Mac，Win 接收 VPS；须有实际账号与访问范围 |
+| Git | 必需 | 按需：本机取仓库才需 | 按项目任务需要 | 获取固定源码、提交和回收变更；不自动复制认证 |
+| 实际 shell | 复用现有 | 复用现有 | 核 sshd 实际 shell；Git Bash 按模板需要 | 执行控制命令与任务脚本，不默认装 PowerShell 7 或 WSL |
+| 制作软件、模型与驱动 | 按本机项目需要 | 本分工不部署 | 复用原有制作环境 | 音频／模型等具体工作及本地资产保管 |
+
+首轮推荐各端使用匹配 OS／CPU 架构的预编译 EasyTier 包；部署目标是 core 与 cli，包内其他工具不因此必须运行。Mac／Win 的 EasyTier GUI 可选；GUI 管理 core 时不再启动一个相同配置的独立 core 实例。Herdr App 只在需要图形化管理本地终端时采用，不要求三端安装；独立 Herdr TUI 不属于本轮组件。[EasyTier 包内程序](https://easytier.cn/en/guide/download.html)、[Windows 包依赖](https://github.com/EasyTier/EasyTier#installation)、[hc 与可选客户端](https://herdr.dev/core/)
+
+VPS 本轮不安装 Codex CLI、桌面应用、EasyTier Web 管理台或新的数据库；Mac 桌面 Codex 路线也不因本表额外要求 Codex CLI。Node／Python／Rust 不是三机网络的统一前置，Agent 自身所需运行时按实际版本准备。日志轮转、执行索引、备份与系统服务复用 OS 机制；持久服务在对应运行阶段准备，不把 NSSM／serviceman 等第三方服务工具列为通用必装项。
+
+### 三机组件与调用图
+
+```mermaid
+flowchart LR
+    D["Dot"] -->|"原生电脑入口"| M
+    subgraph E["EasyTier 三机私网 · 已选型，接入待验"]
+        direction LR
+        M["Mac · 项目协调<br/>桌面 Codex · Git · SSH 客户端"]
+        V["VPS · 轻控制<br/>hc · SSH 客户端＋服务端"]
+        W["Win · 任务执行<br/>hc · sshd · 指定 Agent CLI"]
+        M -->|"SSH 调用 hc"| V
+        V -->|"SSH / hc"| W
+    end
+    W --- L["本地制作环境与资产"]
+```
+
+三台均运行 EasyTier core；图中箭头为唯一控制链路，不要求所有数据必经 VPS。Dot 的原生入口不由 EasyTier 代替；Cloud 保留独立执行与获准资料工具，本轮不接入 VPN。VPS 无需 Codex CLI，Mac 仅 SSH 调用 VPS hc 时无需本地 hc。
+
+### 部署顺序与准备项
+
+| 顺序 | 公子部署时准备什么 | 应核对的结果 |
+| --- | --- | --- |
+| 1 | 记录三端 OS／CPU、实际剩余资源、已有组件、现有 VPN／代理；保留 Win 原 Agent／模型环境 | 安装包匹配；已有工具能复用，未确认项有明确落点 |
+| 2 | 按[组网方案](networking-plan.md)准备三端 EasyTier、虚拟地址、节点身份、私有模式与访问策略 | 两段网络及拒绝路径可核验，Dot 原生入口前后对照；不把 ping 当 SSH 或业务通过 |
+| 3 | 准备 Mac SSH 客户端、VPS 双向 SSH、Win sshd，以及各段账号／host key／目录权限 | Mac → VPS、VPS → Win 的实际命令和退出码可回读 |
+| 4 | 准备 VPS／Win 兼容 hc，核 Win 实际 shell 与指定 Agent 启动映射 | 控制落在准确机器和原生运行引用，保留原供应商／模型／认证／权限 |
+| 5 | 先跑获准的小任务闭环，再准备持续运行、日志／备份和多项目负载 | 按[VPS T0–T8](vps-control-pilot.md#6-2026-11-02-测试清单)分别报告；未知结果查原任务，不自动重派 |
+
+Linux VPS 本身需要通过 EasyTier 虚拟地址主动 SSH 到 Win，普通 TUN 模式需核 `/dev/net/tun` 和相应权限；纯发现／中继模式不能代替这条主动访问路径。Windows OpenSSH Server 与 Client 分别核，系统现有 PowerShell 不等于 sshd 已采用该 shell；按实际模板再决定是否需要 Git Bash。[EasyTier TUN 条件](https://github.com/EasyTier/easytier.github.io/blob/main/en/guide/network/no-root.md)、[Windows SSH 安装与服务](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)、[Windows SSH 默认 shell](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-server-configuration#configuring-the-default-shell-for-openssh-in-windows)
 
 ### mac-work：项目协调
 
@@ -75,7 +123,7 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 | 项目上下文、组织技能和必要工具连接 | 显式绑定项目、任务、输入、预算与交付；Space／Projects 仅采用该任务实际提供且获准的工具，不从别的聊天继承权限 |
 | Codex CLI | 仅终端运行 Lead 或采用 hc 托管 CLI 进程时需要另核；桌面路线不因此必须额外安装 |
 | 本地 hc、Herdr App | 管理 Mac 本地 Agent 终端时按需采用；Herdr App 是可选客户端。仅 SSH 调用 VPS 的 hc 时，Mac 不要求本地 hc |
-| 私网客户端、工作目录与有界日志 | 私网客户端随选定路径采用；本地上下文与文件按项目授权组织，持久事实不能只留在 Mac 聊天 |
+| EasyTier core／cli、工作目录与有界日志 | 按已选三机网络准备，GUI 可选；本地上下文与文件按项目授权组织，持久事实不能只留在 Mac 聊天 |
 
 ### VPS：轻量执行控制
 
@@ -83,7 +131,7 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 | --- | --- |
 | herdr-core／hc | 本分工的机器控制组件，记录实际二进制与运行中核心版本；不承担项目业务规划 |
 | OpenSSH 服务端与客户端 | 服务端接收 Mac 的获准调用，客户端连接执行机；分别核账号、host key、目录和命令范围 |
-| 选定的私网组件 | 采用 Tailscale 路线时需相应客户端、路由和访问策略；其他路径不自动补设 |
+| EasyTier core／cli | 本机具有虚拟地址，按两段访问策略控制；如兼任初始连接点／受控中继，另核监听与转发负载，默认不部署 Web 管理台 |
 | 轻执行索引、日志轮转、缓存上限与必要备份配置 | 复用已有持久目录及 OS 管理机制，保留原生执行引用、未决效果与报告承接，不新建业务任务平台 |
 | Codex／桌面应用 | 基线不要求常驻项目 Lead、协调 Codex 或桌面应用；将来新增运行组件需有具体任务价值与执行授权 |
 
@@ -106,7 +154,7 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 | 指定 Agent CLI 及启动配置 | 仅按现有任务需要配置；win-work 的 `codex over Claude` 供应商、模型、认证和权限保持原绑定，不默认换成官方登录或其他供应商 |
 | Git 与实际 shell | 代码任务按项目需要具备 Git；模板需要 sh／Git Bash 时另核。核原生 PowerShell、路径和 core 版本兼容，不默认迁移 WSL |
 | 原有制作工具、模型、驱动与本地资产目录 | 音频制作及模型继续归 win-work；只按现有模型实际需要核版本与资源，记录原件、产物、检查点、日志和当前写者，不全量搬到 VPS／Space |
-| 选定私网客户端与有界运行配置 | 随获准网络路径采用；明确目录、日志／缓存上限和资源占用。其他执行机按各自 OS 与任务准备，不机械复制 Windows 配置 |
+| EasyTier core／cli 与有界运行配置 | 使用匹配 Windows 包及驱动／DLL，GUI 可选；明确目录、日志／缓存上限和资源占用。其他执行机按各自 OS 与任务准备，不机械复制 Windows 配置 |
 
 ### SSH 依赖与已有组件复用
 
@@ -131,7 +179,7 @@ hc 提供 SSH 远端管理，默认仍调用系统 SSH 客户端。2026-11-01 �
 
 机器支路只按需连通 **mac-work → VPS、VPS → win-work**，不要求同一物理局域网，也不默认新增 Mac → Win 控制入口。组网层、系统 SSH、hc 控制分层保留；网络可达不代替账号、目录和任务权限。
 
-Tailscale／EasyTier 对照、身份与中继边界、各端网络准备、效率和 Dot 影响统一维护在[独立组网方案](networking-plan.md)，本节保留原锚点。两种方案均未接入；不承诺组网必然提速或 Dot 零影响，不默认采用出口节点、全局 DNS 覆盖或双网桥。当前只比较三机，Cloud VPN 不参与选型或验收，Cloud 的独立执行分工保留。
+EasyTier 已由公子选定，身份与中继边界、各端网络准备、效率和 Dot 影响统一维护在[独立组网方案](networking-plan.md)，本节保留原锚点及早期对照来源。实际安装与接入未验，不承诺组网必然提速或 Dot 零影响，不默认采用出口节点、全局 DNS 覆盖或双网桥。Cloud VPN 不参与本轮部署或验收，Cloud 的独立执行分工保留。
 
 ## Mac 离线时的边界
 

@@ -1,6 +1,6 @@
 # 多项目协作架构迭代指引
 
-版本：0.5；编制日期：2026-11-01（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Dot 全局协调，mac-work 承载各项目 AI Lead，VPS 保留轻量控制与查询，Cloud／远端 Worker 执行具体任务。两类 Worker 按任务间无隐式业务状态设计；Dot 和实际提供获准 Pages／Space 工具的 Cloud Worker 均可直接访问其获准资料。任务记录和资产持久保存，运行实例的真实状态仍须追踪。单项目闭环不代表多项目验收通过；VPS 配置可升级，起始规格不是架构上限。**
+版本：0.6；编制日期：2026-11-01，修订日期：2026-11-02（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Dot 全局协调，mac-work 承载各项目 AI Lead，VPS 保留轻量控制与查询，Cloud／远端 Worker 执行具体任务。两类 Worker 按任务间无隐式业务状态设计；Dot 和实际提供获准 Pages／Space 工具的 Cloud Worker 均可直接访问其获准资料。任务记录和资产持久保存，运行实例的真实状态仍须追踪。单项目闭环不代表多项目验收通过；VPS 配置可升级，起始规格不是架构上限。**
 
 本文沉淀搭建次序、取舍与验证方法，不授权部署、登录、入网、真实派发、定时监控或业务切换。新增机制是待按具体任务采用和验证的工程建议，不宣称已经实现。当前状态只记在[本仓状态](status.md)；各项目业务状态仍在各自正式入口，本文不维护第二份活动队列。
 
@@ -12,8 +12,8 @@
 | 组织岗位、授权、单写、汇报和验收 | [组织技能](../skill/organization-collaboration/SKILL.md)，不在本文另写一套规范 |
 | Herdr／hc 与其他通信路线的能力、来源及限制 | [通信指引](agent-communication.md)；研究日期和目标端版本分列 |
 | VPS 接入、机器环境与首轮运行检查 | [VPS 试点](vps-control-pilot.md)；TUI 命令沿[原试点](pilot.md) |
-| mac-work、VPS、Cloud 和执行机各装什么 | [架构中的各端组件清单](architecture.md#各端组件清单)；清单不代表已安装 |
-| 三机网络选型、效率、Dot 影响与候选对照 | [独立组网方案](networking-plan.md)；Tailscale 基线与 EasyTier 对照均待验证 |
+| mac-work、VPS、Cloud 和执行机各装什么 | [三机部署表与用途](architecture.md#三机部署速查)、[详细组件](architecture.md#各端组件清单)；清单不代表已安装 |
+| 三机网络、效率、Dot 影响与早期对照 | [独立组网方案](networking-plan.md)；公子已选 EasyTier，部署／接入待验 |
 | 算力、协作空间、本地资产、方法与权限怎样组合 | 本文的资源分工、访问路径和状态归属；原记录仍由各自保管方维护 |
 | 本次任务的目标、执行绑定与证据 | 复用[任务模板](templates/pilot-task.md)及原项目记录，只补必要缺项 |
 | 场景评阅与旧路线资料交接 | [评测资料](organization-collaboration/README.md)；接收资料不等于已执行评测 |
@@ -34,9 +34,9 @@ flowchart TD
         M["远端机器 · CPU / GPU / 桌面"]
     end
     D --> C
-    A -->|"SSH · 候选私网"| V["可扩容 VPS · 轻量控制"]
+    A -->|"SSH · EasyTier"| V["可扩容 VPS · 轻量控制"]
     V --> H["hc · SSH · 原执行查询"]
-    H -->|"候选私网"| M
+    H -->|"EasyTier"| M
     D <-->|"获准 Pages 工具"| SP["ChatGPT Space<br/>共享资料 · 交接 · 精选成果"]
     C <-->|"获准 Pages 工具"| SP
     A <-->|"按实际工具授权"| SP
@@ -58,7 +58,7 @@ flowchart TD
 
 图是已选分工的待验证连接设计，不表示已部署或已任命任何人。AI Lead 与业务验收者分列；Space 工具线都以实际工具和资源权限为前提，Cloud 不必经 Mac、Dot 或 VPS 转述资料。Cloud 的任务派发目前仍沿已获准 Dot 入口；Mac Lead 的规划不自动取得另一个派发入口。
 
-机器支路只按需连通 Mac → VPS、VPS → 执行机；Dot 仍走原生电脑连接，当前暂不考虑 Cloud 连接 VPN。EasyTier／Tailscale 取舍、效率及 DNS／出口对 Dot 的影响统一见[独立组网方案](networking-plan.md)，Cloud VPN 不计入本轮权重，不把候选对照当切换、必然提速或全端授权。
+机器支路只按需连通 Mac → VPS、VPS → 执行机；Dot 仍走原生电脑连接，当前暂不考虑 Cloud 连接 VPN。公子已选 EasyTier，网络准备、效率及 DNS／出口对 Dot 的影响统一见[独立组网方案](networking-plan.md)；选型确认不代表已经安装、接通或必然提速，不扩大其他任务权限。
 
 | 位置 | 负责 | 边界 |
 | --- | --- | --- |

@@ -10,8 +10,9 @@
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
 | 理解职责、目录和采用边界 | [架构与范围](docs/architecture.md) |
-| 查询 mac-work、VPS、Cloud 与 win-work 的组件 | [各端组件清单](docs/architecture.md#各端组件清单) |
-| 比较 EasyTier／Tailscale，准备三机网络与验收 | [独立组网方案与选型对照](docs/networking-plan.md) |
+| 按机器查要装什么、用途与部署顺序 | [三机部署表](docs/architecture.md#三机部署速查) · [组件图](docs/architecture.md#三机组件与调用图) |
+| 查询 mac-work、VPS、Cloud 与 win-work 的详细组件 | [各端组件清单](docs/architecture.md#各端组件清单) |
+| 准备已选 EasyTier 网络与验收，查早期对照 | [独立组网方案](docs/networking-plan.md) |
 | 整合 Worker、协作空间、本地资产并分阶段验证 | [多项目协作迭代指引](docs/collaboration-iteration-guide.md) |
 | 准备 Mac Lead → VPS 轻控制 → 执行机的分阶段接入 | [VPS 控制端试点方案](docs/vps-control-pilot.md) |
 | 选择跨 Agent 通信路线与准备 core 对照试点 | [跨 Agent 通信与协作指引](docs/agent-communication.md) |
@@ -30,7 +31,7 @@ python3 scripts/check_repository.py
 python3 -m unittest discover -s tests -v
 ```
 
-检查器验证分类、入口文档、ID 和入口符号链接；测试覆盖检查器与随附的离线迭代日期脚本。它们不连接 Herdr、Tailscale、SSH 或 GitHub。
+检查器验证分类、入口文档、ID 和入口符号链接；测试覆盖检查器与随附的离线迭代日期脚本。它们不连接 Herdr、EasyTier、Tailscale、SSH 或 GitHub。
 
 ## 目录
 
