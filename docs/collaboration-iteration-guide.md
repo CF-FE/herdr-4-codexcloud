@@ -13,6 +13,7 @@
 | Herdr／hc 与其他通信路线的能力、来源及限制 | [通信指引](agent-communication.md)；研究日期和目标端版本分列 |
 | VPS 接入、机器环境与首轮运行检查 | [VPS 试点](vps-control-pilot.md)；TUI 命令沿[原试点](pilot.md) |
 | mac-work、VPS、Cloud 和执行机各装什么 | [架构中的各端组件清单](architecture.md#各端组件清单)；清单不代表已安装 |
+| 三机网络选型、效率、Dot 影响与候选对照 | [独立组网方案](networking-plan.md)；Tailscale 基线与 EasyTier 对照均待验证 |
 | 算力、协作空间、本地资产、方法与权限怎样组合 | 本文的资源分工、访问路径和状态归属；原记录仍由各自保管方维护 |
 | 本次任务的目标、执行绑定与证据 | 复用[任务模板](templates/pilot-task.md)及原项目记录，只补必要缺项 |
 | 场景评阅与旧路线资料交接 | [评测资料](organization-collaboration/README.md)；接收资料不等于已执行评测 |
@@ -57,7 +58,7 @@ flowchart TD
 
 图是已选分工的待验证连接设计，不表示已部署或已任命任何人。AI Lead 与业务验收者分列；Space 工具线都以实际工具和资源权限为前提，Cloud 不必经 Mac、Dot 或 VPS 转述资料。Cloud 的任务派发目前仍沿已获准 Dot 入口；Mac Lead 的规划不自动取得另一个派发入口。
 
-机器支路的候选私网采用 Tailscale 时，只按需连通 Mac → VPS、VPS → 执行机；Dot 仍走原生电脑连接，Cloud 按需入网。效率、直连／中继及 DNS／出口对 Dot 的影响统一见[三机网络取舍](architecture.md#三机连通效率与-dot)，不把组网当必然提速或全端授权。
+机器支路只按需连通 Mac → VPS、VPS → 执行机；Dot 仍走原生电脑连接，当前暂不考虑 Cloud 连接 VPN。EasyTier／Tailscale 取舍、效率及 DNS／出口对 Dot 的影响统一见[独立组网方案](networking-plan.md)，Cloud VPN 不计入本轮权重，不把候选对照当切换、必然提速或全端授权。
 
 | 位置 | 负责 | 边界 |
 | --- | --- | --- |
@@ -159,9 +160,9 @@ flowchart TD
 | 当前会话 ↔ Space | 本会话有 Pages 读写和有限文件引用工具；已只读列举可见 Spaces，两页均无条目，本轮未上传或编辑 | 未定位目标 Space，不推出资源不存在。当前文件上传工具单次上限 10 MiB，读取有独立格式／大小限制；这是工具范围，不是对平台容量的判定 |
 | Cloud／机器 Worker ↔ 源码与资料 | 源码沿获准仓库固定 commit；Space 资料可由有工具及资源权限的执行端直接读取，其余按任务交付必要文件／可读引用 | 不默认任务可读取任何私人 Space；本会话连接不自动安装到 VPS CLI 或其他任务。工具不具备时先保留该分支边界，按原任务已约定且获准的交接路径处理，不擅自换入口 |
 | VPS ↔ 机器本地存储 | 沿实际授权且已验证的 hc 文件接口或 SSH 文件传输通道，按任务查询／交接必要对象 | 私网、身份、路径和读写权限逐边验证；链路尚未接通，不在本轮执行文件搬运 |
-| Cloud ↔ 私网服务／机器 | 官方云环境支持配置 Tailscale，并说明 SSH 等 TCP 访问需使用该环境的 HTTP CONNECT 代理；可作为有需要时的定向访问候选 | 需核账号入口、已发布环境、路由、IPv4、客户端代理适配与服务身份。不是 Dot 无头 VPS 接入证明，也不默认绕过原控制者去操作同一执行 |
+| Cloud ↔ 私网服务／机器 | 当前暂不考虑 Cloud 连接 VPN，不准备该访问边 | 不作为三机选型、组件或验收条件；Cloud 独立工作沿既定入口继续，未来有实际需求再评估 |
 
-官方 Space 的页面和原件权限分别判断：能读页面不保证能读链接文件，Space／父页共享可能向下继承。按项目权限组织可共享摘要和原件引用，不把私密原文复制到一个对所有项目开放的总页。[权限继承](https://learn.chatgpt.com/docs/space/collaboration#understand-inherited-access)、[Space 中使用 Agent](https://learn.chatgpt.com/docs/space/agents)、[Cloud 私网与 TCP 条件](https://learn.chatgpt.com/docs/environments/cloud-environments#private-networking-vpn)
+官方 Space 的页面和原件权限分别判断：能读页面不保证能读链接文件，Space／父页共享可能向下继承。按项目权限组织可共享摘要和原件引用，不把私密原文复制到一个对所有项目开放的总页。[权限继承](https://learn.chatgpt.com/docs/space/collaboration#understand-inherited-access)、[Space 中使用 Agent](https://learn.chatgpt.com/docs/space/agents)
 
 插件可用或已安装、分享管理开启都不等于具体 app 动作或文件访问已获准；连接账号决定其可访问范围。[官方 Space 账号与工具权限](https://learn.chatgpt.com/docs/enterprise/chatgpt-space#plugins-and-connected-accounts)
 

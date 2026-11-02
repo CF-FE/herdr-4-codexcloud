@@ -64,7 +64,7 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 
 ## 各端组件清单
 
-下表区分本分工所需能力和按需组件，先核目标端已有安装与版本，不能把表格当成已部署清单或安装脚本。普通执行账号、允许动作、认证配置和私密落点分别绑定；凭证不进入文档。候选私网沿 Tailscale，需要采用时再按各端有效授权配置，不因画了连接线就自动入网。
+下表区分本分工所需能力和按需组件，先核目标端已有安装与版本，不能把表格当成已部署清单或安装脚本。普通执行账号、允许动作、认证配置和私密落点分别绑定；凭证不进入文档。私网保留 Tailscale 候选基线，EasyTier 作为对照候选，选型与网络细节统一见[独立组网方案](networking-plan.md)，不因画了连接线就自动入网或切换。
 
 ### mac-work：项目协调
 
@@ -94,7 +94,7 @@ Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都�
 | 可访问的已发布 Cloud 环境 | 绑定实际仓库、输入版本、工具和运行条件；保存配置可列举／runnable 不等于本仓任务已验证 |
 | 项目依赖、仓库技能与任务检查命令 | 在环境与任务中准备所需运行时和依赖；本仓离线检查仅需 Python 3.10+ 标准库，其他业务按项目确定，不默认搬入整台 Mac 配置 |
 | Git／GitHub 权限与 Pages／MCP 等工具 | 源码沿固定版本；Space 仅在任务实际提供工具且目标资源允许时直接读写，插件可用不代替账号及资源授权 |
-| 私网／SSH 访问 | 只有任务确需访问私网服务时才按官方环境配置 Tailscale、代理适配和服务身份；不是默认前置 |
+| 私网／SSH 访问 | 按当前范围暂不考虑 Cloud 连接 VPN，不纳入三机选型、组件准备和验收；Cloud 保留独立仓库与获准工具路径 |
 | Herdr、桌面应用、额外 Codex CLI | 通常不为普通 Cloud Worker 再部署这些组件；使用平台托管任务及原生查询／成果能力，不把云任务当 VPS 常驻控制进程 |
 
 ### win-work／其他执行机：具体执行
@@ -117,7 +117,7 @@ hc 提供 SSH 远端管理，默认仍调用系统 SSH 客户端。2026-11-01 �
 | mac-work | SSH 客户端，向 VPS 发起调用；不为这条出站路径额外要求 Mac 的 SSH 服务端 |
 | VPS | SSH 服务端接收 Mac；SSH 客户端连接 win-work／其他机器，两个方向分别核验 |
 | win-work | SSH 服务端 `sshd` 接收 VPS；仅作为被连接执行机时，不因此强制额外准备出站 SSH 客户端 |
-| Codex Cloud | 只有任务需要主动访问 SSH 服务时才核客户端、代理适配和服务身份；普通云任务不以 SSH 为默认前置 |
+| Codex Cloud | 本轮不准备 Cloud 的私网／SSH 接入；普通云任务不以 SSH 为默认前置 |
 
 “需要”指对应能力可用，不是每端重复安装一套软件。先核 OS／镜像已有组件与版本，已有且满足条件就复用；缺失时才在获授权的环境准备任务中补齐。安装 hc 不自动安装或启用 OpenSSH／sshd，`hc machine add --install` 的作用是允许复制目标 hc，不能代替 SSH 服务准备。[机器接入与 hc 复制](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/docs/machines.md#L18-L23)
 
@@ -129,15 +129,9 @@ hc 提供 SSH 远端管理，默认仍调用系统 SSH 客户端。2026-11-01 �
 
 ### 三机连通、效率与 Dot
 
-机器支路需要 **mac-work → VPS、VPS → win-work** 两段获准互通，不要求三台位于同一物理局域网，也不默认开放 Mac → Win。Tailscale 是推荐试点的私网候选：三端加入同一获准 tailnet，按来源、目标和实际 SSH 端口配置访问策略；已有可用私网也可复用。这两段是本方案的调用与授权边界，Tailscale 不自动将 Mac → Win 流量强制经过 VPS，也不因入网就已限制成两段。网络可达、SSH 账号与资产权限分别核验，同网不代表全端互信。[Tailscale 接入](https://tailscale.com/docs/how-to/quickstart)、[访问控制](https://tailscale.com/docs/features/access-control)
+机器支路只按需连通 **mac-work → VPS、VPS → win-work**，不要求同一物理局域网，也不默认新增 Mac → Win 控制入口。组网层、系统 SSH、hc 控制分层保留；网络可达不代替账号、目录和任务权限。
 
-基线采用 **Tailscale IP 连通 + 系统 OpenSSH + hc 控制**；无需为三台客户端互通额外引入出口节点或子网路由。Tailscale SSH 是另一个改变 SSH 认证／授权方式的可选功能，不随组网默认启用，也不能代替 Windows 的 OpenSSH Server。本分工保留原 SSH 身份与唯一控制入口；普通 Codex Cloud Worker 不强制入网，确需访问私网时按其环境单独配置。[普通 SSH 与 Tailscale SSH 的区别及平台限制](https://tailscale.com/docs/features/tailscale-ssh#how-is-tailscale-ssh-different)
-
-收益先看可达性与连接维护成本，**不承诺组网必然提速**。Tailscale 直连通常比中继延迟低、吞吐高；无法直连时可能经 DERP 或 peer relay，最终速度还受两端网络、VPS 带宽和负载影响。命令／状态回读与大文件传输分别测；前者以请求回读耗时和失败率为准，后者只传任务需要的对象，不把模型与原件全量绕经 VPS。试点记录实际直连／中继、传输量、吞吐和资源占用，再决定是否优化路径。[连接类型与性能](https://tailscale.com/docs/reference/connection-types)
-
-Dot → Mac 继续使用平台原生电脑连接，不把 Dot 当作 tailnet 内的第四台机器。官方要求本地计算机在线、ChatGPT 应用运行且访问已开启；Mac 的 VPN 和登录不会自动延伸到 Dot 云端。[Dot 本地接入与 VPN 边界](https://learn.chatgpt.com/docs/enterprise/dots-admin-guide#access-and-eligibility)
-
-按官方默认路由说明，Tailscale 只承载设备间私网流量，普通公网流量不经过它。因此本试点建议保留原公网出口和代理，不选择 exit node，不启用全局 DNS 覆盖；私网名称解析按需核验。DNS、地址／路由重叠或与已有 VPN 的冲突仍可能影响 Dot 连通，不能保证零影响。后续获准实施时，对照入网前后的 Dot 原生任务回读、登录与普通联网，再分别验证两段 SSH；今天只补方案，不修改网络。[出口路由](https://tailscale.com/docs/features/exit-nodes)、[DNS 设置](https://tailscale.com/docs/reference/dns-in-tailscale)、[与其他 VPN 共存](https://tailscale.com/docs/reference/faq/other-vpns)
+Tailscale／EasyTier 对照、身份与中继边界、各端网络准备、效率和 Dot 影响统一维护在[独立组网方案](networking-plan.md)，本节保留原锚点。两种方案均未接入；不承诺组网必然提速或 Dot 零影响，不默认采用出口节点、全局 DNS 覆盖或双网桥。当前只比较三机，Cloud VPN 不参与选型或验收，Cloud 的独立执行分工保留。
 
 ## Mac 离线时的边界
 
