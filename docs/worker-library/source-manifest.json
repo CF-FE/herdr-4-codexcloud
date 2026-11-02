@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "handoff_id": "roles-111-to-herdr-20261102",
+  "source_repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+  "source_commit": "02e6ca4c1cb201904abd2ef2f107f6dce957e051",
+  "source_library_version": "1.1.1",
+  "receiver_library_version": "1.0.0",
+  "import_date": "2026-11-02",
+  "source_scope": "role knowledge only; no runtime bindings or acceptance inherited",
+  "files": [
+    {
+      "source_path": "skill/lody4dot/references/roles/common.md",
+      "source_bytes": 2412,
+      "source_sha256": "c1144b434237b53302eeeddc576e3a065bf5da9df40dd35bbeb50f78f80fb7b8",
+      "source_git_blob": "99a6983a987d55b0f7cde86edf35bdbfda3ecf2b",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/common.md",
+      "initial_receiver_sha256": "77d79c50999bd52871b4c034fded38230b2cdaaff67209377fffefd0d442461a",
+      "adaptations": [
+        "改为本仓职责知识与只读组装合同，移除Lody Save、旧模型顺序及平台发布习惯。",
+        "组织协议链接改接本仓skill；明确组织导航不可选择或准备、实际任命及授权决定正式写权。",
+        "区分静态能力要求与运行证据，来源推理强度仅作历史；外部项目依赖保持UNKNOWN。",
+        "补充共同合同、角色、项目与本库独立版本维护和CHANGELOG规则；paused／retired不进入新选择或准备，不抹除旧只读引用，不自动同步或升级在途执行。"
+      ]
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/index.json",
+      "source_bytes": 11335,
+      "source_sha256": "4824af9c0806091dc24f04089ab15333939060bae8275713a3b5d9f77c96b835",
+      "source_git_blob": "4b145f46ce6995f5a75bc00f8906928efafd531c",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/index.json",
+      "initial_receiver_sha256": "1fc67168c2c172d7f85b39156b54da3829a643166ffc0830843fc3cd73daceeb",
+      "adaptations": [
+        "接收库独立定为1.0.0，新增common.version、各角色definition_version、requirements与lifecycle=active、项目version。",
+        "保留全部11来源角色ID、source_role_id、kind、project_id和10项未随包可选方法；两组织导航dispatchable=false，其余为true。",
+        "新增本地software_implementation与artifact_processing，标记local来源；导航摘要说明只读边界。",
+        "当前导入来源固定为02e6ca4c1cb201904abd2ef2f107f6dce957e051的1.1.1；原V2.2祖先provenance完整嵌套保留。"
+      ]
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/projects/fanren-audio-production.md",
+      "source_bytes": 3255,
+      "source_sha256": "7fad9d436515b9ba0d9f11f199b15dc099a026d4e9c44f506a7d65ea6022f904",
+      "source_git_blob": "0588227a9b6ef680d4ced33350e0a731e34ef5f3",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/projects/fanren-audio-production.md",
+      "initial_receiver_sha256": "7fad9d436515b9ba0d9f11f199b15dc099a026d4e9c44f506a7d65ea6022f904",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/projects/fanren-canon-story.md",
+      "source_bytes": 1881,
+      "source_sha256": "c1a0c313efded8f5dc5db6b0107480aceb0b7e70532b828aec49aaba720cca2b",
+      "source_git_blob": "8ba7a2db73865d4f3c18a344790c1478ef07112f",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/projects/fanren-canon-story.md",
+      "initial_receiver_sha256": "c1a0c313efded8f5dc5db6b0107480aceb0b7e70532b828aec49aaba720cca2b",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/projects/fanren-owner.md",
+      "source_bytes": 2691,
+      "source_sha256": "9e47e5761017cd63dbbf8f448be26c632e99833aff3b40b22b0febe00cbbe260",
+      "source_git_blob": "c9d1ea0536fd7c5317ddd87cc6a61bbe93016aea",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/projects/fanren-owner.md",
+      "initial_receiver_sha256": "c4e160dc2f83f25c101619de68f300c711d1aa79dc5556d8bb49fc95f0b8e152",
+      "adaptations": [
+        "两个组织协议链接改接本仓skill，兼容ID只作只读导航，禁止Worker选择或任务准备。",
+        "G8及第二人称隐含写权改为当前report_to/report_route与实际任命、精确授权；保留项目特有生产、审定、恢复与阶段约束。"
+      ]
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/projects/fanren-script-performance.md",
+      "source_bytes": 2142,
+      "source_sha256": "f38f7c271e6acb5de59c1a473be234cd02d1afbf9117af1751d2bcd4c5b43db8",
+      "source_git_blob": "bbaa54292989a6e11f08948b700f56693d9ab989",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/projects/fanren-script-performance.md",
+      "initial_receiver_sha256": "f38f7c271e6acb5de59c1a473be234cd02d1afbf9117af1751d2bcd4c5b43db8",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/projects/fanren-work.md",
+      "source_bytes": 3275,
+      "source_sha256": "ad2d642109e038e60b5f98c827e7367528c783f1004624f45997bc3c2bf8ea41",
+      "source_git_blob": "4958d7e017dde21777948a9b93730d3a69d1fd45",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/projects/fanren-work.md",
+      "initial_receiver_sha256": "ad2d642109e038e60b5f98c827e7367528c783f1004624f45997bc3c2bf8ea41",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/coordinator.md",
+      "source_bytes": 891,
+      "source_sha256": "4d1fc0840815941e1cc99eb35797251344cc5d8a638254361ab88bf8eb3099e4",
+      "source_git_blob": "5900208a8d1ad7e807e69e2907c6fe64c203dd89",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/coordinator.md",
+      "initial_receiver_sha256": "695f604ed74c6e985fb85fd17d0f1fb3095a64c3f2b02c1d048decf033f3e3ed",
+      "adaptations": [
+        "两个组织协议链接改接本仓skill路径。",
+        "明确旧ID仅供只读组织导航、禁止Worker选择或任务准备；职责关系来自当前任务，不承袭源工作区任职或Save流程。"
+      ]
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/dialectic.md",
+      "source_bytes": 1937,
+      "source_sha256": "a8e1004244361405340983316a8699fba835da305f6051fb5be7fd90ea5cb7fe",
+      "source_git_blob": "8b174ba3b931d56f6567db959e5b0db2a868701d",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/dialectic.md",
+      "initial_receiver_sha256": "a8e1004244361405340983316a8699fba835da305f6051fb5be7fd90ea5cb7fe",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/knowledge.md",
+      "source_bytes": 948,
+      "source_sha256": "32c0518c29418c2f5e7bb8b75a9a2011a1a129375919c592d6a630853829f7a7",
+      "source_git_blob": "129149ee95611e45a4e46d853763aef1a3392e32",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/knowledge.md",
+      "initial_receiver_sha256": "32c0518c29418c2f5e7bb8b75a9a2011a1a129375919c592d6a630853829f7a7",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/quality.md",
+      "source_bytes": 1194,
+      "source_sha256": "96950ddd10c6a9594ac586a5180f6a68b3aae8f74e7c2e56a5c3d383fb78649a",
+      "source_git_blob": "5da42849ff6790fa5bbaae39db7b6266e345fe88",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/quality.md",
+      "initial_receiver_sha256": "b403759159d5b95d4dd2bf21154de85a634c6bc59d62decbfa414420ed33b181",
+      "adaptations": [
+        "去除G8中转绑定，质量报告沿当前任务report_to/report_route交实际责任接收者；保留独立QA及完整对象要求。"
+      ]
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/research.md",
+      "source_bytes": 962,
+      "source_sha256": "d1ab9382235024287ea1de6b6bab2df554425feeb652570d90aa7f18ff6b55a2",
+      "source_git_blob": "9bdbbb49e2c9d5b6fdb39e0b8cd843b140206d34",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/research.md",
+      "initial_receiver_sha256": "d1ab9382235024287ea1de6b6bab2df554425feeb652570d90aa7f18ff6b55a2",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/runtime.md",
+      "source_bytes": 1225,
+      "source_sha256": "ebddfc187abb4d9ac1de4a4649acd390f83863f417707dd3e4b52266da6469fb",
+      "source_git_blob": "666921310885c691623dd66a488fcaafcb5436d3",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/runtime.md",
+      "initial_receiver_sha256": "ebddfc187abb4d9ac1de4a4649acd390f83863f417707dd3e4b52266da6469fb",
+      "adaptations": []
+    },
+    {
+      "source_path": "skill/lody4dot/references/roles/workspace/visual.md",
+      "source_bytes": 1041,
+      "source_sha256": "da0e15773516c363d0a3ca1d4cf03bea4199d295649fe75d7577b986f161306b",
+      "source_git_blob": "3628a1072b440be4e7fd92686426f0d8b9569d4a",
+      "source_mode": "100644",
+      "target_path": "docs/worker-library/roles/workspace/visual.md",
+      "initial_receiver_sha256": "da0e15773516c363d0a3ca1d4cf03bea4199d295649fe75d7577b986f161306b",
+      "adaptations": []
+    }
+  ],
+  "local_additions": [
+    {
+      "target_path": "docs/worker-library/roles/workspace/software-implementation.md",
+      "sha256": "566686513f8e8cd4c66d9d379c6f1457c4b5f8a3b2832a5c4582793ec937d678",
+      "origin": "local_authoring",
+      "library_version": "1.0.0",
+      "role_id": "software_implementation",
+      "definition_version": "1.0.0"
+    },
+    {
+      "target_path": "docs/worker-library/roles/workspace/artifact-processing.md",
+      "sha256": "e81298cd214da0723478a55b272c123201c68d0ca9384c3d2e0ea0facfdd0895",
+      "origin": "local_authoring",
+      "library_version": "1.0.0",
+      "role_id": "artifact_processing",
+      "definition_version": "1.0.0"
+    }
+  ],
+  "excluded": [
+    "Lody code, lookup/installers and queues",
+    "execution-policy and native role Save workflows",
+    "credentials, machine/config/session identities and runtime reports",
+    "third-party optional method bodies"
+  ],
+  "verification": "All 14 fixed Git objects independently matched the source owner copy list: byte size, SHA-256, Git blob and mode; receiver adaptations are recorded separately."
+}

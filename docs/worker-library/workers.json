@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "library_version": "1.0.0",
+  "updated_on": "2026-11-02",
+  "role_index": "roles/index.json",
+  "workers": [
+    {
+      "id": "mac-codex",
+      "version": "1.0.0",
+      "name": "Mac Codex 协调与执行模板",
+      "host": "mac-work",
+      "runtime": "herdr-agent",
+      "agent_kind": "codex",
+      "lifecycle": "active",
+      "installation_version": "0.166.0-alpha.5.1",
+      "summary": "在持续在线的 Mac Herdr 内复用应用随附 Codex CLI，按任务承担项目协调、实现或复核。",
+      "intended_tasks": [
+        "项目任务拆解与结果复核",
+        "获准仓库的阅读、修改与检查",
+        "文本和文件成果处理"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform",
+        "visual-inspection"
+      ],
+      "dependencies": [
+        "mac-work 持续在线",
+        "Herdr TUI 0.9.5 与现有 codex 命令入口",
+        "项目目录、现有模型配置及获准认证"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "当前供应商、模型和传输保持 UNKNOWN；不因应用随附 CLI 存在而选择新默认。",
+        "visual-inspection 仅为候选声明，图像输入、相关工具与实际感知能力未验。"
+      ],
+      "backends": [
+        {
+          "id": "current-default",
+          "provider": "UNKNOWN",
+          "model": "UNKNOWN",
+          "transport": "UNKNOWN",
+          "agent_args": [],
+          "dependencies": [
+            "启动前回读现有 provider、model、transport 与认证配置"
+          ],
+          "evidence": {
+            "installation": "PASS",
+            "recognition": "PASS",
+            "text_roundtrip": "NOT_RUN",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "主会话在 mac-work 的 CLI／Herdr 直接回读；本模板未重新执行。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "复用现有 codex 入口，不新增第二套安装或切换供应商。",
+        "定向准确的本地 Herdr session／pane；不操作 focused，不伪造 HERDR_ENV。",
+        "Herdr 已识别类型与就绪状态不等于模型、工具或业务回合通过。"
+      ]
+    },
+    {
+      "id": "mac-kimi",
+      "version": "1.0.0",
+      "name": "Mac Kimi 协调与执行模板",
+      "host": "mac-work",
+      "runtime": "herdr-agent",
+      "agent_kind": "kimi",
+      "lifecycle": "active",
+      "installation_version": "2.4.1",
+      "summary": "在持续在线的 Mac Herdr 内使用既有 Kimi CLI，按项目上下文承接协调、实现或复核。",
+      "intended_tasks": [
+        "项目上下文整理与任务协调",
+        "获准仓库的阅读、修改与检查",
+        "文本和文件成果处理"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform"
+      ],
+      "dependencies": [
+        "mac-work 持续在线",
+        "Herdr TUI 0.9.5 与既有 Kimi CLI 2.4.1",
+        "项目目录、实际供应商配置和获准认证"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "不把 Win Kimi 的模型回合报告转记为 Mac 默认配置已通过。",
+        "既有 MCP／插件发现不代替工具调用或业务验收。"
+      ],
+      "backends": [
+        {
+          "id": "current-default",
+          "provider": "UNKNOWN",
+          "model": "UNKNOWN",
+          "transport": "UNKNOWN",
+          "agent_args": [],
+          "dependencies": [
+            "启动前回读此 Mac 客户端的实际模型别名与认证"
+          ],
+          "evidence": {
+            "installation": "PASS",
+            "recognition": "PASS",
+            "text_roundtrip": "NOT_RUN",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "主会话在 mac-work 的 CLI／Herdr 直接回读；本模板未重新执行。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "复用现有 kimi 入口及默认配置，不通过登录或更换模型补齐未知项。",
+        "显式定向本地 Herdr 目标，保留原任务、输入版本及结果引用。"
+      ]
+    },
+    {
+      "id": "win-omp",
+      "version": "1.0.0",
+      "name": "Win OMP 原生 Harness 模板",
+      "host": "win-work",
+      "runtime": "herdr-agent",
+      "agent_kind": "omp",
+      "lifecycle": "active",
+      "installation_version": "18.15.0",
+      "summary": "复用 Win OMP 的两个已报告文本回合入口，后续按获准任务接入 Mac 原生 Herdr 主链路。",
+      "intended_tasks": [
+        "获准仓库的阅读、修改与检查",
+        "文本分析与成果复核",
+        "按项目依赖处理文件或调用音频工具"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform",
+        "audio-tools"
+      ],
+      "dependencies": [
+        "Win 既有 OMP 18.15.0 与 Herdr TUI 0.9.5",
+        "Mac saved machine 到 Win 的 LAN／SSH 入口",
+        "目标工作目录及项目所需工具"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "两种协议仅有执行侧原生 CLI 短回复报告；Herdr 启动、识别和回收仍未验。",
+        "audio-tools 仅表示宿主工具候选；不声明 Qwen、声线、GPU 模型或音频感知已支持。",
+        "协议与模型逐后端绑定，不由模型目录可见推导其他模型已通过。"
+      ],
+      "backends": [
+        {
+          "id": "cli-proxy-chat",
+          "provider": "cli-proxy-chat",
+          "model": "gpt-6-luna",
+          "transport": "openai-completions",
+          "agent_args": [
+            "--model",
+            "cli-proxy-chat/gpt-6-luna"
+          ],
+          "dependencies": [
+            "mac-work 持续在线及其 CLI Proxy 可用",
+            "Win 到 Mac 代理的 LAN 可达与 OMP 现有凭据"
+          ],
+          "evidence": {
+            "installation": "REPORTED_PASS",
+            "recognition": "NOT_RUN",
+            "text_roundtrip": "REPORTED_PASS",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "Win 执行侧交接报告；主会话未独立核原件或重测，原生 CLI 文本回合未经过 Herdr。",
+          "observed_on": "2026-11-02"
+        },
+        {
+          "id": "cli-proxy-responses",
+          "provider": "cli-proxy-responses",
+          "model": "gpt-6-luna",
+          "transport": "openai-responses",
+          "agent_args": [
+            "--model",
+            "cli-proxy-responses/gpt-6-luna"
+          ],
+          "dependencies": [
+            "mac-work 持续在线及其 CLI Proxy 可用",
+            "Win 到 Mac 代理的 LAN 可达与 OMP 现有凭据"
+          ],
+          "evidence": {
+            "installation": "REPORTED_PASS",
+            "recognition": "NOT_RUN",
+            "text_roundtrip": "REPORTED_PASS",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "Win 执行侧交接报告；主会话未独立核原件或重测，原生 CLI 文本回合未经过 Herdr。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "先核目标 Win Herdr 帮助中的 omp kind、可执行入口与项目目录。",
+        "agent_args 仅选择明确后端，不改变默认权限或自动回退。",
+        "按任务核 FFmpeg、冻结输入、资源锁和产物落点；不得把宿主有工具当作该任务已验证。"
+      ]
+    },
+    {
+      "id": "win-hermes",
+      "version": "1.0.0",
+      "name": "Win Hermes 当前默认模板",
+      "host": "win-work",
+      "runtime": "herdr-agent",
+      "agent_kind": "hermes",
+      "lifecycle": "active",
+      "installation_version": "0.19.0",
+      "summary": "复用公子已指定的 Hermes 当前 CLI Proxy 默认配置，不保留或新增自动回退。",
+      "intended_tasks": [
+        "获准仓库的阅读、修改与检查",
+        "文本分析与成果复核",
+        "按项目依赖处理文件或调用音频工具"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform",
+        "audio-tools"
+      ],
+      "dependencies": [
+        "Win 既有 Hermes 0.19.0 与 Herdr TUI 0.9.5",
+        "Mac saved machine 到 Win 的 LAN／SSH 入口",
+        "目标工作目录及项目所需工具"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "本模板只使用当前 cli-proxy／gpt-6-luna 默认；未知结果不自动换后端或重派。",
+        "原生文本回合的执行侧报告不代替 Herdr 托管、工具或业务验收。",
+        "audio-tools 为宿主工具候选，不推定音频模型、声线、GPU 或感知能力。"
+      ],
+      "backends": [
+        {
+          "id": "current-default",
+          "provider": "cli-proxy",
+          "model": "gpt-6-luna",
+          "transport": "chat_completions",
+          "agent_args": [],
+          "dependencies": [
+            "mac-work 持续在线及其 CLI Proxy 可用",
+            "Hermes 现有专用认证与实际配置落点",
+            "Win 到 Mac 代理的 LAN 可达"
+          ],
+          "evidence": {
+            "installation": "REPORTED_PASS",
+            "recognition": "NOT_RUN",
+            "text_roundtrip": "REPORTED_PASS",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "Win 执行侧交接报告；主会话未独立核原件或重测，原生 CLI 文本回合未经过 Herdr。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "复用 hermes 当前默认，启动前从现有配置定位，不套用另一账户的默认目录。",
+        "先核 Win Herdr 的 hermes kind 与原生回收方式；未验不宣称已托管。",
+        "不写入该版已提示无效的 -t none，不由参数意图宣称工具被禁用。"
+      ]
+    },
+    {
+      "id": "win-kimi",
+      "version": "1.0.0",
+      "name": "Win Kimi 双入口模板",
+      "host": "win-work",
+      "runtime": "herdr-agent",
+      "agent_kind": "kimi",
+      "lifecycle": "active",
+      "installation_version": "2.4.1",
+      "summary": "分列 Win Kimi 官方默认与既有 local-gpt 别名，分别核依赖和授权，不自动切换。",
+      "intended_tasks": [
+        "获准仓库的阅读、修改与检查",
+        "文本分析与成果复核",
+        "按项目依赖处理文件或调用音频工具"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform",
+        "audio-tools"
+      ],
+      "dependencies": [
+        "Win 既有 Kimi CLI 2.4.1 与 Herdr TUI 0.9.5",
+        "Mac saved machine 到 Win 的 LAN／SSH 入口",
+        "目标工作目录及项目所需工具"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "官方入口不依赖 Mac CLI Proxy；仅 local-gpt 分支采用该代理依赖。",
+        "原生 CLI 两个文本回合仅有执行侧报告，Herdr 识别、模型回收及工具调用均未验。",
+        "--model local-gpt 表示配置别名；Win 实际帮助和别名仍须启动前核对，不冒充模型名或 Herdr 验证。",
+        "audio-tools 是工具候选，不推定 Qwen、声线、GPU 模型或音频感知。"
+      ],
+      "backends": [
+        {
+          "id": "official",
+          "provider": "managed:kimi-code",
+          "model": "kimi-for-coding",
+          "transport": "kimi",
+          "agent_args": [],
+          "dependencies": [
+            "Kimi 官方入口现有 OAuth 与网络访问",
+            "保持官方默认模型配置"
+          ],
+          "evidence": {
+            "installation": "REPORTED_PASS",
+            "recognition": "NOT_RUN",
+            "text_roundtrip": "REPORTED_PASS",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "Win 执行侧交接报告；主会话未独立核原件或重测，原生 CLI 文本回合未经过 Herdr。",
+          "observed_on": "2026-11-02"
+        },
+        {
+          "id": "local-gpt",
+          "provider": "local-gpt",
+          "model": "gpt-6.1-sol",
+          "transport": "openai_responses",
+          "agent_args": [
+            "--model",
+            "<VERIFIED_LOCAL_GPT_MODEL_ALIAS>"
+          ],
+          "dependencies": [
+            "mac-work 持续在线及其 CLI Proxy 可用",
+            "Win 到 Mac 代理的 LAN 可达与既有代理凭据",
+            "启动前核 Win Kimi 的真实模型别名；不能把 provider 名或本库 backend ID 当作 CLI 模型别名"
+          ],
+          "evidence": {
+            "installation": "REPORTED_PASS",
+            "recognition": "NOT_RUN",
+            "text_roundtrip": "REPORTED_PASS",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "Win 执行侧交接报告；主会话未独立核原件或重测，原生 CLI 文本回合未经过 Herdr。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "按任务显式选择一个后端，不更改官方默认、不复制各客户端凭据。",
+        "Mac 同版帮助对 --model 的核对不等于 Win 参数或 Herdr 启动已验证。",
+        "启动前核 Win Herdr kimi kind、目录、原生执行引用和结果回收。"
+      ]
+    },
+    {
+      "id": "codex-cloud",
+      "version": "1.0.0",
+      "name": "Codex Cloud 原生任务模板",
+      "host": "codex-cloud",
+      "runtime": "codex-cloud-native",
+      "agent_kind": null,
+      "lifecycle": "active",
+      "summary": "沿获准原生入口使用目标 Cloud 环境独立执行，模型、依赖与工具以实际任务提供范围为准。",
+      "intended_tasks": [
+        "可在获准云环境准备输入和依赖的编码或检查",
+        "仓库资料整理与成果复核",
+        "获准文本和文件成果处理"
+      ],
+      "capabilities": [
+        "text-reasoning",
+        "repository-read",
+        "repository-edit",
+        "shell",
+        "artifact-review",
+        "research",
+        "file-transform"
+      ],
+      "dependencies": [
+        "可访问的目标 Cloud 仓库与已发布环境",
+        "原生任务创建／续接入口及其权限",
+        "任务实际提供的依赖、工具和产物交付能力"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "模板不指定模型，不把保存环境可列举当本次任务已运行。",
+        "不继承 Mac／Dot 的 MCP 或 Space 权限；信箱仅在任务实际提供工具及 OAuth 授权时使用。",
+        "Task Mailbox 提交不创建 Cloud 任务或唤醒 Worker，VPS 与 Herdr 不是 Cloud 执行前置。"
+      ],
+      "backends": [
+        {
+          "id": "existing-environment",
+          "provider": "UNKNOWN",
+          "model": "UNKNOWN",
+          "transport": "UNKNOWN",
+          "agent_args": [],
+          "dependencies": [
+            "预检目标环境的模型配置、运行条件、原生任务引用与工具权限"
+          ],
+          "evidence": {
+            "installation": "NOT_APPLICABLE",
+            "recognition": "UNKNOWN",
+            "text_roundtrip": "NOT_RUN",
+            "herdr_roundtrip": "NOT_APPLICABLE",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "本仓 Cloud 目标设计；尚无此模板绑定的指定云任务执行回执。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "由获准原生 Cloud 入口绑定任务与目标环境，不复制本机 CLI 安装或认证缓存。",
+        "查询原生任务、成果版本与接收者回读；UNKNOWN 不自动换池重做。"
+      ]
+    },
+    {
+      "id": "win-command",
+      "version": "1.0.0",
+      "name": "Win 命令与文件处理模板",
+      "host": "win-work",
+      "runtime": "herdr-pane",
+      "agent_kind": null,
+      "lifecycle": "active",
+      "installation_version": "PowerShell 5.1; Python 3.11.15; FFmpeg 8.1.2",
+      "summary": "在准确 Win Herdr pane 中执行已有获准命令，处理文件或调用宿主音频工具，不隐含模型推理。",
+      "intended_tasks": [
+        "获准 PowerShell／Python 命令与检查",
+        "文件格式转换或小型产物处理",
+        "按项目约定调用已有 FFmpeg 等音频工具"
+      ],
+      "capabilities": [
+        "shell",
+        "file-transform",
+        "audio-tools"
+      ],
+      "dependencies": [
+        "Win 既有 PowerShell、Python、FFmpeg 与 Herdr TUI",
+        "Mac saved machine 到 Win 的 LAN／SSH 入口",
+        "获准命令、冻结输入、目录与产物落点"
+      ],
+      "constraints": [
+        "能力列表是候选声明；模板 active 不表示实时可用，使用前须核目标、权限、依赖与原任务写者。",
+        "工具安装／版本回读不证明具体文件转换或音频产物通过。",
+        "旧 VPS 入口的 shell／双窗格／小文件实测不能充作 Mac 主链路执行通过。",
+        "不默认具备 Qwen、GPU 模型、声线或音频感知；实际依赖、锁和输入按项目预检。"
+      ],
+      "backends": [
+        {
+          "id": "shell",
+          "provider": "NOT_APPLICABLE",
+          "model": "NOT_APPLICABLE",
+          "transport": "NOT_APPLICABLE",
+          "agent_args": [],
+          "dependencies": [
+            "使用现有 shell 与项目配套工具，不临时替换运行环境"
+          ],
+          "evidence": {
+            "installation": "PASS",
+            "recognition": "NOT_APPLICABLE",
+            "text_roundtrip": "NOT_APPLICABLE",
+            "herdr_roundtrip": "NOT_RUN",
+            "tools": "NOT_RUN",
+            "business_acceptance": "NOT_RUN"
+          },
+          "evidence_refs": [
+            "docs/local-agent-inventory.md",
+            "docs/architecture.md"
+          ],
+          "evidence_owner": "主会话 Win 工具版本直接回读；Mac 主链路命令／产物回收仍未验。",
+          "observed_on": "2026-11-02"
+        }
+      ],
+      "launch_notes": [
+        "显式定位真实 machine／session／pane；不使用 focused 或启动第二个入口。",
+        "仅执行任务授权的命令，保存输入摘要、退出码和产物引用；提交输入不等于执行成功。",
+        "按项目核工具参数、资源锁与验收，不将此模板当任意 shell 权限。"
+      ]
+    }
+  ]
+}

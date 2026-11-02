@@ -1,20 +1,50 @@
 # 架构与范围
 
+当前方案修订：2026-11-02。**按公子明确的 Mac 持续在线前提，Mac 的 Herdr 托管项目协调 CLI，并以原生 saved machine／`--machine` 经 LAN／SSH 直连 Win 既有 `collab` session；VPS 承载 FastMCP 工具服务及持久 Task Mailbox，经 ngrok HTTPS／Caddy 分路提供接入，不是 Win 机器控制中转层。** 信箱到 Mac 客户端的真实调用、再承接本地 Herdr 的链路仍待验，不把持久收发画成自动执行。公子确认既有 Gitee MCP 已部署并登记云端；其入口、认证与旧 Herdr profile／在途任务保留。文档更新不新增部署、Agent 启动或生产写控制切换；实际状态统一见[本仓状态](status.md)。
+
 ## 初始化决定
 
 2026-10-29，公子要求参考“阅读仓库结构与说明”聊天的 Herdr 可行性方案初始化独立仓库，先与来源聊天充分沟通、取得复制清单再执行。双方已核对依赖与排除项，按固定提交复制 19 个文件，精确路径与摘要见[清单](copy-manifest.json)。
 
-本次只建立仓库和试点准备资料。实际执行入口、数据所有权、正式 Project、旧任务和验收责任均未切换；后续试点按[试点指引](pilot.md)逐项验证。
+初始化阶段只建立仓库和试点准备资料，未切换实际执行入口、数据所有权、正式 Project、旧任务或验收责任；后续试点按[试点指引](pilot.md)逐项验证。
 
 2026-10-30 新增[跨 Agent 通信与协作指引](agent-communication.md)：优先验证独立产品 herdr-core 的适配条件，原 TUI 路线保留作对照。该研究尚未切换运行时或业务入口，不能把 `herdr` 与 `hc` 的命令、状态和恢复语义混用。
 
 2026-11-01 新增[轻量 VPS 制作控制端方案](vps-control-pilot.md)：在 Dot 与执行机之间增加 VPS 上的单协调 Codex 和选定控制接口，制作与模型仍在 win-work。它是待验证的候选托管位置；先核 Dot 对无头 Linux VPS 的实际入口，再测脱离 Mac、一台及多机闭环。新路线不依赖 Lody，旧入口与在途绑定继续保留；本轮仅文档，不改变任何运行状态。
 
-后续搭建按[多项目协作迭代指引](collaboration-iteration-guide.md)：目标是多个项目同时推进，单项目只是起步切片。公子在本轮明确选择 **mac-work 承载各项目 AI Lead，VPS 保留轻量控制与查询，执行机承担具体工作**；这替换原草案在 VPS 上常驻协调 Codex 的分工，不修改前述有日期的研究历史。Dot 保持全局协调，各项目保留业务负责人、正式入口与验收。VPS 仍可升级，起始规格不作为架构上限；新增组件按真实需求判断，本轮仅文档。
+后续搭建按[多项目协作迭代指引](collaboration-iteration-guide.md)：目标是多个项目同时推进，单项目只是起步切片。公子此前明确选择 **mac-work 承载各项目 AI Lead，VPS 保留轻量控制与查询，执行机承担具体工作**；这替换原草案在 VPS 上常驻协调 Codex 的分工，不修改前述有日期的研究历史。Dot 保持全局协调，各项目保留业务负责人、正式入口与验收。VPS 仍可升级，起始规格不作为架构上限；该次分工修订仅为文档，后续安装状态另记。
 
-整套方案采用 **统一协调与资源视图、分布式执行与资产保管**。Mac Lead 在项目授权内拆任务、跟依赖、准备任务包和组织复核；Cloud 派发仍沿已获准 Dot 入口，机器主路径为 Mac Lead → SSH 调用 VPS 既定 hc 入口 → 执行机。规划者与唯一实际派发／续发入口分列，不自动双发。两类 Worker 都以任务间无隐式业务状态为目标，一个项目可以同时使用两池；状态与交接沿[迭代指引](collaboration-iteration-guide.md#统一-worker-的状态边界)，不宣称已实现或接通。
+2026-11-02，公子选定 Herdr TUI，替换此前 core／hc 优先方案；旧研究保留来源，不把 hc 命令改名成 herdr。后续明确授权开展网络／协作环境 Goal，由 Win 作为子网代理和网关。主会话已配置双节点私有 EasyTier、指定 Mac 主机 `/32` 代理及回程、Mac 到 VPS 虚拟地址的 `/32` 主机路由，并回读两段 SSH；早期“映射未定／不配置子网代理”的准备口径已被替换，默认出口与 DNS 保留。
 
-## 整套候选分工
+整套方案采用 **统一协调与资源视图、分布式执行与资产保管**。Mac Lead 负责获准项目的拆解、依赖、任务包和复核；Cloud 沿既有 Dot 入口。已确定的机器主链路为 **Mac 本地 Herdr 原生 machine → LAN／SSH → Win `collab`**；普通 SSH 加远端 CLI 不能代替这条原生入口的验收。此前经 VPS 的网络、SSH、小文件与双窗格证据仍归旧支路，不转记为 Mac 新入口已执行任务。新旧入口不对同一执行双发，状态与交接沿[迭代指引](collaboration-iteration-guide.md#统一-worker-的状态边界)。
+
+<a id="当前部署与待评估简化"></a>
+
+## 当前机器主链路与既有支路
+
+VPS 的主要定位为 **自建 MCP 服务宿主**，FastMCP 为实现框架，ngrok HTTPS 经 Caddy 路由至各服务。Gitee 保留原入口和认证；新增 Task Mailbox 只持久收发小任务／小结果，与 Mac 项目协调、Herdr 控制和正式业务记录分层，不承担调度或自动执行。指定客户端的真实工具与资源权限分别核验。
+
+公子已明确采用 **Dot → Mac 原生任务 → Mac Herdr 项目 Lead → 本地 saved machine／`--machine` → LAN／SSH → Win `collab`**。Mac → Win 的原生配置与只读连接验收已由主会话直接回读通过，不再等待候选选型；生产写控制及新任务派发并未因此切换。
+
+主会话复用 Mac／Win 的 LAN、既有 SSH 身份和 Win TUI 0.9.5，以原生 `machine add` 保存到既有 `collab` 的连接，退出 0、耗时约 11.3 秒；Mac 的 machine 清单由 0 变为 1，label 为 `win-work`、session 为 `collab`、enabled 为 true。按真实返回 ID 查询 status 得到 reachable，`herdr --machine` 查询 Agent 清单退出 0、`result.agents=[]`，识别到 0 个 Agent；空表是有效只读结果，不为补齐清单启动 Agent。预检的 `collab` 为 running、default 为 stopped，没有因此启动或替换它们。真实 ID／地址仅留私密回执，普通 SSH 预检不冒充上述原生调用。VPS 旧 profile 与在途执行保留用于原任务对账和收尾，不关闭服务、不迁移旧任务，也不增加桥接或 MCP 控制层。Dot 定向交互、模型、业务、正式写权及恢复仍分别未验。
+
+Mac 持续在线是公子确定的设计与部署前提，不是本轮已取得的连续可用性实测结果。按[限定需求](dot-mac-herdr-evaluation.md)分别验证 Dot → Mac → Herdr → Lead，Mac → Win 的原生只读验收不代替该链路或 Win 业务任务通过；先前 Dot 短时闭环仍按执行侧自报保留。官方的“一次只能直接连接一台个人电脑”不等于只能保存一台设备；其云端电脑另算。App 通过 SSH 连接 VPS 是 App 所在机器到 VPS 的连接，不据此扩展 Dot 的设备权限。[Dot 计算机连接](https://learn.chatgpt.com/docs/dots/computers-and-apps)、[App SSH 连接](https://learn.chatgpt.com/docs/remote-connections#connect-to-an-ssh-host)
+
+### Task Mailbox：持久收发与本地承接
+
+2026-11-02 来源会话的**执行侧进展报告**：公子已在 VPS 填完信箱独立 OAuth 并授权启动／接入；`task-mailbox.service` 运行，回环 MCP 未认证返回 401、OAuth discovery 成功，公网 HTTPS／discovery 通过；ngrok → Caddy 的信箱路由已热加载、PID 不变，旧 Gitee 路径保留，云端私有 Task Mailbox 插件已创建。Mac 客户端授权正在推进，最新一次本地回调返回后令牌交换失败，原实施侧正查原交换日志，尚未重启授权。上述为执行侧回报，本会话未亲测；各侧工具发现、真实调用、双向 nonce 及 Herdr 承接尚无完整通过回执，后续快照以[本仓状态](status.md)为准。
+
+信箱源码唯一维护在外部 [`create-network-sh/fastmcp/task-mailbox`](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/task-mailbox)，参见[服务契约](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/SPEC.md)、[接入记录](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/INTEGRATION.md)与[客户端指引](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/clients/README.md)。本仓只维护架构与外部引用，不复制服务、共享运行库或自动同步。示例端点统一为 `https://mcp.example.com/mailbox/mcp`；信箱使用独立 OAuth，Gitee 继续原认证，不共用应用凭据。
+
+Dot 与指定 Mac 客户端需各自认证后主动读写：先保存稳定 `job_id`、`payload_hash` 和原任务引用，再由获准客户端按游标读取、核目标／输入并承接；结果保留不可变版本、摘要与准确读确认。`submit_job` 同 ID 同内容返回原记录，冲突拒绝；`ack_result_read` 只证明调用方确认了指定结果版本／摘要，不等于业务验收或写权交还，取消请求也不等于进程已停。
+
+**Codex Cloud 可作为第三类条件客户端**：该云任务实际具备信箱 MCP 工具、相应 OAuth 身份和动作权限时，可直接对同一公网 HTTPS 端点收发，无需经 Mac／Dot 转述，也不要求 VPN。Dot 私有插件已创建或 Mac CLI 已配置不证明 Cloud 任务获得工具与授权；命令网络和托管 apps／MCP 的执行控制分开核验。此路径尚未实际验收，信箱 `submit_job` 也不会创建 Codex Cloud 任务、唤醒 Worker 或替代其原生生命周期和成果验收。[Cloud 连接服务](https://learn.chatgpt.com/docs/environments/cloud-environments#connect-to-services)、[执行控制边界](https://learn.chatgpt.com/docs/enterprise/agent-security#execution-controls-executor)
+
+提交信箱不会执行、唤醒 Agent 或开始后台轮询；常驻 Mac bridge／runner 尚无实现。客户端到本地 Herdr 的定向承接仍待接线／验收，不能因 Mac 在线、模板存在或云端插件创建就报告自动链路通过。Dot 原生 Mac 任务入口独立保留，同一工作沿原任务／job 与执行引用对账，不因超时自动换入口或重派。后续 Herdr 仍由 Mac 直接管理 Win，不将信箱作为机器中转，也不公开 shell、Herdr socket 或 Codex app-server。
+
+<a id="整套候选分工"></a>
+
+## 整套协作分工
 
 ```mermaid
 flowchart TD
@@ -22,15 +52,27 @@ flowchart TD
     D <--> O["各项目业务负责人 · 验收者"]
     D <--> P[("各项目正式记录")]
     O <--> P
-    D <-->|"项目委派与回报"| A["mac-work · 各项目 Codex Lead<br/>拆任务 · 跟依赖 · 组织复核"]
+    D -.->|"原生 Mac 任务 · 独立原入口"| H["Mac 本地 Herdr"]
+    H --> A["mac-work · 持续在线<br/>Herdr 内的 Codex／Kimi Lead"]
     subgraph POOL["统一 Worker 执行层 · 任务间无隐式业务状态"]
         C["Codex Cloud"]
         M["远端机器 · CPU / GPU / 桌面"]
     end
     D --> C
-    A -->|"SSH · EasyTier"| V["可扩容 VPS · 轻量控制"]
-    V --> H["hc · SSH · 原执行查询"]
-    H -->|"EasyTier"| M
+    K["Worker 库＋角色库<br/>固定版本与摘要 · 规划知识"] -.-> D
+    K -.-> A
+    K -.-> C
+    A -->|"主链路：本地 machine／LAN SSH<br/>只读验收，未切生产写控制"| M
+    A -.->|"仅原任务对账／收尾"| V["VPS · 旧 Herdr CLI 绑定<br/>保留 profile／在途任务"]
+    V -.->|"旧支路 · 不迁移原执行"| M
+    D <-.->|"Mailbox 插件已创建<br/>实际工具调用待验"| NG["ngrok · HTTPS"]
+    C <-.->|"条件：信箱 MCP＋OAuth<br/>直接收发 · 未验"| NG
+    NG <-->|"执行侧报告路由已加载"| RT["Caddy · 按服务分路"]
+    RT <-->|"原路径／认证保留"| VS["VPS · Gitee MCP"]
+    RT <--> MB["VPS · 持久 Task Mailbox<br/>只收发 job／result"]
+    MC["Mac Codex／Kimi MCP 客户端"] <-.->|"同一 OAuth HTTPS<br/>主动请求／对应响应 · 待验"| NG
+    MC -.->|"按授权承接并定向<br/>未实现常驻 runner／自动唤醒"| H
+    A -.->|"按本地 MCP 配置与权限"| VS
     D <-->|"获准 Pages 工具"| SP["ChatGPT Space<br/>资料 · 交接 · 精选成果"]
     C <-->|"获准 Pages 工具"| SP
     A <-->|"按实际工具授权"| SP
@@ -50,9 +92,13 @@ flowchart TD
     I -.按需增强.-> W["事件直通 · Watchdog"]
 ```
 
-这是目标职责关系，不表示已接通或已部署。机器支路优先验证 core，TUI 仍为独立对照，不把两者当同一 server。执行索引复用获准持久落点，记录原生引用而不竞争项目正式状态；资源视图复用原任务所需的保管者、访问方式、版本、授权与占用，不为图中每个逻辑节点新建服务。组织协议、专业方法、真实任职和工具权限分别维护，复制岗位定义不创建任职。
+图中 VPS 节点表示同一宿主的不同职责：Gitee 与持久信箱是独立工具服务，Herdr CLI 保留原任务绑定。ngrok／Caddy／信箱部署进度为执行侧报告，虚线是尚未闭环的真实客户端调用与本地承接，不能读成自动唤醒／执行。Mac 原生 machine 直连 Win 已取得主会话的连接与 Agent 清单回执，仍未移交生产写控制；旧 VPS 小任务证据不转记给新入口。Cloud／Space 的工具和资源权限逐边核验，执行索引及信箱读确认不竞争正式业务验收。
 
-AI Lead 是项目工作角色，正式业务负责人／验收者由公子或已指定责任人承担。每项目有责任边界，不要求每项目常驻一个进程；Mac 上的会话并发和隔离按实测选择。VPS 不再默认部署项目规划 Codex，hc 只提供终端、进程和机器控制；安装软件不产生任职或业务权限。
+Mac MCP 客户端与项目 Lead 在图中按能力拆开，可由同一获准 Codex／Kimi 会话承担，不表示增加一层 AI 或新进程；所有客户端都经同一 OAuth HTTPS 端点访问，不直接共享 VPS 数据库。
+
+图中的[Worker 与角色库](worker-library/README.md)是随仓库维护的规划知识，不是实例池或调度服务。两库独立为 1.0.0：Worker 描述 host／harness／backend 与声明能力，角色描述职责、方法与交付；当前为 7 个模板、9 个后端、13 个角色，其中 11 个专业角色可选、2 个仅组织导航。每次任务组合固定版本／摘要、项目合同和实际原生引用；`active` 不表示实时可用，声明能力须预检，外部方法 `bundled: false` 不代表已安装。离线 `prepare` 不创建或派发实例，不将未提交的库写成云端已获取。
+
+AI Lead 是项目工作角色，正式业务负责人／验收者由公子或已指定责任人承担。每项目有责任边界，不要求每项目常驻一个进程；Mac 上的会话并发和隔离按实测选择。VPS 不默认部署项目规划 Codex，Herdr TUI 负责选定机器执行入口的终端与控制；安装软件不产生任职或业务权限。
 
 Codex Cloud 适合输入、依赖和权限可在云端准备的编码、测试、文档与复核；GPU、音频、桌面或特定宿主验证按任务条件留在对应机器。两类 Worker 都通过任务包定位输入、权限、环境和成果，减少对某条聊天或终端记忆的唯一依赖；单次执行、未提交文件、写权和外部效果仍有真实状态。可重建 Worker、可换机器、可恢复中间进度分别验证，UNKNOWN 不自动换池重做。云平台也保留自己的任务工作区与历史。[官方云环境说明](https://learn.chatgpt.com/docs/environments/cloud-environments#reuse-and-update-saved-state)
 
@@ -60,80 +106,99 @@ ChatGPT Space 是共享资料、交接与精选成果入口；公子提供的 10
 
 Dot 与任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 都可直接访问各自获准页面与文件引用，Cloud 资料访问不强制经 Dot 或 VPS 中转。图中 Space 工具线表示这一接入设计，Mac Lead 也须以实际工具与授权接入；具体读写仍核工具、账号、动作和目标资源，不宣称所有 Cloud 任务默认带 Pages，也不把分享管理开启当成指定 Page 已可读写。同一待写页面或成果的写权仍须明确。[Cloud 工具边界](https://learn.chatgpt.com/docs/cloud/internet-access#agent-security-command-network-requirements)、[Space 连接账号权限](https://learn.chatgpt.com/docs/enterprise/chatgpt-space#plugins-and-connected-accounts)
 
-现有 Codex Cloud 委派路线和旧 Lody 执行继续沿各自有效入口；本次补齐架构映射，不新建云任务或迁移旧绑定。迁移单位是新任务或明确结束的阶段；一个执行只能由一个入口控制，不自动双发。VPS／hc 接入未验只约束机器支路，不阻塞独立、已获准的云任务。
+现有 Codex Cloud 委派路线和旧 Lody 执行继续沿各自有效入口；不新建云任务或迁移旧绑定。迁移单位是新任务或明确结束的阶段；一个执行只能由一个入口控制，不自动双发。当前小任务通过不代替 Agent 验证；未具备的条件只约束依赖动作，不阻塞独立、已获准的云任务。
 
 ## 各端组件清单
 
-2026-11-02 公子已选定 **EasyTier** 作为三机组网组件。以下是部署准备清单，**必需指能力需具备，已有且满足条件就复用，不表示全部需要新装或已经安装**。普通执行账号、允许动作、认证配置和私密落点分别绑定；凭证不进入文档。网络配置、版本与接入条件统一见[独立组网方案](networking-plan.md)，本轮只整理表格和图，未实施安装或入网。
+机器主链路采用 **Mac 本地 Herdr saved machine／`--machine` → LAN／SSH → Win `collab`**；VPS／Win 私有 EasyTier 与指定 Mac 主机代理保留，服务于独立网络与旧支路，不是直连前置。Mac 不安装 EasyTier、hc 或 Herdr App。下表区分组件、原生连接和任务验收；普通 SSH 预检不代替原生机器查询，原生查询也不取得生产写控制。实际地址、账号、网络标识与凭证不进入文档；网络与安全边界见[独立组网方案](networking-plan.md)。
+
+主会话已在获准 VPS 安装 EasyTier **2.6.4** core／cli、Herdr TUI **0.9.5** 并核官方 SHA；后续启动 EasyTier systemd 服务，两端 TUN／UDP P2P peer 已建立。Mac 经 Win 网关内网 SSH 到 VPS 成功，VPS 见源为 Mac LAN；VPS 专用身份到 Win 的 hostname 返回 0，显式失败命令返回 23。私钥未跨端复制，Win 仅部署来源受限公钥。完整证据沿[本仓状态](status.md)，不冒称本文编辑者重新操作了宿主。
+
+Mac 的 TUI **0.9.5** 由公子安装，主会话另核 Git **2.39.5**、OpenSSH **9.9p2** 与 Codex 应用内 CLI 可见。Mac 已持久保存到 VPS 虚拟地址的 `/32` 路由经 Win，默认网关／DNS 前后不变；Win 网络服务重建后自动恢复转发，Mac 内网 SSH 再次成功。另已通过 VPS 核 Win 原生 session／pane、小文件及两个窗格的交叠执行；这不证明 Dot 原生派发、指定 Agent 或多项目业务通过。
 
 ### 三机部署速查
 
-| 组件 | mac-work：协调 | VPS：轻控制 | win-work：执行 | 用途 |
+| 组件 | mac-work：协调 | VPS：MCP 服务／过渡控制 | win-work：执行 | 用途 |
 | --- | --- | --- | --- | --- |
-| EasyTier core＋cli | 必需 | 必需 | 必需，带匹配驱动／DLL | 三机私网连通；core 运行隧道，cli 查询节点与网络状态 |
-| ChatGPT 桌面应用／本地 Codex | 必需，优先复用 | 不需要 | 本执行路线不需要 | Mac 上承载项目 Lead，接收 Dot 原生委派 |
-| Codex CLI／指定 Agent CLI | 按需：终端 Lead 才需另核 | 不需要 | 必需，复用现有指定 CLI | 实际执行 Agent 任务；Win 保持 `codex over Claude` 原绑定 |
-| herdr-core／hc | 按需：管理 Mac 本地终端才需 | 必需 | 必需，核兼容版本 | VPS 控制／查询 Win 等执行机上的 Agent 终端 |
-| OpenSSH Client | 必需，先核已有 | 必需，先核已有 | 主动 SSH／SSH 方式 Git 等任务才需 | Mac → VPS、VPS → Win 的出站命令与所需传输 |
-| OpenSSH Server／sshd | 本出站路线不需要 | 必需 | 必需 | VPS 接收 Mac，Win 接收 VPS；须有实际账号与访问范围 |
+| EasyTier core＋cli | **不装**；仅到 VPS 的 `/32` 路由经 Win | **2.6.4 已运行**，systemd／TUN／UDP P2P 已核 | **2.6.4 已运行**，TUN／WLAN 转发，发布指定 Mac 主机 `/32` | 只保留必要主机代理与回程；不发布整个 LAN 或默认出口 |
+| ChatGPT 桌面应用／本地任务入口 | Dot 采用该入口时复用 | 不需要 | 本执行路线不需要 | Dot 的设备任务入口；与 Herdr 内的 Lead 会话定向接线另验 |
+| Codex／Kimi CLI 与指定 Agent CLI | Codex 0.166.0-alpha.5.1、Kimi 2.4.1 已识别 | 不需要 | 本轮按任务选择 OMP／Hermes／Kimi，复用各自原生配置 | Mac 的 Herdr pane 托管项目 Lead；Windows Codex 保持原状，本轮暂不考虑 |
+| Herdr TUI／`herdr` CLI／server | **0.9.5**，本地 pane 托管 Lead；原生 profile 已保存，Win `collab` reachable，Agent 清单查询有效且为 0 | **0.9.5 CLI**；保留旧 Win profile／在途任务，无 VPS 本地 server | **0.9.5** 完整包；复用已运行 `collab`，未启动停止的默认 session | 原生连接与只读验收已通过，pane／业务执行分别取证；未移交生产写控制 |
+| herdr-core／hc、Herdr App | 不作为本轮组件 | 未安装，也非本轮必需 | 不作为当前 TUI 路线前置 | 仅保留历史研究，不与 TUI 混用 server、Agent 或命令 |
+| FastMCP 与各服务项目运行时 | MCP 客户端按任务配置 | 自建服务的优先框架；Gitee 部署／登记由公子确认，实际依赖另核 | MCP 客户端按任务配置 | 工具服务与项目 Lead 分层，不把本仓索引当已有服务源码 |
+| Task Mailbox MCP | Codex／Kimi 正配置及首次 OAuth；实际发现／读写与 Herdr 承接待验 | 执行侧报告服务与 HTTPS／discovery 通过，持久保存小任务／小结果 | 不作为 Mac 直连 Win 的中转层 | 主动读写；独立 OAuth，不自动执行、唤醒或后台轮询 |
+| ngrok | 不作本地 Lead 前置 | 服务需要公网 HTTPS 时复用；具体隧道与认证按现有部署核 | 不作机器执行前置 | 为目标 MCP 提供可达入口，HTTPS 不代替 MCP 认证与授权 |
+| OpenSSH Client | 复用原身份供本地 Herdr 经 LAN 直连 Win；既有到 VPS 的网络路径保留 | 旧支路专用身份保留，私钥留 VPS | 主动 SSH／SSH 方式 Git 等任务才需 | Mac 原生机器连接直接调用系统 SSH；普通 SSH 预检不能替代原生 profile 验收 |
+| OpenSSH Server／sshd | 本轮不新增 | 内网接收 Mac，源地址已核 | 服务运行，VPS 经 EasyTier 的 hostname 0／exit 23 已核 | 身份、host key 与目录／任务权限分开，SSH 成功不等于任意操作授权 |
 | Git | 必需 | 按需：本机取仓库才需 | 按项目任务需要 | 获取固定源码、提交和回收变更；不自动复制认证 |
 | 实际 shell | 复用现有 | 复用现有 | 核 sshd 实际 shell；Git Bash 按模板需要 | 执行控制命令与任务脚本，不默认装 PowerShell 7 或 WSL |
 | 制作软件、模型与驱动 | 按本机项目需要 | 本分工不部署 | 复用原有制作环境 | 音频／模型等具体工作及本地资产保管 |
 
-首轮推荐各端使用匹配 OS／CPU 架构的预编译 EasyTier 包；部署目标是 core 与 cli，包内其他工具不因此必须运行。Mac／Win 的 EasyTier GUI 可选；GUI 管理 core 时不再启动一个相同配置的独立 core 实例。Herdr App 只在需要图形化管理本地终端时采用，不要求三端安装；独立 Herdr TUI 不属于本轮组件。[EasyTier 包内程序](https://easytier.cn/en/guide/download.html)、[Windows 包依赖](https://github.com/EasyTier/EasyTier#installation)、[hc 与可选客户端](https://herdr.dev/core/)
+VPS 使用官方预编译产物，Win 复用已有 EasyTier 服务，不另起重复 core；Mac 没有 VPN 安装项。已装 TUI 可按需管理本地终端，但版本回读和 SSH 成功不代替远端 session／pane。Herdr App 是另一产品，不因为需要 TUI 界面就额外安装 App。[EasyTier 包内程序](https://easytier.cn/en/guide/download.html)、[Windows 包依赖](https://github.com/EasyTier/EasyTier#installation)、[TUI 与 App 区别](https://herdr.dev/#questions)
 
-VPS 本轮不安装 Codex CLI、桌面应用、EasyTier Web 管理台或新的数据库；Mac 桌面 Codex 路线也不因本表额外要求 Codex CLI。Node／Python／Rust 不是三机网络的统一前置，Agent 自身所需运行时按实际版本准备。日志轮转、执行索引、备份与系统服务复用 OS 机制；持久服务在对应运行阶段准备，不把 NSSM／serviceman 等第三方服务工具列为通用必装项。
+VPS 基线不安装项目 Lead Codex CLI、桌面应用或 EasyTier Web 管理台；双节点直接组网，无需另建中继／Docker 控制平台。独立 MCP 服务的持久化与接入沿其自身记录，不增加竞争正式项目状态的全局任务库。Mac 已复用应用自带 Codex CLI 并补用户命令入口，Kimi 复用现有安装；新 pane 的类型与就绪状态已有回读，模型回合另验。网络日志已按 warn、5 MiB×3 份限制；配置与身份私密保管。Win 使用原生启动＋网络事件任务恢复转发，非周期轮询；一次服务重建后的自动恢复已核，主机重启与长期运行仍未验。
 
 ### 三机组件与调用图
 
 ```mermaid
 flowchart LR
-    D["Dot"] -->|"原生电脑入口"| M
-    subgraph E["EasyTier 三机私网 · 已选型，接入待验"]
-        direction LR
-        M["Mac · 项目协调<br/>桌面 Codex · Git · SSH 客户端"]
-        V["VPS · 轻控制<br/>hc · SSH 客户端＋服务端"]
-        W["Win · 任务执行<br/>hc · sshd · 指定 Agent CLI"]
-        M -->|"SSH 调用 hc"| V
-        V -->|"SSH / hc"| W
-    end
+    D["Dot"] -->|"原生入口 · 未专项验收"| M["Mac · Herdr＋Codex／Kimi CLI<br/>Git／SSH · 不装 VPN"]
+    M -->|"本地 saved machine／--machine<br/>LAN SSH · 原生只读已验"| W["Win · 既有 collab session<br/>TUI 0.9.5 · 网关保留"]
+    V["VPS · FastMCP／按需 ngrok<br/>EasyTier 2.6.4 · 旧 profile 保留"] <-->|"私有 UDP P2P · 已建立"| W
+    D -.->|"Mailbox 真实调用待验"| N["ngrok HTTPS → Caddy → VPS 信箱"]
+    C["Codex Cloud · 独立 Worker"] -.->|"条件：任务提供 MCP＋OAuth<br/>直接收发 · 未验"| N
+    M -.->|"Mac 客户端主动读取／结果回传<br/>本地 Herdr 承接待验"| N
+    M -.->|"既有内网路径 · 原任务对账"| V
     W --- L["本地制作环境与资产"]
 ```
 
-三台均运行 EasyTier core；图中箭头为唯一控制链路，不要求所有数据必经 VPS。Dot 的原生入口不由 EasyTier 代替；Cloud 保留独立执行与获准资料工具，本轮不接入 VPN。VPS 无需 Codex CLI，Mac 仅 SSH 调用 VPS hc 时无需本地 hc。
+Mac 到 Win 的机器主链路直接使用 LAN／SSH，不经过 VPS 或额外控制桥；本轮按真实 profile 回读 `collab` reachable 及空 Agent 清单，通过原生只读验收，不等于 Agent／业务通过。既有到 VPS 的物理路径、内网 SSH 及经 VPS 的小任务证据仍保留：Win 只发布 Mac 主机 `/32`，Mac 只把 VPS 虚拟地址 `/32` 路由到 Win，默认出口与 DNS 不变。这是 IP 转发，不是 SSH 跳板；未新增 Mac sshd、广播、端口映射或整个 LAN 发布。Dot 保留原生入口，Cloud 独立执行且不入 VPN。
 
 ### 部署顺序与准备项
 
 | 顺序 | 公子部署时准备什么 | 应核对的结果 |
 | --- | --- | --- |
-| 1 | 记录三端 OS／CPU、实际剩余资源、已有组件、现有 VPN／代理；保留 Win 原 Agent／模型环境 | 安装包匹配；已有工具能复用，未确认项有明确落点 |
-| 2 | 按[组网方案](networking-plan.md)准备三端 EasyTier、虚拟地址、节点身份、私有模式与访问策略 | 两段网络及拒绝路径可核验，Dot 原生入口前后对照；不把 ping 当 SSH 或业务通过 |
-| 3 | 准备 Mac SSH 客户端、VPS 双向 SSH、Win sshd，以及各段账号／host key／目录权限 | Mac → VPS、VPS → Win 的实际命令和退出码可回读 |
-| 4 | 准备 VPS／Win 兼容 hc，核 Win 实际 shell 与指定 Agent 启动映射 | 控制落在准确机器和原生运行引用，保留原供应商／模型／认证／权限 |
-| 5 | 先跑获准的小任务闭环，再准备持续运行、日志／备份和多项目负载 | 按[VPS T0–T8](vps-control-pilot.md#6-2026-11-02-测试清单)分别报告；未知结果查原任务，不自动重派 |
+| 1 | 复用版本、私网、路由和两段 SSH 的已有证据 | 逐项保存实际账户／环境与回执，不把已完成动作重新派发 |
+| 2 | 按[组网方案](networking-plan.md)维护私有双节点、指定 Mac 主机代理、定向路由及三条 ACL 链 | 已配置默认 Drop 和指定 SSH／健康 ICMP；拒绝用例与 2.6.4 ICMP 边界单列，不扩成整个 LAN |
+| 3 | 保留 Mac 原身份与 VPS 旧支路身份，核后续任务的目录／资产权限 | 不复制私钥；Mac 连接 Win 使用本地原生机器入口，查询可用不代表可改写资产 |
+| 4 | 复用 Mac 已保存的 `win-work` 原生 profile、`collab` reachable 与空 Agent 清单回执；继续查询时仍显式定向真实 ID | 本轮没有启动 Agent、替换 server 或操作 focused；空清单有效，普通 SSH 加 Win CLI 不算原生入口通过 |
+| 5 | 保留 VPS 旧 profile 与原执行，不复用其小文件／双窗格结果替代新入口验收；后续写控制与业务任务分别绑定 | 本轮不迁移旧任务、不停服务；按[当前 TUI 试点](pilot.md)区分连接、实际执行和业务验收，未知结果查原任务 |
 
-Linux VPS 本身需要通过 EasyTier 虚拟地址主动 SSH 到 Win，普通 TUN 模式需核 `/dev/net/tun` 和相应权限；纯发现／中继模式不能代替这条主动访问路径。Windows OpenSSH Server 与 Client 分别核，系统现有 PowerShell 不等于 sshd 已采用该 shell；按实际模板再决定是否需要 Git Bash。[EasyTier TUN 条件](https://github.com/EasyTier/easytier.github.io/blob/main/en/guide/network/no-root.md)、[Windows SSH 安装与服务](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)、[Windows SSH 默认 shell](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-server-configuration#configuring-the-default-shell-for-openssh-in-windows)
+VPS／Win TUN 已 up，普通 TUN 私网地址用于主动 SSH；无地址纯中继不能替代它。Windows OpenSSH Server 与 Client 已分别回读，TUI 的 PowerShell pane 已实际执行标准库小命令，Agent 启动映射与项目环境仍待核。Git Bash 按实际模板决定，不默认更换 WSL。[EasyTier TUN 条件](https://github.com/EasyTier/easytier.github.io/blob/main/en/guide/network/no-root.md)、[Windows SSH 安装与服务](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_install_firstuse)、[Windows SSH 默认 shell](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh-server-configuration#configuring-the-default-shell-for-openssh-in-windows)
 
 ### mac-work：项目协调
 
 | 组件／配置 | 采用条件与用途 |
 | --- | --- |
-| ChatGPT 桌面应用中的本地 Codex | 首选 Lead 入口；Dot 需获准访问这台计算机，Mac 在线、应用运行并登录相应账号／工作区 |
-| Git、SSH 客户端 | 读取固定版本，通过获准 SSH 调用 VPS 原 hc 入口；先核已有工具、身份与目标 |
+| Herdr 内的项目 Lead | 本地 session／pane 托管 Codex 或 Kimi CLI，按项目绑定目录、模型、当前协调入口与写者；双 Agent 识别不自动任命两个 Lead |
+| Dot 的本地任务入口 | 以 Mac 持续在线、应用运行并登录相应账号／工作区为部署前提，访问获准；定向操作 Herdr 与回收 Agent 结果仍按实际任务验收 |
+| Git、SSH 客户端 | 读取固定版本；复用既有 SSH 身份与 LAN 直连 Win，供 Mac 原生 Herdr 使用；到 VPS 的限定主机路由保留，不装 VPN |
 | 项目上下文、组织技能和必要工具连接 | 显式绑定项目、任务、输入、预算与交付；Space／Projects 仅采用该任务实际提供且获准的工具，不从别的聊天继承权限 |
-| Codex CLI | 仅终端运行 Lead 或采用 hc 托管 CLI 进程时需要另核；桌面路线不因此必须额外安装 |
-| 本地 hc、Herdr App | 管理 Mac 本地 Agent 终端时按需采用；Herdr App 是可选客户端。仅 SSH 调用 VPS 的 hc 时，Mac 不要求本地 hc |
-| EasyTier core／cli、工作目录与有界日志 | 按已选三机网络准备，GUI 可选；本地上下文与文件按项目授权组织，持久事实不能只留在 Mac 聊天 |
+| Codex／Kimi CLI | Codex 已补 `~/.local/bin/codex` 入口，复用应用内 0.166.0-alpha.5.1；Kimi 复用现有 2.4.1。普通 shell、实际 Herdr pane 及类型／就绪状态已核，业务模型回合未测 |
+| Task Mailbox MCP 客户端 | 来源会话正在为 Codex／Kimi 配置并完成各自首次 OAuth；实际工具发现／调用与双向读写另验。客户端主动调用，不因配置存在自动唤醒或消费任务，本地 Herdr 承接仍待接线 |
+| 本地 Herdr TUI | 公子自行安装 0.9.5；托管本地项目协调 CLI。到 Win `collab` 的原生 profile 保存、reachable 与空 Agent 清单已由主会话直接回读，不沿旧 VPS profile 推定成功 |
+| 官方 Herdr Agent skill | 已按公子要求原样安装至当前 Codex 用户全局目录，与 TUI 0.9.5 内置内容一致；仅供满足 `HERDR_ENV=1` 的 Herdr 窗格内 Agent 使用。外部 SSH 协调及其他机器账号的范围见[技能与外部协调](pilot.md#官方操作技能与外部协调) |
+| 网络与历史组件 | 复用现有 LAN，持久主机路由经 Win；Mac 本身不装 EasyTier、hc 或 Herdr App，也不新增 sshd。Win 只代理指定 Mac 主机 |
+| 工作目录与有界日志 | 按项目授权组织，本地聊天不能作为持久任务事实的唯一落点 |
 
-### VPS：轻量执行控制
+### VPS：MCP 服务与过渡控制
+
+优先复用现有 Gitee 服务与 ngrok 配置，不因角色修订重启、重建或更换公网 URL。新增服务按其项目依赖管理，不将 FastMCP 装进本仓仅标准库的检查环境；本仓仍只保管方案和证据，不复制来源服务或建立跨仓运行依赖。
+
+来源核对：固定[源仓 Gitee 部署资料](https://github.com/CF-FE/mymcp-4-codexcloud/tree/02e6ca4c1cb201904abd2ef2f107f6dce957e051/mcp/gitee)及脚本采用 FastMCP／fastmcp-slim 4.0.11、MCP 2.3.0，前端 HTTP 回环监听并由 ngrok 转发；源码与该固定对象字节一致。这是实现／部署方法证据，不冒称 VPS 正在运行同一提交或版本。源码资料也记录 OAuth 内存状态及重启后重连边界，持续运行须沿实际服务另验。[FastMCP HTTP 运行](https://gofastmcp.com/deployment/running-server)、[ngrok 暴露自建 MCP](https://ngrok.com/docs/gateway/api-gateway/mcp-gateway)
 
 | 组件／配置 | 采用条件与用途 |
 | --- | --- |
-| herdr-core／hc | 本分工的机器控制组件，记录实际二进制与运行中核心版本；不承担项目业务规划 |
-| OpenSSH 服务端与客户端 | 服务端接收 Mac 的获准调用，客户端连接执行机；分别核账号、host key、目录和命令范围 |
-| EasyTier core／cli | 本机具有虚拟地址，按两段访问策略控制；如兼任初始连接点／受控中继，另核监听与转发负载，默认不部署 Web 管理台 |
+| FastMCP／Gitee MCP | 作为自建工具服务承载；现有 Gitee 部署及云端登记由公子确认，服务框架／构建／传输／认证与实际调用分别回读 |
+| Task Mailbox／独立持久状态 | 执行侧报告 systemd 服务、回环认证门及公网 HTTPS／discovery 通过；云端私有插件已创建。只保存任务、结果与事件，客户端真实双向调用及 Herdr 承接尚未闭环 |
+| Caddy 分路与独立 OAuth | 复用 ngrok HTTPS 后按服务分路；信箱新路由热加载及旧 Gitee 路径保留为执行侧回报。各服务保持独立认证／私密状态，不共享 Gitee 应用凭据，不暴露任意命令控制 |
+| ngrok HTTPS 入口 | 仅在客户端需要公网可达时提供目标 MCP 入口；保留已登记 URL 和有效认证，不连带开放 Herdr socket、Codex app-server 或任意 shell |
+| Herdr TUI／herdr | 0.9.5 CLI 与旧 Win profile 保留；此前小文件／新 pane 结果只归该支路，原任务沿原入口对账和收尾，不常驻本地 server，不作为新任务必经层 |
+| OpenSSH 服务端与客户端 | 已分别回读 Mac 内网连接与 VPS → Win 的成功／显式失败退出码；VPS 私钥本地保管，Win 公钥限制来源，任务权限另核 |
+| EasyTier core／cli | 2.6.4 systemd 服务、TUN、UDP 11010 及私有 P2P peer 已核；已学到指定 Mac 主机回程，不增加 Web 管理台或公共中继 |
 | 轻执行索引、日志轮转、缓存上限与必要备份配置 | 复用已有持久目录及 OS 管理机制，保留原生执行引用、未决效果与报告承接，不新建业务任务平台 |
 | Codex／桌面应用 | 基线不要求常驻项目 Lead、协调 Codex 或桌面应用；将来新增运行组件需有具体任务价值与执行授权 |
+| hc／Herdr App | 本轮未安装；保留历史研究，不是 TUI 路线依赖 |
 
 ### Codex Cloud：托管 Worker
 
@@ -142,61 +207,78 @@ Linux VPS 本身需要通过 EasyTier 虚拟地址主动 SSH 到 Win，普通 TU
 | 可访问的已发布 Cloud 环境 | 绑定实际仓库、输入版本、工具和运行条件；保存配置可列举／runnable 不等于本仓任务已验证 |
 | 项目依赖、仓库技能与任务检查命令 | 在环境与任务中准备所需运行时和依赖；本仓离线检查仅需 Python 3.10+ 标准库，其他业务按项目确定，不默认搬入整台 Mac 配置 |
 | Git／GitHub 权限与 Pages／MCP 等工具 | 源码沿固定版本；Space 仅在任务实际提供工具且目标资源允许时直接读写，插件可用不代替账号及资源授权 |
-| 私网／SSH 访问 | 按当前范围暂不考虑 Cloud 连接 VPN，不纳入三机选型、组件准备和验收；Cloud 保留独立仓库与获准工具路径 |
+| Task Mailbox MCP（条件路径） | 任务实际具备信箱工具、相应 OAuth 与动作权限时，直接使用同一公网 HTTPS 端点，无需经 Dot／Mac 转述或连接 VPN；实际发现／读写未验。不从 Dot 插件或本机 CLI 配置推导继承，信箱提交不创建或唤醒 Cloud 任务 |
+| 私网／SSH 访问 | 按当前范围暂不考虑 Cloud 连接 VPN，不纳入 VPS／Win 网络准备和验收；Cloud 保留独立仓库与获准工具路径 |
 | Herdr、桌面应用、额外 Codex CLI | 通常不为普通 Cloud Worker 再部署这些组件；使用平台托管任务及原生查询／成果能力，不把云任务当 VPS 常驻控制进程 |
 
 ### win-work／其他执行机：具体执行
 
 | 组件／配置 | 采用条件与用途 |
 | --- | --- |
-| 与选定路线兼容的 hc | VPS／hc 机器执行支路需要对应核心；安装及实际运行版本分别记录，不与独立 Herdr TUI 混用 |
-| Windows OpenSSH Server／sshd | 原生 Windows 远端 SSH 需要服务端，只有 OpenSSH Client 不够；服务账号、shell、host key 与网络访问分别核验 |
-| 指定 Agent CLI 及启动配置 | 仅按现有任务需要配置；win-work 的 `codex over Claude` 供应商、模型、认证和权限保持原绑定，不默认换成官方登录或其他供应商 |
-| Git 与实际 shell | 代码任务按项目需要具备 Git；模板需要 sh／Git Bash 时另核。核原生 PowerShell、路径和 core 版本兼容，不默认迁移 WSL |
+| Herdr TUI／herdr | 0.9.5 完整包；Mac 原生机器入口以已运行的 `collab` 为目标，不启动已停止的默认 session。旧 VPS profile／在途任务保留，不关闭既有 pane，不额外要求 hc／Herdr App。[完整包说明](https://herdr.dev/tui/docs/install/#windows-archive) |
+| Windows OpenSSH Server／sshd | 服务与原 LAN 身份供 Mac 原生 Herdr 直连；VPS 经 EasyTier 的旧 hostname 0／exit 23 证据保留。实际 Agent shell 与项目权限另验，不把新公钥扩成任意来源 |
+| 指定 Agent CLI 及启动配置 | 本轮按任务选择 OMP／Hermes／Kimi，供应商、模型、传输协议、认证和权限分别绑定；Windows Codex 保持原状，本轮暂不考虑，不列入本次验证或后续调度 |
+| Git 与实际 shell | 代码任务按项目需要具备 Git；TUI／Agent 模板需要 sh／Git Bash 时另核。核原生 PowerShell、路径和 TUI 版本兼容，不默认迁移 WSL |
 | 原有制作工具、模型、驱动与本地资产目录 | 音频制作及模型继续归 win-work；只按现有模型实际需要核版本与资源，记录原件、产物、检查点、日志和当前写者，不全量搬到 VPS／Space |
-| EasyTier core／cli 与有界运行配置 | 使用匹配 Windows 包及驱动／DLL，GUI 可选；明确目录、日志／缓存上限和资源占用。其他执行机按各自 OS 与任务准备，不机械复制 Windows 配置 |
+| EasyTier、主机代理与有界配置 | 2.6.4 原服务与当前 TUN 运行，仅发布 Mac 主机 `/32`，`proxy_forward_by_system=true`；WLAN／TUN 转发及一次服务重建后的自动恢复已核。日志有限保留，其他执行机不自动加入 |
+
+2026-11-02 [Win-work harness 执行侧交接](local-agent-inventory.md#7-win-work-harness执行侧交接)报告：OMP **18.15.0** 经 CLI Proxy／`gpt-6-luna` 的 `openai-completions`、`openai-responses` 两种模式均取得真实短回复并退出 0；Hermes **0.19.0** 默认已按公子要求改为 CLI Proxy／`gpt-6-luna`、`chat_completions`，短回复及退出 0；Kimi **2.4.1** 的官方 `kimi-for-coding` 与既有 `local-gpt/gpt-6.1-sol` 分支也分别取得真实短回复并退出 0。ZCode、DeepSeek Harness 仅安装，公子暂不处理。
+
+这是 Win 上经 SSH 调用原生 CLI 的**执行侧交接报告**；源会话读取返回 ephemeral 不支持，本会话未独立核原件或重测。它未经过 Herdr `agent start`／`prompt`，不能代替 Mac 原生主链路的派发、回收或业务验收，也不改变生产写权。OMP 两种代理模式、Hermes 新默认及 Kimi `local-gpt` 实际依赖 **Mac 上的 CLI Proxy**，在 Mac 持续在线的前提下采用该运行依赖；官方 Kimi 入口单列，不将代理依赖推广到所有 Win 任务。供应商、协议与完整证据边界在上述交接节维护，不据短回复和退出 0 推导项目任务已通过。
 
 ### SSH 依赖与已有组件复用
 
-hc 提供 SSH 远端管理，默认仍调用系统 SSH 客户端。2026-11-01 核对官方固定源码 `7a54c2975225a859b7e7d67302df5efc249fb9d0`：连接辅助函数直接使用 `std::process::Command::new("ssh")`；hc 的 core server 不替代被连接端的 `sshd`。[SSH 调用源码](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/crates/herdr-core/src/machines.rs#L150-L165)
+当前 TUI 的远端机器路线通过 SSH 接入；仍需实际调用端的系统 SSH 能力、目标端 sshd 与授权身份，安装 `herdr` 不代替这些条件。具体命令、机器绑定及安装／启动影响按[当前 TUI 试点](pilot.md)与目标版本帮助核，不套用 hc 的参数或生命周期。[TUI 的 SSH 机器入口](https://herdr.dev/tui/)
 
 | 位置 | 本分工需具备的 SSH 能力 |
 | --- | --- |
-| mac-work | SSH 客户端，向 VPS 发起调用；不为这条出站路径额外要求 Mac 的 SSH 服务端 |
-| VPS | SSH 服务端接收 Mac；SSH 客户端连接 win-work／其他机器，两个方向分别核验 |
-| win-work | SSH 服务端 `sshd` 接收 VPS；仅作为被连接执行机时，不因此强制额外准备出站 SSH 客户端 |
+| mac-work | 本地 Herdr 调用原 SSH 客户端与身份，经 LAN 直连 Win；到 VPS 的既有路径保留，不安装 EasyTier 或新增 Mac sshd |
+| VPS | SSH 服务端与客户端保留旧支路和原任务；不是 Mac 原生连接 Win 的中转层 |
+| win-work | SSH 服务端 `sshd` 接收 Mac 的原 LAN 身份及仍有效的 VPS 旧支路身份；仅作为被连接执行机时，不强制额外准备出站 SSH 客户端 |
 | Codex Cloud | 本轮不准备 Cloud 的私网／SSH 接入；普通云任务不以 SSH 为默认前置 |
 
-“需要”指对应能力可用，不是每端重复安装一套软件。先核 OS／镜像已有组件与版本，已有且满足条件就复用；缺失时才在获授权的环境准备任务中补齐。安装 hc 不自动安装或启用 OpenSSH／sshd，`hc machine add --install` 的作用是允许复制目标 hc，不能代替 SSH 服务准备。[机器接入与 hc 复制](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/docs/machines.md#L18-L23)
+“需要”指对应能力可用，不是每端重复安装。先核 OS／镜像已有组件，满足条件即复用，缺失才在获授权的环境准备任务中补齐。VPS 的 TUI 版本回读也不代替 Win sshd、两端账号、文件与任务权限的核验。
+
+Windows 公钥免登参考：公子提供的 [wklchris《Windows 免密码 SSH 连接指南》](https://gist.github.com/wklchris/d875e7056d5536ab520a7921f85a2a7c)（2026-11-02 查阅），覆盖 OpenSSH、密钥、公钥部署与连接验证。原文以 Windows → Windows 为例，本仓 Mac／VPS 客户端按实际平台调整，不照搬其本地 PowerShell 服务命令；已有密钥满足条件即复用，私钥留在对应客户端，只向 Win 部署公钥。
+
+公钥落点按 [微软官方密钥管理](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement#deploy-the-public-key)和目标端实际 `sshd_config` 核对：普通账户默认使用用户目录的 `.ssh/authorized_keys`；管理员组账户默认使用 `C:\ProgramData\ssh\administrators_authorized_keys`，该文件 ACL 仅允许 Administrators 与 SYSTEM。以当前 `sshd -T` 的有效公钥落点为准，保留既有可用规则；不因教程改写管理员匹配或采用评论区允许空密码的配置。免登指公钥认证，不等于允许空账户密码；教程链接本身不是接入证据；本轮已有连接实测另见当前状态。
+
+**以下保留 2026-11-01 的 hc 专属研究，不是当前 TUI 安装步骤。** 固定源码 `7a54c2975225a859b7e7d67302df5efc249fb9d0` 的 hc 默认调用 `std::process::Command::new("ssh")`；其 core server 不替代 sshd。安装 hc 不自动安装 OpenSSH，`hc machine add --install` 允许复制目标 hc，不能机械改为 TUI 命令。[历史 SSH 调用源码](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/crates/herdr-core/src/machines.rs#L150-L165)、[历史 hc 复制](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/docs/machines.md#L18-L23)
 
 该源码的 Windows **发起端**在远端复制 hc 的相应路径调用系统 `scp`，仅在采用该平台与复制路径时核此依赖；不能推广成所有机器必须另装 scp，尤其不能把 win-work 作为被连接端与 Windows 发起端混同。[Windows 发起端复制源码](https://github.com/herdrdev/herdr-core/blob/7a54c2975225a859b7e7d67302df5efc249fb9d0/crates/herdr-core/src/machines.rs#L510-L522)
 
-以上是固定源码的依赖研究，不代表目标机器已有相同版本或本轮已执行安装、SSH 连通和登录测试；原 `de82…` 研究历史继续保留。
+以上 hc 内容只证明该固定源码的依赖，不证明当前 TUI 使用相同实现，也不代表目标机器已有 hc 或本轮运行过 hc；原 `de82…` 研究历史继续保留。
 
-官方依据：[Dot 本地任务与 Cloud 任务](https://learn.chatgpt.com/docs/dots/tasks-and-memory#assigned-work)、[计算机在线与授权条件](https://learn.chatgpt.com/docs/enterprise/cloud-local-access#end-user-experience)、[Herdr-core 的职责与客户端](https://herdr.dev/core/)、[Cloud 环境准备](https://learn.chatgpt.com/docs/environments/cloud-environments#create-and-publish-an-environment)。具体版本、启动参数、Windows 适配和恢复语义沿[通信指引](agent-communication.md)与[VPS 清单](vps-control-pilot.md)，本轮不运行这些组件。
+官方依据：[Dot 本地任务与 Cloud 任务](https://learn.chatgpt.com/docs/dots/tasks-and-memory#assigned-work)、[计算机在线与授权条件](https://learn.chatgpt.com/docs/enterprise/cloud-local-access#end-user-experience)、[TUI 产品与 SSH](https://herdr.dev/tui/)、[Cloud 环境准备](https://learn.chatgpt.com/docs/environments/cloud-environments#create-and-publish-an-environment)。具体版本、启动参数、Windows 适配及恢复沿[通信指引](agent-communication.md)和[VPS 清单](vps-control-pilot.md)；本文件修订未新增任何宿主操作。
 
 ### 三机连通、效率与 Dot
 
-机器支路只按需连通 **mac-work → VPS、VPS → win-work**，不要求同一物理局域网，也不默认新增 Mac → Win 控制入口。组网层、系统 SSH、hc 控制分层保留；网络可达不代替账号、目录和任务权限。
+机器主链路为 **Mac 本地 Herdr → LAN／SSH → Win `collab`**，不经 VPS。既有网络 **VPS ↔ 私有 EasyTier ↔ Win 指定主机代理／网关 ↔ LAN ↔ Mac** 同时保留：Mac 不装 VPN，经到 VPS 虚拟地址的 `/32` 路由访问其内网；回程由 Win 发布的指定主机 `/32` 提供。Mac 默认出口／DNS 不变，没有新增整个 LAN 开放、广播、端口映射或 Mac sshd。
 
-EasyTier 已由公子选定，身份与中继边界、各端网络准备、效率和 Dot 影响统一维护在[独立组网方案](networking-plan.md)，本节保留原锚点及早期对照来源。实际安装与接入未验，不承诺组网必然提速或 Dot 零影响，不默认采用出口节点、全局 DNS 覆盖或双网桥。Cloud VPN 不参与本轮部署或验收，Cloud 的独立执行分工保留。
+两段 SSH 已分别取得回读，一次 Win 网络服务重建后的转发自动恢复与 Mac 内网复核也已完成，主机重启仍未验。短样本 ping 10 次丢 3，成功 RTT 约 132–141 ms，不能称稳定性或性能 SLA 通过。Herdr pane／小文件已有限定证据；Dot 原生、Agent 与多项目业务仍分别验收；细节见[独立组网方案](networking-plan.md)。Cloud VPN 继续排除。
 
-## Mac 离线时的边界
+<a id="mac-离线时的边界"></a>
 
-mac-work 项目 Lead 离线会暂停依赖它的新规划、续派或本地复核；本地任务不会自动迁移到云端。Dot 与 Cloud 的独立获准任务可沿各自入口继续。机器已派任务是否存活按 hc 父子关系、控制连接和目标进程实测，不预先保证全部继续。
+## Mac 持续在线与执行依赖
 
-VPS 独立查询能力只有在另有获准且实际可用的访问入口后才能成立；现有 Mac → SSH → VPS 链路本身不能证明 Mac 离线后 Dot 仍可查询。原“完全脱离 Mac”目标保留为历史设计，当前分别验证控制／查询独立和项目规划依赖，不把前者冒称后者通过。恢复先对账原任务、写权和产物，不自动启用第二 Lead、替代派发或 Lody 回退。
+公子已明确 Mac 会一直在线，当前方案以此承载项目 Lead、Herdr 与 CLI Proxy。Win 的代理分支可以依赖 Mac 的 CLI Proxy，官方 Kimi 入口按自身配置使用；Dot 与 Cloud 的独立任务仍沿各自获准入口执行。当前验收聚焦原生入口、准确目标、任务执行与结果回收；Mac 离线后的备用入口、接管、脱离 Mac 持续规划及独立推理不属于本轮要求，也不作为未完成项阻塞搭建。
+
+持续在线是部署前提，不等于 24 小时可用性或任意故障恢复已实测。正常请求超时、结果不明或控制连接中断时，仍沿原任务、profile、session、pane、产物与当前写者对账，保留 UNKNOWN，不自动重派或引入第二 Lead。既有 Win 网络服务重建后的恢复证据保持原范围，不新增故障注入、备用协调或生产控制切换。
 
 ## 唯一维护位置
 
 - `skill/<id>/` 维护技能及其相对资源。组织协议和 Projects 技能分别保持自己的版本。
 - `mcp/` 与 `plugin/` 当前仅保留分类索引；实现或打包有真实需求时再新增。
+- Task Mailbox 服务唯一源码维护于外部 `create-network-sh/fastmcp/task-mailbox`；本仓只保存方案／证据与外部链接，不复制或建立跨仓运行依赖。
 - `docs/status.md` 维护本仓当前开发状态；正式项目绑定未建立前，不代写其他项目的进度。
+- `docs/worker-library/` 独立维护 Worker 注册表、角色索引及唯一正文；[库指引](worker-library/README.md)管理版本、证据、离线选型与准备稿，不另建运行队列。
 - 试点上下文、过程和验收复用组织技能已有字段，[任务模板](templates/pilot-task.md)只补充 Herdr 绑定信息，不建立第二套任务数据库。
 
 两个仓库独立。清单中的源仓库、commit 和 hash 只说明导入来源；本仓复制件的当前维护来源是本仓。后续修订在本仓审查、验证和提交，不回写源仓、不自动跟随其变化，不需要原 checkout 才能运行本地检查。
 
 ## 复制与排除
+
+以下为 2026-10-29 初始化导入的历史范围：
 
 | 处理 | 内容 | 理由 |
 | --- | --- | --- |
@@ -205,7 +287,9 @@ VPS 独立查询能力只有在另有获准且实际可用的访问入口后才�
 | 本仓新写 | README、AGENTS、分类索引、架构、试点模板、状态和来源清单 | 避免继承旧项目的事实与执行边界 |
 | 排除 | Lody runtime/插件/安装器、命令快照、Gitee 服务、角色库、旧 `.codex` 队列、历史验收、缓存与凭证 | 不是本次试点准备的必要依赖 |
 
-组织协议已独立于 Lody。Projects 中的 Lody 迭代异常、组织正文里的重派反例仍是带来源的历史说明；保留原义，不改名伪装成本仓实测。专业角色库含 Lody 配置语义，本轮不复制；真实需要某种专业方法时再按范围抽取、修订和标版本。
+组织协议已独立于 Lody。Projects 中的 Lody 迭代异常、组织正文里的重派反例仍是带来源的历史说明；保留原义，不改名伪装成本仓实测。
+
+2026-11-02 新增的 Worker／角色库按[独立来源清单](worker-library/source-manifest.json)另接收固定源 `02e6ca4c1cb201904abd2ef2f107f6dce957e051` 的 14 文件闭包：9 份原样、5 份适配，保留源摘要及初版改编记录；本仓另增代码实现和产物处理两项职责。它不改写初始排除事实，也不继承 Lody 运行身份、任职或生产许可。两库可脱离源 checkout 独立维护，不跨仓运行导入或自动同步；外部方法仅保留引用，不随库打包其全文。
 
 ## 执行与证据
 

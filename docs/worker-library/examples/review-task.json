@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "example_only": true,
+  "task_id": "example-review-001",
+  "project_id": "example-project",
+  "goal": "独立复核指定版本的候选变更，交缺陷与证据报告；不修改被审资产。",
+  "authorization_ref": "EXAMPLE_ONLY_NOT_AUTHORIZATION",
+  "dispatch_owner": "EXAMPLE_PROJECT_COORDINATOR",
+  "report_to": "EXAMPLE_PROJECT_OWNER",
+  "report_route": "EXAMPLE_ORIGINAL_TASK_RESULT_ROUTE",
+  "owned_paths": ["EXAMPLE_PRIVATE_REVIEW_REPORT_PATH"],
+  "input_refs": ["EXAMPLE_REPOSITORY@FIXED_COMMIT:EXACT_ARTIFACT"],
+  "acceptance_criteria": [
+    "检查者未参与该固定版本的制作或修订。",
+    "逐项标明实际检查、结果、证据与未验范围，不把摘要当完整复核。"
+  ],
+  "output_refs": ["EXAMPLE_REVIEW_REPORT_WITH_ARTIFACT_HASH"],
+  "budget": {"model_turns": "BIND_IN_REAL_TASK", "query_limit": "BIND_IN_REAL_TASK"},
+  "stop_conditions": ["授权、输入版本或独立性不清时停止依赖动作并报告。"]
+}

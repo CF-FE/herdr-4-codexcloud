@@ -20,12 +20,17 @@
 | 字段 | 本次值 |
 | --- | --- |
 | 控制端、实际执行机及 OS | UNKNOWN |
-| Tailscale 网络模式、连接证据、SSH 目标/用户及 host key 核验 | UNKNOWN |
+| Worker 库版本／索引摘要、模板 ID／版本及明确后端 | UNKNOWN |
+| 角色库／共同合同版本、专业角色 ID／版本与逐资源摘要 | UNKNOWN |
+| 显式项目合同／版本与当前项目权威输入 | UNKNOWN |
+| 实际 LAN／EasyTier／HTTPS 路径、连接证据、SSH 目标及 host key 核验 | UNKNOWN |
 | Herdr CLI、远端安装及运行中 server 的版本 | UNKNOWN |
 | 保存的机器 profile ID、准确 session | UNKNOWN |
 | 原生 workspace、pane、Agent 名称及可取得的会话引用 | UNKNOWN |
 | Agent 可执行文件、参数、供应商、模型和权限映射 | UNKNOWN |
 | 安全认证配置的引用；不得填入凭证 | UNKNOWN |
+
+可按[Worker 与角色库](../worker-library/README.md)选型并生成准备稿。准备稿不是运行实例或派发回执；模板 active、角色装载与能力标签命中均不代替实时前提。按原任务回读并固定模型／权限、准确目标和现写者，再沿获准原生入口创建，记录真实返回引用；在途不自动换角色版本、模型或控制入口。
 
 ## 观察与交付
 

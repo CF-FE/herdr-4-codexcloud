@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "library_version": "1.0.0",
+  "common": {
+    "resource": "common.md",
+    "version": "1.0.0"
+  },
+  "roles": [
+    {
+      "id": "g8_coordinator",
+      "name": "G8 总协调",
+      "scope": "workspace",
+      "kind": "coordinator",
+      "summary": "旧ID组织导航；通用职责沿独立组织协作维护，不用于Worker选择或任务准备。",
+      "resource": "workspace/coordinator.md",
+      "methods": [
+        "task-planning",
+        "role-method-separation"
+      ],
+      "source_role_id": "g8_coordinator",
+      "definition_version": "1.0.0",
+      "dispatchable": false,
+      "requirements": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_visual",
+      "name": "视觉设计师",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "视觉方向与候选实物，实际查看后交独立验收。",
+      "resource": "workspace/visual.md",
+      "methods": [
+        "frontend-design"
+      ],
+      "source_role_id": "workspace_visual",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "visual-inspection"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_research",
+      "name": "研究分析师",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "授权来源、证据比较和不确定性分析。",
+      "resource": "workspace/research.md",
+      "methods": [
+        "competitor-analysis",
+        "assumption-review"
+      ],
+      "source_role_id": "workspace_research",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "research"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_quality",
+      "name": "质量审查员",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "独立核验精确版本与交接证据。",
+      "resource": "workspace/quality.md",
+      "methods": [
+        "engineering-review",
+        "test-scenarios"
+      ],
+      "source_role_id": "workspace_quality",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "artifact-review"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_runtime",
+      "name": "运行工程师",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "工具链诊断、候选修复与精确恢复。",
+      "resource": "workspace/runtime.md",
+      "methods": [
+        "engineering-debug"
+      ],
+      "source_role_id": "workspace_runtime",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "shell"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_knowledge",
+      "name": "知识管理员",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "索引、来源和冲突候选，不接管正式状态。",
+      "resource": "workspace/knowledge.md",
+      "methods": [
+        "documentation"
+      ],
+      "source_role_id": "workspace_knowledge",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "repository-edit"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "workspace_dialectic",
+      "name": "辩证复核专员",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "独立对抗与优化后对齐为一份可决策方案。",
+      "resource": "workspace/dialectic.md",
+      "methods": [
+        "assumption-review",
+        "strategy-red-team"
+      ],
+      "source_role_id": "workspace_dialectic",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "text-reasoning"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "fanren_owner",
+      "name": "凡人项目负责人",
+      "scope": "project",
+      "kind": "project_owner",
+      "summary": "项目负责人组织导航与凡人适配知识；不任命、不派发，不用于Worker选择或任务准备。",
+      "resource": "projects/fanren-owner.md",
+      "methods": [
+        "task-planning"
+      ],
+      "source_role_id": "project_owner",
+      "project_id": "fanren-work",
+      "definition_version": "1.0.0",
+      "dispatchable": false,
+      "requirements": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "fanren_canon_story",
+      "name": "原著考据与剧情策划",
+      "scope": "project",
+      "kind": "task_template",
+      "summary": "指定底本、人物事实与因果roadmap候选。",
+      "resource": "projects/fanren-canon-story.md",
+      "methods": [],
+      "source_role_id": "canon_story",
+      "project_id": "fanren-work",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "text-reasoning"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "fanren_script_performance",
+      "name": "演义编剧与人物表演",
+      "scope": "project",
+      "kind": "task_template",
+      "summary": "原创台本、同字表演稿与全覆盖话轮标注。",
+      "resource": "projects/fanren-script-performance.md",
+      "methods": [],
+      "source_role_id": "script_performance",
+      "project_id": "fanren-work",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "text-reasoning"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "fanren_audio_production",
+      "name": "声音生产与字幕后期",
+      "scope": "project",
+      "kind": "task_template",
+      "summary": "获准音频、帧轴字幕、后期与技术证据。",
+      "resource": "projects/fanren-audio-production.md",
+      "methods": [],
+      "source_role_id": "audio_production",
+      "project_id": "fanren-work",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "shell",
+        "audio-tools"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "software_implementation",
+      "name": "软件实现",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "交已接受任务的最小代码变更、合适验证与固定产物，作者不兼独立QA。",
+      "resource": "workspace/software-implementation.md",
+      "methods": [],
+      "source_role_id": "local:software_implementation",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "repository-edit",
+        "shell"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "artifact_processing",
+      "name": "产物处理",
+      "scope": "workspace",
+      "kind": "shared_role",
+      "summary": "以获准工具做确定性变换，原件只读、新版本输出并报告真实退出与完整性。",
+      "resource": "workspace/artifact-processing.md",
+      "methods": [],
+      "source_role_id": "local:artifact_processing",
+      "definition_version": "1.0.0",
+      "dispatchable": true,
+      "requirements": [
+        "shell",
+        "file-transform"
+      ],
+      "lifecycle": "active"
+    }
+  ],
+  "projects": [
+    {
+      "id": "fanren-work",
+      "name": "凡人项目",
+      "resource": "projects/fanren-work.md",
+      "version": "1.0.0"
+    }
+  ],
+  "methods": [
+    {
+      "id": "engineering-review",
+      "name": "工程变更审查",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "被审对象是代码或工程变更时，按需要选用审查视角。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "skills/code-review-and-quality/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/skills/code-review-and-quality/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "engineering-debug",
+      "name": "故障定位与恢复",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "存在具体工程失败，需要复现、定位和验证修复时。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "skills/debugging-and-error-recovery/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/skills/debugging-and-error-recovery/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "documentation",
+      "name": "项目文档与决策记录",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "需要整理工程文档或记录已接受决策时；不替代项目owner。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "skills/documentation-and-adrs/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/skills/documentation-and-adrs/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "frontend-design",
+      "name": "产品界面工程",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "本次是已获准的产品界面实现或审查时；普通封面不加载。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "skills/frontend-ui-engineering/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/skills/frontend-ui-engineering/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "task-planning",
+      "name": "任务拆解",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "已接受的工程目标需要拆解依赖和验证步骤时；项目既有计划优先。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "skills/planning-and-task-breakdown/SKILL.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/skills/planning-and-task-breakdown/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "assumption-review",
+      "name": "产品假设识别",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "产品或功能方案需要识别价值、可用性、可行性等假设时。",
+      "source": {
+        "repository": "https://github.com/phuryn/pm-skills",
+        "commit": "07b34f64ee828df08953f505b7f747aef85ae7c6",
+        "path": "pm-product-discovery/skills/identify-assumptions-existing/SKILL.md",
+        "url": "https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-product-discovery/skills/identify-assumptions-existing/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "strategy-red-team",
+      "name": "策略反向审查",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "产品PRD、roadmap或策略有需要检验的承重假设时。",
+      "source": {
+        "repository": "https://github.com/phuryn/pm-skills",
+        "commit": "07b34f64ee828df08953f505b7f747aef85ae7c6",
+        "path": "pm-execution/skills/strategy-red-team/SKILL.md",
+        "url": "https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-execution/skills/strategy-red-team/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "competitor-analysis",
+      "name": "竞争分析",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "获准的市场/产品研究需要比较竞争者与替代方案时。",
+      "source": {
+        "repository": "https://github.com/phuryn/pm-skills",
+        "commit": "07b34f64ee828df08953f505b7f747aef85ae7c6",
+        "path": "pm-market-research/skills/competitor-analysis/SKILL.md",
+        "url": "https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-market-research/skills/competitor-analysis/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "test-scenarios",
+      "name": "产品验收场景",
+      "relation": "optional_method",
+      "bundled": false,
+      "use_when": "产品故事或规格需要验收场景时；不替代实际媒体感知。",
+      "source": {
+        "repository": "https://github.com/phuryn/pm-skills",
+        "commit": "07b34f64ee828df08953f505b7f747aef85ae7c6",
+        "path": "pm-execution/skills/test-scenarios/SKILL.md",
+        "url": "https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-execution/skills/test-scenarios/SKILL.md",
+        "license": "MIT"
+      }
+    },
+    {
+      "id": "role-method-separation",
+      "name": "角色与方法分工",
+      "relation": "inspiration",
+      "bundled": false,
+      "use_when": "维护角色职责和技能方法分工时的设计参考，非运行依赖。",
+      "source": {
+        "repository": "https://github.com/addyosmani/agent-skills",
+        "commit": "aeac41d4d005999432bb7312f7ff06383a91d59d",
+        "path": "docs/agents.md",
+        "url": "https://github.com/addyosmani/agent-skills/blob/aeac41d4d005999432bb7312f7ff06383a91d59d/docs/agents.md",
+        "license": "MIT"
+      }
+    }
+  ],
+  "provenance": {
+    "source_repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+    "source_commit": "02e6ca4c1cb201904abd2ef2f107f6dce957e051",
+    "source_path": "skill/lody4dot/references/roles/index.json",
+    "source_sha256": "4824af9c0806091dc24f04089ab15333939060bae8275713a3b5d9f77c96b835",
+    "source_version": "1.1.1",
+    "receiver_version": "1.0.0",
+    "derivation": "从固定来源1.1.1独立派生本仓1.0.0；保留11个来源角色ID、项目硬约束与可选方法元数据，适配本地组织链接、导航和任务边界，新增两个本地专业职责。不继承运行身份、任职、模型配置或验收。",
+    "evidence_scope": "role_knowledge_only; not an appointment, runtime binding or deployment receipt",
+    "ancestral_provenance": {
+      "source_repository": "https://github.com/CF-FE/mymcp-4-codexcloud",
+      "source_commit": "9f98ef3da722240fbcb8465e49259dad6401ed4f",
+      "source_path": "docs/lody4dot/workspace-roles/v2.2/roles-v2.json",
+      "source_sha256": "afb8caf1782371feb88417fe28c0d402769de268664c73bd2c2c035d3965685e",
+      "source_version": "2.2",
+      "derivation": "V2.2职责派生为通用共同合同、工作区共享定义与显式fanren-work适配；项目硬要求保留，机器/模型历史观测不作为当前绑定。",
+      "evidence_scope": "knowledge_definition_only; native_payload=false; not a deployment receipt"
+    }
+  }
+}
