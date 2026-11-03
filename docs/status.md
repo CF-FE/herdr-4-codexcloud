@@ -4,11 +4,11 @@
 
 <a id="vps-任务信箱独立仓库开发"></a>
 
-## Lead 确定性执行适配器：首版安装与一次限定执行通过，回传待验
+## Lead 确定性执行适配器：首版工程限定验收通过
 
 公子已明确接受 Lead 决策、adapter 执行、桥传数据的边界并授权辩证优化后实现，正式任务为 [Herdr #1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本仓新增显式 CLI、独立执行 journal、固定输入／目标校验、一次 prompt 与 UNKNOWN 对账、实际产物核验及独立安装器；详细合同与逐层证据统一维护于[执行适配器规范](herdr-executor.md)。它不自动消费信箱、不修改桥／hook／九项 MCP 工具，不给 Win／Cloud 批量安装库或创建任务。
 
-固定实现c89d5c5已发布，主执行与原review分别61项通过；24文件独立安装回读，真实Herdr driver一次prompt完成41字节变换产物并核独立预期，COLLECTED后Lead显式RELEASED，专用测试资源已按原ID清理。结果已用真实Lead Codex session／turn暂存至原桥，仍待自然Stop、collector出件、接收者精确读回及ACK；近期collector有UNKNOWN_CAUSE的CLIENT_OPEN失败，保持PARTIAL，不将执行通过当传输或整体业务通过。公子另授权单次 desktop 控制独立 Mac 测试 session，既有 Codex 模型／认证、项目测试目录、最多 1 个合成回合；不操作旧 pane 或生产资产。下文早期“自动 handler 未实现”继续指自动收件派发路径，不否定本次显式适配器新增源码。
+固定实现c89d5c5已发布，主执行与原review分别61项通过；24文件独立安装回读，真实Herdr driver一次prompt完成41字节变换产物并核独立预期，COLLECTED后Lead显式RELEASED，专用测试资源已按原ID清理。结果已用真实Lead Codex session／turn暂存；真实Stop后原collector在既定退避中自行恢复，将原结果以同event/hash上送v1。原review实际读全2973字节结果并独立核canonical hash，写ACK后再读持久事件；本实施侧直接回读原report=SENT、ACK cursor10／HANDLED、待收及待补传0、collector=OK。原review已明确通过本项目已有Mac Agent／显式Lead首版工程范围。间歇CLIENT_OPEN RuntimeError根因仍UNKNOWN，不将该样本外推为长期、Win／Cloud、自动调度或生产业务通过；稳定性任务仍在服务仓保持Open。公子另授权单次 desktop 控制独立 Mac 测试 session，既有 Codex 模型／认证、项目测试目录、最多 1 个合成回合；不操作旧 pane 或生产资产。下文早期“自动 handler 未实现”继续指自动收件派发路径，不否定本次显式适配器新增源码。
 
 ## VPS 任务信箱与客户端接入：进行中
 
@@ -18,9 +18,9 @@ Task Mailbox 及 Mac 协调桥的代码、文档、配置、Skill／插件与 Is
 
 迁移基线为服务仓 `9d556e0`，文档基线为 `ca8a480`：Mac 协调桥已迁到 `~/Library/Application Support/MacCoordinationBridge`，公子确认新 hook 信任，已有迁移后原生 PreToolUse／PostToolUse。随后实施侧完成三项修复并从固定源码 `87cfb6551240c08d5aa8df3a8afdc305c5388a86` 更新同一运行目录：双向预算公平性、安全故障原因／阶段、只读 HELD 分页。135 项完整自检、9 项无外网 SDK smoke 通过，验收侧的独立模拟增量已通过；11 个运行文件摘要一致，只有新 collector 持有锁，已回读启动后新的 OK 时点、cursor=7、HELD 与待补传均为 0。配置／钩子定义／启动项、原业务表和 9 个 OAuth 文件保全；VPS 本轮未更新，具体回执统一在服务权威记录，原 review 会话已对本轮三仓本地文档对齐、桥三缺陷修复及当前 Mac 运行更新给出限定验收通过；不包含三仓发布、长期／反向／Cloud 或 CLI 独立分支及 Herdr 业务闭环，完整回执见服务权威记录。这里接收实施侧运行与验收侧增量回执，不冒称重新 SSH、登录、运行模型或直接调用 Dot；原现场 AUTH_FAILED 根因仍 UNKNOWN。
 
-数据层已有的是原任务链路：桌面会话经云端 App 提交，Mac 桥收件并上传结果，原桌面会话实际读全核版本／摘要及 nonce 后 ACK；指定 Dot 的读取归公子回报，实施侧另从服务直接读回同一任务、版本和摘要的独立 ACK，Mac 随后收取。不能将此改写成 Dot 发起任务已验；Mac 发起反向新任务、长期稳定性及信箱到 Herdr 的业务执行仍未验。Mac Codex 原直接 OAuth 失败、Kimi 登录／发现未验与专用桥成功分别保留；Cloud 具体任务的工具、身份及读写也不继承这些回执。
+数据层已有的是原任务链路：桌面会话经云端 App 提交，Mac 桥收件并上传结果，原桌面会话实际读全核版本／摘要及 nonce 后 ACK；指定 Dot 的读取归公子回报，实施侧另从服务直接读回同一任务、版本和摘要的独立 ACK，Mac 随后收取。不能将此改写成 Dot 发起任务已验；Mac 发起反向新任务、长期稳定性及生产业务仍未验；本次桌面Lead经显式Mac适配器完成的合成执行／回传另见上节，不能扩大为Dot发起或生产采用。Mac Codex 原直接 OAuth 失败、Kimi 登录／发现未验与专用桥成功分别保留；Cloud 具体任务的工具、身份及读写也不继承这些回执。
 
-VPS 信箱只持久收发，Mac 桥主动轮询、会话感知和显式结果补传已实现；Herdr／模型自动执行 handler 未实现，Dot 自动唤醒未实现且无保证。取消、实际停止、结果报告、读确认和业务验收分别取证，同一未知执行仍沿原 job、目标与原生引用对账，不因桥接入重派。Herdr 在本仓的当前缺口是按授权手工定向承接与业务回收尚未验，不再把“没有常驻 Mac 桥”列为现状。
+VPS 信箱只持久收发，Mac 桥主动轮询、会话感知和显式结果补传已实现；Herdr／模型自动执行 handler 未实现，Dot 自动唤醒未实现且无保证。取消、实际停止、结果报告、读确认和业务验收分别取证，同一未知执行仍沿原 job、目标与原生引用对账，不因桥接入重派。本仓已有[Lead显式Mac适配器的限定执行／回传验收](herdr-executor.md)，当前剩余是自动消费派发、Win／Cloud执行扩展和生产业务验收，不再把“没有常驻 Mac 桥”列为现状。
 
 ### 2026-11-02 早期接入快照（历史）
 
@@ -339,9 +339,9 @@ VPS 的 1 vCPU／1 GB／20 GB 是可升级起点，容量不足时按测量调�
 | 层次 | 当前状态 |
 | --- | --- |
 | 本仓两份复制技能的原生安装、自动发现 | 未验；当前提供源码与按路径读取入口。另装的官方 Herdr 全局技能文件已验证，下一轮发现仍以实际目录加载为准 |
-| Herdr 本仓的目标宿主 Projects 工具、访问权限和正式 Project 绑定 | UNKNOWN；服务仓已有的 Issue／Project 证据不自动成为本仓绑定 |
+| 目标 Worker 的 Projects 工具、访问权限及 Herdr 专用板 | UNKNOWN；本次Herdr Issue／既有总览条目关联和字段已实际回读，不能代验目标Worker工具或专用板 |
 | Dot → mac-work 本地任务入口 | 已有用户转述的 Dot 两轮局部闭环报告，原始 JSON／原任务引用未独立核验；本次 Dot → Herdr → Agent 定向交互仍未验，不能由私网或 Agent 识别推导 |
-| VPS 信箱到 Herdr 的承接 | 专用 Mac 桥、原任务结果交付及指定 Dot 读取已有分层证据，详见顶部及服务权威记录；反向新任务、指定 Herdr／模型／业务执行仍未验，不互相代证 |
+| VPS 信箱到 Herdr 的承接 | 专用 Mac 桥、原任务结果交付及指定 Dot 读取已有分层证据，详见顶部及服务权威记录；Lead显式Mac适配器的合成执行及结果回传已限定通过；反向新任务、Win／Cloud扩展与生产业务未验，不互相代证 |
 | mac-work 规格与多项目会话容量 | 未验；本地 Herdr 内双 CLI 启动／识别已通过，真实项目运行与容量另验；Mac 持续在线为已确认前提，不另设离线验收 |
 | 长期网络质量、完整身份生命周期与新增机器／服务策略 | 未验；当前单 Win 私网、指定 SSH／回程策略已验证，不推广为全部协议、规模或未来接入通过 |
 | 未来 Herdr 升级兼容、主机重启与业务恢复 | 未验；当前 Win 专用 session 与既有版本的远端 API、小任务已验证 |
@@ -349,9 +349,9 @@ VPS 的 1 vCPU／1 GB／20 GB 是可升级起点，容量不足时按测量调�
 | 可升级 VPS 的 MCP 并发与资源容量 | 未验；现有资源快照不证明目标服务负载，按独立服务的实际并发、内存及日志增长评估升级。Mac Lead、Cloud 和执行机负载另计，不要求 VPS 承接 Mac 离线控制 |
 | win-work 的 Herdr Agent 启动识别、模型与结果回收 | 仅有 OMP／Hermes／Kimi 在 SSH 下运行原生 CLI 的执行侧报告；未通过 Herdr 派发验收。Windows Codex 按公子要求暂不纳入本轮 |
 | 真实项目派发与业务产物 | 未验；网络 Goal 的小文件／窗格回读、Mac native 只读连接和 Win 原生文本回合分别留证，不替代业务产物与负责人验收 |
-| 负责人正式验收与项目新任务切换 | 未执行 |
+| 生产业务验收与生产任务切换 | 未执行；本次已有Mac Agent／显式Lead首版工程限定验收另已通过 |
 
-网络 Goal、Mac 原生 profile／只读查询、Win 原生文本回合的执行侧回报分别见本页顶部；本会话未重复模型测试、迁移旧任务或切换正式项目记录。来源仓库保持只读。
+网络 Goal、Mac 原生 profile／只读查询、Win 原生文本回合的执行侧回报分别见本页顶部；本次新合成回合不重测旧任务；未迁移旧任务或切换生产项目记录。来源仓库保持只读。
 
 ## 下一步
 

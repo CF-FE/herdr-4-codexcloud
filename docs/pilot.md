@@ -14,9 +14,9 @@
 
 Dot 原生 Mac 任务的 E0—E5 沿[原限定需求](dot-mac-herdr-evaluation.md#4-有界测试步骤与通过条件)核身份、准确委派、Herdr／Lead 交互和原任务回收；新增信箱不是该入口已通过的替代证据，也不授权超时后重派或换路。
 
-数据支路为 **Dot ↔ ngrok HTTPS ↔ Caddy 的信箱路由 ↔ VPS 持久 Task Mailbox ↔ Mac 协调桥**，Codex／Kimi 独立 MCP 客户端各自另核。桥已常驻主动收件、会话感知与显式结果补传；核授权与输入后定向本地 Herdr／项目 Lead 的执行承接仍未验。机器执行仍沿 Mac saved machine 经 LAN／SSH 直接连接 Win；信箱与桥不运行任务携带的 shell、Herdr 或模型，也不自动唤醒 Dot 或派发业务。
+数据支路为 **Dot ↔ ngrok HTTPS ↔ Caddy 的信箱路由 ↔ VPS 持久 Task Mailbox ↔ Mac 协调桥**，Codex／Kimi 独立 MCP 客户端各自另核。桥已常驻主动收件、会话感知与显式结果补传；桌面 Lead 显式调用独立[Herdr 执行适配器](herdr-executor.md)定向 Mac 既有 Codex，本次一次 prompt、真实产物、collect／Lead release 及原 review 读取／ACK 已工程限定通过。信箱与桥本身不执行 Herdr／模型，自动消费／无人值守派发未实现；Win／Cloud、Kimi、Dot 新派任务与生产业务不继承该回执。
 
-本次依据服务仓固定文档 `ca8a480` 对齐：Mac 桥专用授权、迁移与后台收件已取得实施侧回执；原任务由桌面云端 App 发起、Mac 回传并由原桌面会话读回，指定 Dot 读取另按公子回报及服务精确 ACK 回读记录。反向新任务、长期稳定性和本地 Herdr 执行仍未验，详细证据沿[本仓摘要](status.md#vps-任务信箱与客户端接入进行中)及[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。本次没有重做该服务／云端测试，不将桥成功推广为 Codex／Kimi 原客户端全部通过。
+Mac 桥迁移基线依据服务仓固定文档 `ca8a480`；原数据任务由桌面云端 App 发起、Mac 回传并由原桌面会话读回，指定 Dot 读取另按公子回报及服务精确 ACK 回读记录。本次适配器链路由桌面 Lead 承接，真实自然 Stop 后原 collector 上送同一结果 v1，原 review 读全核摘要并 ACK，本地已收取该 ACK；具体证据统一见[适配器验收](herdr-executor.md#验收记录)及[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。反向新任务与长期稳定性未验，瞬态 CLIENT_OPEN 故障根因仍 UNKNOWN；本次文档收尾不重复调用或改连接。
 
 Codex Cloud 也可作为条件客户端：只有对应云任务实际具备信箱 MCP 工具、OAuth 身份与动作权限时，才直接访问同一公网 HTTPS 端点，不必经 Dot／Mac 转述或连接 VPN。该路径目前未验，不将 Cloud 的额外接入作为本次 Dot ↔ Mac 数据闭环前置；Dot 插件创建及 Mac CLI 配置不证明 Cloud 已接入。信箱提交不会创建云任务或唤醒 Worker，Cloud 仍沿原生任务入口和成果验收运行；条件依据见[架构信箱章节](architecture.md#task-mailbox持久收发与本地承接)。
 
@@ -27,7 +27,7 @@ Codex Cloud 也可作为条件客户端：只有对应云任务实际具备信�
 | B0 身份与真实工具 | 按本轮选用的 Dot／专用 Mac 协调桥入口分别核 OAuth 身份、实际工具和必要动作；Codex／Kimi 原 CLI 与 Cloud 具体任务另列，不作专用桥的前置；Gitee 继续原认证 | 共享 HTTPS 路由或配置模板不等于客户端已登录／获权；桥成功也不代验其他客户端 |
 | B1 Dot → Mac 数据闭环 | 新的稳定 `job_id`、`payload_hash` 关联原任务；Dot 提交随机片段，Mac 主动读到对应内容，再发布变换结果；Dot 读取精确结果版本／摘要并确认 | 工具接受提交、持久入库不代表 Mac 已读取，更不代表 Herdr 执行 |
 | B2 Mac → Dot 数据闭环 | 交换方向，绑定另一 job 与 nonce；各侧实际调用及结果读取分别留证，不用模拟客户端或本机会话替代 Dot | 一向通过不推出双向通过；读确认不等于业务验收或写权交还 |
-| B3 获准本地执行承接 | B1／B2 数据闭环与相应任务授权具备后，客户端明确承接 job，定向真实 Herdr session／pane／Lead，关联其输入、执行引用和结果 | 复用已验机器连接；另核实际执行／产物，不自动派发、启动 Agent 或迁移控制权 |
+| B3 获准本地执行承接 | 桌面 Lead 显式调用适配器 → Mac 既有 Codex 一次执行 → collect／Lead release → 原 Stop／collector → 原 review 读取及 ACK，本次工程限定通过；新任务仍核自身授权与准确目标 | 不将反向数据验证设为独立获准执行的前置；不代验 Dot 原入口／Kimi／Win／Cloud、自动派发或生产业务，详见[规范](herdr-executor.md) |
 
 同 ID 同内容先查原记录，内容冲突明确停止；结果保持不可变版本与摘要，`ack_result_read` 仅确认准确版本已读，`request_cancel` 仅登记请求。超时或 UNKNOWN 沿原 job、原执行和当前写者对账，不切换 Dot 原生入口或重复投递。大产物保留固定引用，正式成果仍由有权负责人验收。
 

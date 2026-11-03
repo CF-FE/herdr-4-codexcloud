@@ -1,6 +1,6 @@
 # Herdr 确定性执行适配器
 
-修订日期：2026-11-03。状态：**固定源码与独立安装已验，一次限定执行通过，结果回传待自然 Stop／读回**。正式任务为 [CF-FE/herdr-4-codexcloud#1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本页统一维护该适配器的边界、接口和验收记录；全仓采用状态仍见[本仓状态](status.md)，Worker 定义仍见[双库入口](worker-library/README.md)。
+修订日期：2026-11-03。状态：**首版工程限定验收通过；生产业务、长期稳定及其他执行端未验**。正式任务为 [CF-FE/herdr-4-codexcloud#1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本页统一维护该适配器的边界、接口和验收记录；全仓采用状态仍见[本仓状态](status.md)，Worker 定义仍见[双库入口](worker-library/README.md)。
 
 ## 决策与退出依据
 
@@ -140,8 +140,8 @@ python3 scripts/install_herdr_executor.py --revision FULL_40_HEX_COMMIT --destin
 | Herdr 原生入口与预检 | PASS | 真实driver注入ENV1，client/server均0.9.5且协议兼容，准确Agent/pane/cwd/kind匹配，预检2RPC |
 | 一次合成模型回合 | PASS（限定） | 唯一prompt，完整payload／角色／task合同；41字节变换产物与独立计算的期望一致，累计6RPC；未用旧turn/等待代替 |
 | collect 与 handback | PASS（分记） | 实际长度／SHA匹配；COLLECTED仍占用，随后Lead显式RELEASED，原生试点资源按创建ID清理 |
-| Lead自然Stop／结果补传／读取 | PARTIAL | 已bind及stage-report，精确结果保全；仍WAITING_FOR_BOUND_SESSION_STOP，collector近期失败沿原退避，尚未声称上传或ACK |
-| 负责人限定验收 | PARTIAL | 源码/安装已有独立读回；native/产物与自然Stop后的结果读全/ACK仍待原review绑定固定版本验收 |
+| Lead自然Stop／结果补传／读取 | PASS（原链） | 真实Stop排队，原collector自然恢复后上送v1；原review读全核2973字节canonical结果并ACK，Mac同ACK已HANDLED |
+| 负责人限定验收 | PASS（工程限定） | 原review明确通过已有Mac Agent／显式Lead首版范围；不等于自动调度、任意业务或长期可用性 |
 
 公子已明确授权一次 desktop 创建并控制的独立 Mac 测试 session、项目测试目录、既有 Codex 模型及认证，**最多一个合成回合**。本次已从真实 Herdr 注入的 driver pane 执行适配器，保持默认 ENV1 条件；本文不伪造环境、不触发该试点。试点不改已有业务 pane、模型／认证、Mac 桥、网络或任务入口，不重复不确定发送。清理只限按真实创建 ID 绑定的测试资源，先保全 journal、原生回执、manifest 与产物；活动／UNKNOWN 先对账，不能靠关闭测试资源掩盖未决效果。
 
@@ -159,6 +159,8 @@ python3 scripts/install_herdr_executor.py --revision FULL_40_HEX_COMMIT --destin
 
 先保全原件、journal和回执，再只按本次真实创建ID关闭测试workspace，停止/删除本次独立session，回读空布局及session目录不存在；原有pane/server未动。产物和私密证据留在获准本地位置，未进入public仓库；项目临时agent-state与既有local目录显式排除发布。
 
-结果已使用本Lead真实Codex session／turn的原生hook观察bind及stage-report，Herdr目标session没有冒充这些身份。桥附加task_tracking后的精确canonical结果为2973字节，hash与稳定event保存在私密 `result-handoff.json`、`expected-result.json`。**当前仍等待本会话自然Stop；没有直接publish_result、伪造Stop或第二collector。** 原review按约定随后读精确版本、核全件与hash并ACK，再由实施侧核原outbox／同步正式记录。此阶段未通过前，任务继续Open／In Progress。
+结果已使用本Lead真实Codex session／turn的原生hook观察bind及stage-report，Herdr目标session没有冒充这些身份。桥附加task_tracking后的精确canonical结果为2973字节，hash与稳定event保存在私密 `result-handoff.json`、`expected-result.json`。**真实自然Stop已发生，原collector已上传，原review已读全并ACK，Mac已将该ACK入账。** 没有直接publish_result、伪造Stop或第二collector。北京时间2026-11-03 10:25:49结果进入原outbox，10:31:52观察到原collector自然恢复及同event/hash的SENT回执；服务结果为不可变v1。原review从服务读取完整结果，与2973字节expected-result原件逐字段和canonical hash一致，于10:34:55写稳定读ACK并再读持久事件；实施侧直接回读本地ACK游标10／HANDLED，待收与待补传均0，collector=OK。该ACK证明指定review读过，不自动证明业务采用或写权交还；测试占用的Lead显式RELEASED另有回执。
 
-传输另有自然失败观察：2026-11-03T02:12:30Z最后成功，02:16:30Z collector为 `NETWORK_FAILED / UNKNOWN_CAUSE stage:CLIENT_OPEN type:RuntimeError`，仍沿原退避；不是明确认证诊断，不推定注册或凭据失效。本页保留PARTIAL，不因执行层PASS声称出件成功或长期稳定。
+传输另有自然失败观察：2026-11-03T02:12:30Z最后成功，02:16:30Z collector为 `NETWORK_FAILED / UNKNOWN_CAUSE stage:CLIENT_OPEN type:RuntimeError`，仍沿原退避；不是明确认证诊断，不推定注册或凭据失效。其后原collector在既定退避中自行恢复，期间没有重启、登录、缓存清理、端点／代理／TLS变更、第二客户端或新业务。原PENDING结果保全约6分钟后以同event/hash上送，不重建任务或追加模型prompt。FastMCP可把多种连接／初始化失败包装为RuntimeError；本次无下层异常链，根因继续UNKNOWN，不反推为认证过期。这个自然恢复样本只证明本次缓存／补传，不等于故障注入矩阵或长期稳定性通过。
+
+原review已基于固定源码、安装、原payload独立计算的产物及服务完整读回／ACK，明确给出**“已有Mac Agent、显式Lead调用”首版工程范围通过**。Herdr #1按这个scope收尾；Task Mailbox #1的稳定性任务继续Open。Win／Cloud／任意任务自动消费者、生产业务及长期可用性未验，原间歇CLIENT_OPEN根因UNKNOWN。安装源仍c89d5c5，后续仅合入本规范验收回执，不重复模型、测试或部署。

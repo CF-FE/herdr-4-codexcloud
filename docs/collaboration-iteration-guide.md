@@ -1,6 +1,6 @@
 # 多项目协作架构迭代指引
 
-版本：0.14；编制日期：2026-11-01，修订日期：2026-11-03（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Mac 持续在线是当前设计与部署前提。Dot 全局协调，VPS Task Mailbox 与常驻 Mac 协调桥承担持久收发、会话感知和显式结果补传；原数据任务已有交付／读取回执，Herdr 执行承接、反向新任务与长期稳定性仍未验。mac-work 的 Herdr 托管各项目 Codex／Kimi CLI Lead，以本地 saved-machine／--machine 经 LAN SSH 直接连接 Win collab，不经 VPS；原生连接与空 Agent 列表只读回读已有证据。VPS 保留 Gitee MCP、旧 Herdr profile／在途及网络，Cloud 独立执行。信箱收发不自动执行或移交生产写权，工具、Agent 与业务验收分别取证。**
+版本：0.15；编制日期：2026-11-01，修订日期：2026-11-03（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Mac 持续在线是当前设计与部署前提。Dot 全局协调，VPS Task Mailbox 与常驻 Mac 协调桥承担持久收发、会话感知和显式结果补传；独立 Herdr 执行适配器已取得桌面 Lead 显式调用 Mac 既有 Codex、产物回收及原 review 读取／ACK 的首版工程限定通过。自动消费／无人值守派发未实现，反向新任务、Win／Cloud 扩展、生产业务及长期稳定性未验。mac-work 的 Herdr 托管各项目 Codex／Kimi CLI Lead，以本地 saved-machine／--machine 经 LAN SSH 直接连接 Win collab，不经 VPS；原生连接与空 Agent 列表只读回读已有证据。VPS 保留 Gitee MCP、旧 Herdr profile／在途及网络，Cloud 独立执行。信箱收发不自动执行或移交生产写权，工具、Agent 与业务验收分别取证。**
 
 本文沉淀搭建次序、取舍与验证方法，不因写入文档而扩大安装、入网、派发或业务权限。2026-11-02 公子已授权调通组网与准备协作环境的 Goal，已实施必要网络与服务配置；当前证据和未验项统一见[本仓状态](status.md)。网络／SSH、Windows 转发恢复及限定 TUI 小任务通过，不代表 Dot、Agent 或业务全链路通过。各项目业务状态仍在各自正式入口，本文不维护第二份活动队列。
 
@@ -11,6 +11,7 @@
 | 怎样逐步搭建、何时增加组件、用什么证据决定 | 本文 |
 | 组织岗位、授权、单写、汇报和验收 | [组织技能](../skill/organization-collaboration/SKILL.md)，不在本文另写一套规范 |
 | 按任务组合 Worker、后端与专业角色，固定定义版本和准备稿 | [Worker 与角色库](worker-library/README.md)、[Worker 注册表](worker-library/workers.json)、[角色索引](worker-library/roles/index.json)；只有离线查询／准备，不是实时可用性或派发服务 |
+| Lead 显式定向已有 Mac Agent、对账与回收 | [Herdr 执行适配器规范及验收](herdr-executor.md)；独立 journal／一次 prompt／manifest，不接管信箱、正式记录或业务验收 |
 | 当前 TUI 与历史 hc／App 路线的能力、来源及限制 | [通信指引](agent-communication.md)；产品、研究日期与目标端证据分列 |
 | Dot 与 Mac 的任务、事件、小结果怎样持久交接 | 本文的[Task Mailbox 输入通道](#task-mailbox输入通道与验收边界)及[VPS 接入记录](vps-control-pilot.md#task-mailbox当前接入快照)；服务实现和运行记录由外仓维护 |
 | Mac 原生连接、VPS 旧支路与机器环境 | [VPS 试点](vps-control-pilot.md)；TUI 原生命令沿[试点指引](pilot.md) |
@@ -22,7 +23,7 @@
 
 建设基线是：**统一协调与可达资源视图，分布式执行与资产保管。** Dot 关联跨项目目标、依赖和资源；Mac 上的项目 AI Lead 拆任务、跟依赖、准备任务包并组织复核，本地 Herdr 原生连接 Win 执行端。VPS 提供 Task Mailbox 和其他自建 MCP 服务，旧控制支路只沿原执行处理其在途任务，不重复常驻项目规划 Agent。信箱持久任务数据与小结果，业务 owner、正式状态与验收仍沿原 Projects／Issues 或既有入口，不建立竞争业务库。接通与只读观察不移交正式生产写控制；独立 Cloud 任务不以 Mac 或信箱接通为前置。
 
-0.7 记录公子选择 Herdr TUI、替换此前 core／hc 优先分工的决定；0.8 的网络 Goal 已取得 VPS／Win EasyTier、Mac 经 Win 到 VPS SSH、VPS → Win SSH 与转发恢复证据。该轮 **VPS profile** 下的 running／reachable、94 字节文件与两个新窗格交叠执行是旧支路成果，不能冒称本次 Mac 原生直连成果。0.9 保留 FastMCP／ngrok 角色调整与当时的 LAN 简化候选；0.10 采用 Mac 经 LAN 原生直连 Win；0.11 明确 Mac 持续在线，不再要求脱离 Mac 运行；0.12 纳入正在接线的 Task Mailbox 输入通道；0.13 加入独立版本化 Worker／角色库及离线选型、准备稿，不新增调度服务或运行队列；0.14 对齐 CF-FE 服务维护归属与 Mac 桥已常驻的数据层边界。Agent 配置与真实多项目业务分别取证，服务启动或库结构通过都不等于协作已验收；主机重启未测只限定历史恢复证据，不是本轮前置。
+0.7 记录公子选择 Herdr TUI、替换此前 core／hc 优先分工的决定；0.8 的网络 Goal 已取得 VPS／Win EasyTier、Mac 经 Win 到 VPS SSH、VPS → Win SSH 与转发恢复证据。该轮 **VPS profile** 下的 running／reachable、94 字节文件与两个新窗格交叠执行是旧支路成果，不能冒称本次 Mac 原生直连成果。0.9 保留 FastMCP／ngrok 角色调整与当时的 LAN 简化候选；0.10 采用 Mac 经 LAN 原生直连 Win；0.11 明确 Mac 持续在线，不再要求脱离 Mac 运行；0.12 纳入正在接线的 Task Mailbox 输入通道；0.13 加入独立版本化 Worker／角色库及离线选型、准备稿，不新增调度服务或运行队列；0.14 对齐 CF-FE 服务维护归属与 Mac 桥已常驻的数据层边界；0.15 对齐 Lead 显式 Mac 执行适配器的限定通过及原链结果回传。Agent 配置与真实多项目业务分别取证，服务启动或库结构通过都不等于协作已验收；主机重启未测只限定历史恢复证据，不是本轮前置。
 
 ## 2. 逻辑分层与多项目职责
 
@@ -46,7 +47,7 @@ flowchart TD
     NG <--> MS["VPS · FastMCP 自建服务<br/>Gitee MCP：公子确认部署／登记"]
     D <-.->|"原结果读取：用户回报<br/>精确 ACK 由实施侧回读"| EP["同一 OAuth HTTPS<br/>/mailbox/mcp"]
     BC["Mac 协调桥<br/>常驻收件／会话感知／补传"] <-->|"原数据任务已有回执"| EP
-    BC -.->|"Herdr 执行承接待验"| A
+    BC -.->|"数据由 Lead 显式核取<br/>桥不执行 Herdr"| A
     C <-.->|"Cloud 任务具备 MCP／OAuth 时<br/>第三类客户端 · 未验"| EP
     EP <-->|"服务／HTTPS · 执行侧报告通过"| MB[("VPS Task Mailbox<br/>SQLite · 任务／事件／小结果")]
     A -->|"本地 saved-machine／--machine<br/>LAN SSH · 连接／只读验证"| M
@@ -70,7 +71,7 @@ flowchart TD
     I -.按需增强.-> W["事件直通 · Watchdog"]
 ```
 
-图是已选分工的连接设计，不表示全图已通。信箱／Mac 桥的数据回执归实施侧，指定 Dot 读取的用户回报与服务 ACK 回读分列；原任务不冒称 Dot 发起，反向新任务及 Herdr 执行另验。既有 Dot 原生本地任务入口另列，不能互相代证。信箱没有通向 Herdr 的自动执行线。AI Lead 与业务验收者分列；Space 工具线以实际工具和资源权限为前提，Cloud 不必经 Mac 或信箱转述资料。Cloud 派发仍沿已获准 Dot 入口，Mac Lead 不自动取得另一派发入口。
+图是已选分工的连接设计，不表示全图已通。指定 Dot 原数据读取的用户回报／服务 ACK，与本次桌面 Lead 显式 Mac Codex 执行及原 review 读取／ACK 分别归属；后者已工程限定通过，不冒称 Dot 新派任务或 Kimi 通过。自动消费／无人值守派发未实现，反向新任务及 Win／Cloud 扩展另验。信箱／桥没有通向 Herdr 的自动执行线；适配器由 Lead 显式调用。AI Lead 与业务验收者分列；Space 工具线以实际工具和资源权限为前提，Cloud 不必经 Mac 或信箱转述资料。Cloud 派发仍沿已获准 Dot 入口，Mac Lead 不自动取得另一派发入口。
 
 当前区分两条物理路径：**Mac 本地 Herdr → LAN SSH → Win collab** 用于本次原生连接／只读验证；**Mac → LAN → Win 网关 → EasyTier → VPS 内网地址** 保留既有 VPS 访问。后一条已有源地址、默认路由／DNS 不变及服务重建恢复回执，不证明前一条 saved-machine 已通过。Mac 不装 EasyTier；Win 的 Mac `/32` 宣告、WLAN／TUN 转发和 Mac 的 VPS `/32` 主机路由保留，不发布整个 LAN。VPS ↔ Win 的旧 P2P 短样本有丢包，持续性能与业务 Agent 未验。简图见[组件图](architecture.md#三机组件与调用图)，详细范围见[独立组网方案](networking-plan.md)。Dot 原生入口与 Cloud 独立路线保留。
 
@@ -115,11 +116,11 @@ Win 的 OMP／Hermes／Kimi 代理分支可以依赖 Mac CLI Proxy，不要求�
 
 2026-11-02 来源会话最新快照：执行侧报告 `task-mailbox.service` 运行、回环未认证返回 401 与 OAuth discovery、公网 HTTPS 与 discovery 已通过；Caddy 安全热加载 PID 不变，原 Gitee 路径、OAuth 和进程保留。云端 Task Mailbox 私有插件已创建，Mac Codex／Kimi 正在配置及首次 OAuth；尚无完整的真实工具发现、`whoami`、双向 nonce 或 Herdr 闭环回执。这里是执行侧报告，本轮没有另行 SSH 或云端重测；外仓部分接入文档尚停留在启动前，不能将其旧“未启动”状态覆盖此快照，也不把新快照推广为全链通过。
 
-2026-11-03 当前采用依据服务仓文档 `ca8a480`：专用桥授权、目录迁移、唯一后台 collector 与新原生 hook 已取得实施侧证据；原任务结果经 Mac 回传并由桌面云端 App 读全确认，指定 Dot 读取归用户回报及精确 ACK 回读。反向新任务、长期稳定性和 Herdr 执行未验；本仓只保采用摘要，详细状态沿[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。
+2026-11-03 当前采用：服务仓文档 `ca8a480` 为桥迁移基线，原数据任务结果由桌面云端 App 读全确认，指定 Dot 读取归用户回报及精确 ACK 回读。本次另有桌面 Lead 显式调用 Mac Codex 的独立适配器限定通过，真实自然 Stop 后原 collector 补传同一结果，原 review 读全核摘要／ACK，本地已收取；详见[适配器规范与验收](herdr-executor.md)及[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。反向新任务、生产业务及长期稳定性未验，瞬态 CLIENT_OPEN 根因仍 UNKNOWN。
 
 采用主动收发：发送方 `submit_job`，接收方 `get_job`／`list_events` 查询原任务，核已有授权后才决定是否经原 Herdr 入口执行；随后 `publish_result`，对方 `get_result` 核版本与摘要，再 `ack_result_read`。同 ID 同内容返回原记录、冲突拒绝，是服务内去重约定，不保证外部命令恰好执行一次。`sender`／`recipient` 是任务数据，认证主体用 `whoami` 独立核；业务 owner 与正式记录不转交信箱。`request_cancel` 只是取消请求，读确认不是业务验收、进程停止或写权交还。
 
-Mac 桥的后台轮询和持久收件／补传已实现，Herdr／模型执行 handler 仍未实现，也不证明能自动唤醒 Dot。各客户端的身份、收到、读取、结果发布和读确认分别取证，不能从桥成功推广到 Codex／Kimi 原客户端或 Cloud。Herdr 定向目标、回合和业务产物仍沿原生引用单独验收，服务 HTTP／OAuth 或数据 ACK 不能替代它。
+Mac 桥的后台轮询和持久收件／补传已实现，本身不执行 Herdr／模型；独立适配器的 Lead 显式 Mac Codex 范围已限定通过。信箱自动消费／无人值守派发、Dot 自动唤醒未实现；各客户端身份、读取及原生执行分别取证，不推广到 Kimi、Dot 新派任务或 Cloud。服务 HTTP／OAuth 或数据 ACK 不能替代业务验收。
 
 上述早期阶段曾有一次本地 OAuth 回调返回、随后令牌交换失败；这是原独立客户端的历史分支，不能覆盖专用桥后来的成功。各分支当前状态沿服务权威记录，不互相继承认证，也不据该旧错误猜测回调地址错误。
 
@@ -221,7 +222,7 @@ python3 scripts/worker_library.py prepare --worker win-omp --backend cli-proxy-r
 | 公子／有权协作者／Dot ↔ Space | 官方支持页面、文件引用和 `@ChatGPT`／`@dot`；在实际可用客户端与授权工具内处理获准资料 | 目标 Space／Page、账号、读写范围，以及指定接收者实际可读；网页入口与工具可发现都不能代替回读 |
 | mac-work Lead ↔ Space／VPS | Space 仅沿任务实际提供的获准工具；到 VPS 的内网 SSH 已经 Win 网关回读，Mac 不为此安装 EasyTier 或 hc | Dot 原生接入、TUI profile／session 与具体资源权限仍分别取证；网络或本地版本回读不代表 Agent 已接入，不把本会话工具清单继承给其他任务 |
 | Mac 本地 Herdr ↔ Win | saved-machine 已在 Mac 保存，collab reachable，按原生 ID 的 agent list 退出 0／agents=[] | 不以操作员登录 Win 后的本地 CLI 回读替代；本次不传文件、不注入 pane 输入、不新增 Agent 或交接业务写权 |
-| Dot ↔ Task Mailbox ↔ Mac 客户端 | 共用 OAuth HTTPS `/mailbox/mcp`；服务与公网入口按执行侧报告通过，云端私有插件已创建，Mac Codex／Kimi 接线中 | 工具发现、whoami、两端 nonce 读写及 Herdr 回合未完整取得；不是 Space 文件通道、自动唤醒或机器执行入口 |
+| Dot／桌面 Lead ↔ Task Mailbox ↔ Mac 桥 | 原数据交付与指定 Dot 读取分层留证；本次桌面 Lead 显式 Mac Codex 执行、原 collector 补传及原 review 读取／ACK 已限定通过，详见[规范](herdr-executor.md) | 不代验 Dot 新派任务、Kimi 原客户端、反向新任务或 Cloud；信箱自动消费／无人值守派发未实现，不是 Space 文件通道 |
 | Codex Cloud Worker ↔ Space | 任务实际提供并获准使用 Pages／Space 工具时直接读页面与支持的文件引用、写入指定成果；不强制经 Dot 转述 | 核该 Cloud 任务的实际工具、连接身份、目标 Page／文件和允许动作；平台通用文档不代替任务内回读，不默认所有云任务有相同工具 |
 | 当前会话 ↔ Space | 本会话有 Pages 读写和有限文件引用工具；已只读列举可见 Spaces，两页均无条目，本轮未上传或编辑 | 未定位目标 Space，不推出资源不存在。当前文件上传工具单次上限 10 MiB，读取有独立格式／大小限制；这是工具范围，不是对平台容量的判定 |
 | Cloud／机器 Worker ↔ 源码与资料 | 源码沿获准仓库固定 commit；Space 资料可由有工具及资源权限的执行端直接读取，其余按任务交付必要文件／可读引用 | 不默认任务可读取任何私人 Space；本会话连接不自动安装到 VPS CLI 或其他任务。工具不具备时先保留该分支边界，按原任务已约定且获准的交接路径处理，不擅自换入口 |
@@ -238,7 +239,7 @@ python3 scripts/worker_library.py prepare --worker win-omp --backend cli-proxy-r
 
 每次跨端交接区分：保管方已保存、传输已受理、目标实际读到、版本／摘要一致、负责人采用。版本引用明确对象、位置、输入关联、适用摘要、当前写者和接收者；凭证不写入共享页。资料更新优先引用或按任务单向交付，保留更新时间和源版本，不启用自动双向同步。只有现有通道无法满足已确认的大文件自动交接需求时，才比较新增对象存储／NAS 等方案的价值与维护成本。
 
-后续最小验证只选一条已具备条件且获授权的支路、一份无业务影响的小输入：原保管方给出准确版本 → 执行端实际读取并核对 → 返回小产物与原生回执 → 指定接收者回读并由原负责人验收。若要使用 Space，先绑定真实可读的 Page／文件；该入口未就绪时可先用其他已获准输入验证 Worker。网络／SSH、限定 TUI pane 与 94 字节小文件已有证据，Dot／接收者和业务闭环仍待验；成立后再验证新实例重建、两项目重叠及云机混合交接，不要求全图所有资源一次接通。
+后续最小验证只选一条已具备条件且获授权的支路、一份无业务影响的小输入：原保管方给出准确版本 → 执行端实际读取并核对 → 返回小产物与原生回执 → 指定接收者回读并由原负责人验收。若要使用 Space，先绑定真实可读的 Page／文件；该入口未就绪时可先用其他已获准输入验证 Worker。网络／SSH 与旧小文件、本次 Lead 显式 Mac 合成回合及原 review 读回各有证据，不能代验 Dot 新任务或生产业务；新实例重建、两项目重叠及云机混合交接另验，不要求全图所有资源一次接通。
 
 ## 4. 分阶段迭代
 
@@ -247,7 +248,7 @@ python3 scripts/worker_library.py prepare --worker win-omp --backend cli-proxy-r
 | 阶段 | 本轮要解决的问题 | 最小验证与放行证据 | 未满足时怎样继续 |
 | --- | --- | --- | --- |
 | I0：绑定目标与范围 | 哪些项目、谁负责、允许做什么、如何交付和停止 | 先绑定具备条件的一项任务，复用项目、输入、正式入口、写者、预算和验收者；I3 前补齐至少两个独立项目的验证绑定。缺项标明影响，不默认目标或阈值 | 第一条已具备条件的任务不等待另一个项目或全组织盘点；缺权限不试派发，不把未绑定项目当已接入 |
-| I1：一条端到端闭环 | Dot 能否沿具备条件的入口取得准确执行与结果 | Mac 原生直连 Win 只读证据已有；当前信箱先分层取得两端工具／身份、双向 nonce 与精确结果回读，再独立核 Herdr 定向执行和原生回执。既有 Dot 本地任务路线另验 | 服务上线、插件创建或信箱读确认不证明模型／业务通过；未绑定分支只限制依赖动作，Cloud 独立继续，旧 VPS 任务不重派 |
+| I1：一条端到端闭环 | 选定入口能否取得准确执行与结果 | 桌面 Lead 显式调用 Mac 既有 Codex、核产物／交还、原 Stop／collector 补传、原 review 读回／ACK 已限定通过；Dot 原生任务、反向新任务和 Win／Cloud 分别另验 | 不把该一次合成回合扩为自动调度或生产业务；独立获准执行不以其他方向全部通过为前置，旧 VPS 任务不重派 |
 | I2：短回合与长执行分离 | 唯一协调入口会不会被长任务占住 | 有界长任务启动后取得原生引用；期间实际处理查询和另一项已授权请求；原任务继续被正确观察，无重复执行或错误关联 | 如接口实际阻塞，记清限制；先复用真实异步入口或有界查询，不假称已支持自动回调、唤醒或后台调度 |
 | I3：多项目同时推进 | 独立项目能否重叠推进，局部阻塞能否被隔离 | 至少两个项目有活动重叠与实际进展；两类 Worker 都采用时再取一轮云端／机器重叠与固定版本交接证据。验证 A 阻塞时 B 无冲突分支继续、共享资源不超分、结果归各项目分别验收 | 单项目、串行或单池结果只证明相应范围。保留未知预留，只调整受影响负载或配置，不冻结全部项目；未接入池保持未验 |
 | I4：降低路由与上下文开销 | 是否反复判断同一归属、重复读大日志或遗漏跟进 | 在相同工作口径下比较精确引用续接、重复状态合并、摘要＋按需原件读取；核授权／输入版本没有被压缩或路由丢失 | 无明显问题先保留简单路径；错关联、漏控制指令或多花成本时撤回该优化，原任务不重开 |

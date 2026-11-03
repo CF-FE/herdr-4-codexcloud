@@ -16,9 +16,9 @@ Space 资料协作与机器控制分开接线：Dot 以及任务实际提供获�
 
 ## 1. 当前建议与理由
 
-当前已按选定 TUI 完成无业务影响的控制闭环，后续项目复用原生 CLI、SSH 和正式记录。VPS 信箱和 Mac 桥已补原任务的数据交接与对账，Herdr 执行承接、反向新任务与长期稳定性仍分别未验；其他插件不因信箱采用而连带安装。相同 job ID／内容的传输去重不提供跨信箱和 Herdr 的原子执行保证，UNKNOWN 仍查原任务／pane 与实际效果，不能自动重发模型请求。
+当前已按选定 TUI 完成无业务影响的控制闭环；独立[Herdr 执行适配器](herdr-executor.md)另取得桌面 Lead 显式调用 Mac 既有 Codex 的首版工程限定通过，一次 prompt、实际产物、Lead 交还、原自然 Stop／collector 补传及原 review 读取／ACK 分别留证。信箱／桥本身仍不执行，自动消费／无人值守派发未实现；反向新任务、Win／Cloud、生产业务与长期稳定性未验，其他插件不连带安装。指定 Dot 原数据读取不冒称本次调用；相同 job ID／内容的传输去重也不提供跨信箱和 Herdr 的原子执行保证，UNKNOWN 仍查原任务／pane 与实际效果，不自动重发模型请求。
 
-Mac／VPS／Win 已有 TUI 0.9.5 的版本证据，Win 的 LAN 免登、sshd 和 EasyTier GUI 2.6.4 已直接回读；尚无已验收的 Herdr 业务链路。Win 的 OMP／Hermes／Kimi 已收到原生 CLI 文本回合的[执行侧交接](local-agent-inventory.md#7-win-work-harness执行侧交接)，本会话未独立重测，Herdr 内启动、工具、项目目录和派发回收另验；Windows Codex 暂不考虑。旧 Lody 任务仍沿原入口收尾，一个执行及待写资产只保留一个控制入口、一个当前写者。
+Mac／VPS／Win 已有 TUI 0.9.5 的版本证据，Win 的 LAN 免登、sshd 和 EasyTier GUI 2.6.4 已直接回读；Mac 合成试点不作为生产业务验收。Win 的 OMP／Hermes／Kimi 已收到原生 CLI 文本回合的[执行侧交接](local-agent-inventory.md#7-win-work-harness执行侧交接)，本会话未独立重测，Herdr 内启动、工具、项目目录和派发回收另验；Windows Codex 暂不考虑。旧 Lody 任务仍沿原入口收尾，一个执行及待写资产只保留一个控制入口、一个当前写者。
 
 以下为 **2026-10-30 的 core 采用评估历史**，不是当前 TUI 方案的执行门槛：
 

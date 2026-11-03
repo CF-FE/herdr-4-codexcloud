@@ -1,6 +1,6 @@
 # mac-work 项目协调、VPS Task Mailbox 与既有控制支路
 
-最新角色修订：VPS 主要承载 FastMCP 自建服务，**Task Mailbox 与常驻 Mac 协调桥承担 OAuth HTTPS 持久收发、会话感知和结果补传**。专用桥授权、原数据任务交付及读取已有分层实施侧回执，反向新任务、长期稳定性和 Herdr 业务仍未验。原 Gitee 的认证、进程、路径与公网入口保留，详见[架构清单](architecture.md#vpsmcp-服务与过渡控制)。下文 VPS Herdr 支路仍保存原任务与验收历史；信箱不替代机器控制入口。
+最新角色修订：VPS 主要承载 FastMCP 自建服务，**Task Mailbox 与常驻 Mac 协调桥承担 OAuth HTTPS 持久收发、会话感知和结果补传**。桌面 Lead 显式调用独立[Herdr 执行适配器](herdr-executor.md)定向 Mac 既有 Codex，本次一次执行、产物／交还及原 review 读取／ACK 已工程限定通过；信箱／桥自身不执行，自动消费／无人值守派发未实现，反向新任务、Win／Cloud 扩展、生产业务及长期稳定性未验。原 Gitee 的认证、进程、路径与公网入口保留，详见[架构清单](architecture.md#vpsmcp-服务与过渡控制)。下文 VPS Herdr 支路仍保存原任务与验收历史；信箱不替代机器控制入口。
 
 公子最新已明确：**Mac 本地 Herdr 以 saved-machine／--machine 经 LAN SSH 直接连接 Win 已运行的 collab**，不再列为候选，也不经 VPS 中转。主会话已取得注册退出 0、Mac catalog 0→1、目标 reachable 及定向 agent list 退出 0／agents=[] 的限定回执。本次不创建 Agent、不启停或替换 server、不移交正式生产写控制；VPS 旧 profile、在途任务与网络保留，其目录／在途审计独立未决。
 
@@ -39,7 +39,7 @@ flowchart TD
     D <-.->|"既有原生本地任务<br/>定向 Herdr 待验"| M
     D <-.->|"原结果读取：用户回报<br/>精确 ACK 由实施侧回读"| E
     BC["Mac 协调桥<br/>常驻收件／会话感知／补传"] <-->|"原数据任务已有回执"| E
-    BC -.->|"Herdr 执行承接待验"| M
+    BC -.->|"数据由 Lead 显式核取<br/>桥不执行 Herdr"| M
     E <-->|"服务／HTTPS · 执行侧报告通过"| B
     M <-->|"本地 saved-machine／--machine<br/>LAN SSH · 连接／只读验证"| W
     V -.->|"旧任务原入口 · EasyTier／SSH"| W
@@ -55,10 +55,10 @@ flowchart TD
     D <--> R
 ```
 
-信箱与桥的原数据任务回执来自实施侧，本轮未直接 SSH 或云端重测；指定 Dot 读取的用户回报与服务 ACK 回读分别归属，反向新任务及 Herdr 执行仍未验，不能读成全通。图中没有信箱自动执行 Herdr 的控制线。既有原生 Dot 本地任务、信箱收发和旧 VPS Herdr 支路分别取证，不对同一任务重复派发。
+指定 Dot 的原数据读取按用户回报与服务 ACK 回读分别归属；本次桌面 Lead 显式 Mac Codex 执行及原 review 读取／ACK 另有限定通过回执，不冒称 Dot 新派任务或 Kimi 已验。图中没有信箱自动执行 Herdr 的控制线；独立适配器由 Lead 显式调用，Win／Cloud 扩展及反向新任务另验。既有原生 Dot 本地任务、信箱收发和旧 VPS Herdr 支路分别取证，不对同一任务重复派发。
 
 - mac-work 的项目 Lead 拆任务、跟依赖、准备任务包、回收结果并组织复核；按项目区分上下文和权限，不机械每项目常驻一个进程，也不从岗位定义取得新授权。最终业务验收仍由公子或已指定验收者承担。
-- VPS 承载 Task Mailbox 的 SQLite 持久收发及原 Gitee MCP；信箱不执行任务、不访问 Herdr／shell／模型。Mac 桥另在 Mac 常驻主动轮询和补传，无 Herdr 执行 handler 或已验 Dot 自动唤醒。旧 Herdr 支路只沿现有绑定处理原任务，不重复运行项目规划 Agent，不保存音频原件、模型或大产物。
+- VPS 承载 Task Mailbox 的 SQLite 持久收发及原 Gitee MCP；信箱不执行任务、不访问 Herdr／shell／模型。Mac 桥另在 Mac 常驻主动轮询和补传，本身不执行；已有独立适配器供 Lead 显式调用，自动消费／无人值守派发与 Dot 自动唤醒未实现。旧 Herdr 支路只沿现有绑定处理原任务，不重复运行项目规划 Agent，不保存音频原件、模型或大产物。
 - 音频制作及模型继续留在 win-work；其他执行机仅承担各自任务包授权的工作。各端实际 Agent、供应商、模型、认证、权限分别核验，不复制身份或静默替换既有配置；Win 当前只考虑 OMP／Hermes／Kimi，Windows Codex 暂不纳入本轮。
 - 新路线不依赖 Lody。旧 Lody 任务仍由原入口收尾；一个执行和一项待写资产只保留一个控制入口、一个当前写者，不能同时让新旧入口竞争。
 - 业务 owner、派发、正式状态和验收仍沿原项目关系与 Projects／Issues 或尚未切换的正式入口。信箱记录服务内任务数据、事件和小结果，不竞争正式记录、不产生新业务决策权，也不成为全局自动调度器。
@@ -68,7 +68,7 @@ flowchart TD
 
 | 位置 | 基础组件与按需项 |
 | --- | --- |
-| mac-work | 持续在线；Herdr 托管 Codex／Kimi CLI，Mac 协调桥已常驻收件／补传并保留专用 OAuth。各 CLI 原认证分支与桥分别记证，本地 Herdr 执行承接仍未验。win-work／collab saved-machine 已启用并 reachable，agent list 退出 0／agents=[]。保留到 VPS 的 `/32` 路由及 SSH 别名；不装 EasyTier、hc 或 Herdr App |
+| mac-work | 持续在线；Herdr 托管 Codex／Kimi CLI，Mac 桥常驻收件／补传并保留专用 OAuth。Lead 显式适配器的 Mac Codex 首版范围已限定通过，Kimi／自动派发不继承回执。win-work／collab saved-machine 已启用并 reachable，agent list 退出 0／agents=[]。保留到 VPS 的 `/32` 路由及 SSH 别名；不装 EasyTier、hc 或 Herdr App |
 | VPS | Task Mailbox 独立服务、OAuth 与 SQLite，复用既有 HTTPS 传输入口；服务与原数据任务收发有实施侧回执，逐项见服务权威记录。另已核 TUI 0.9.5、EasyTier 2.6.4 与旧 SSH 支路，原网络／profile／在途保留。无需本地 TUI server，不装项目 Lead Codex、hc 或桌面应用；反向新任务及目标负载仍待验 |
 | Codex Cloud | 获准的托管环境、仓库／依赖／技能和任务实际提供的工具；不默认安装 hc 或继承 Mac 的 Space／Cloud 权限，环境准备也不是已发布或已接通证据 |
 | win-work／其他执行机 | Win 已核 TUI 0.9.5 完整包、EasyTier GUI 2.6.4、sshd 与指定 Agent／制作工具；当前 EasyTier 服务已入网，仅宣告 Mac LAN 主机 `/32`，IPv4 转发限实际 WLAN／TUN。目标 TUI session 实际 running、新 pane 输出已核，Agent 运行另验；其他执行机不能继承 Win 的接入证据。模型、原件与产物留本地，Git／Git Bash 按实际任务使用，不默认换 WSL 或供应商 |
@@ -107,7 +107,7 @@ TUI 的远端连接使用系统 SSH，`herdr server` 不替代 `sshd`；表中�
 
 数据支路为 **Dot ↔ 同一 OAuth HTTPS `/mailbox/mcp` ↔ VPS SQLite 持久信箱 ↔ 常驻 Mac 协调桥**。服务及桥的代码、文档、配置、Skill／插件与 Issue 唯一维护于 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人整合仓仅为历史来源；其[契约](https://github.com/CF-FE/task-mailbox-mcp/blob/main/SPEC.md)、[来源记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/source-updates.json)和[客户端指引](https://github.com/CF-FE/task-mailbox-mcp/blob/main/clients/README.md)是维护入口。本仓只引用，不复制实现、部署、测试或建立跨仓运行导入。
 
-2026-11-03 当前采用依据固定文档 `ca8a480`：桥的迁移、唯一后台 collector、新 hook 和原任务数据交付已有实施侧证据。原任务由桌面云端 App 发起并读回，指定 Dot 读取归用户回报及精确 ACK 回读；反向新任务、长期稳定性及 Herdr 业务仍未验。细项状态统一见[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)；下表只保留早期接入历史，不另建当前全局验收表。
+2026-11-03 当前采用：`ca8a480` 是桥迁移文档基线；原数据任务由桌面云端 App 发起并读回，指定 Dot 读取归用户回报及精确 ACK 回读。本次另由桌面 Lead 显式调用适配器定向 Mac Codex，原自然 Stop／collector 补传、原 review 读全核摘要／ACK 及本地收取该 ACK 已限定通过，见[适配器验收](herdr-executor.md#验收记录)。反向新任务、生产业务及长期稳定性未验，瞬态 CLIENT_OPEN 根因仍 UNKNOWN；服务细项沿[权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)，下表只保留早期接入历史。
 
 下表按 2026-11-02 来源会话最新快照记录，均注明证据归属；外仓接入文档仍有启动前文字，不能把其旧状态当当前结论。本轮文档整合没有直接 SSH 或云端重测。
 
@@ -120,7 +120,7 @@ TUI 的远端连接使用系统 SSH，`herdr server` 不替代 `sshd`；表中�
 | Mac Codex／Kimi 客户端 | 正在配置与首次 OAuth；最近一次本地回调已返回、令牌交换失败，原实施侧查同一交换日志且未重启授权。原因、各客户端发现／`whoami` 和真实收发分别待验，不互相继承；最新状态沿[本仓状态](status.md) |
 | 双向信箱与 Herdr 闭环 | 尚无完整双向 nonce、精确版本／摘要读确认或 Herdr 回合回执；原网络、回环模拟客户端、Win 原生短对话均不能替代 |
 
-数据流程为 `submit_job` → 对方 `get_job`／`list_events` → 核原授权与任务范围 → `publish_result` → 对方 `get_result` 核精确版本与摘要 → `ack_result_read`。Mac 桥已后台主动收件／补传，实际 Herdr 执行须另有授权与原生承接，不从收件推导；没有自动执行 handler 或已验 Dot 自动唤醒。结果 UNKNOWN 沿原 job／事件、Mac 任务与 Herdr 原生引用对账，不换 ID 重新派发。
+数据流程为 `submit_job` → 对方 `get_job`／`list_events` → 核原授权与任务范围 → `publish_result` → 对方 `get_result` 核精确版本与摘要 → `ack_result_read`。Mac 桥后台主动收件／补传，Lead 核完整输入与授权后可显式调用独立适配器；本次 Mac Codex 限定通过不使后续任务自动执行。信箱自动消费／无人值守派发与 Dot 自动唤醒未实现。结果 UNKNOWN 沿原 job／事件、Mac 任务与 Herdr 原生引用对账，不换 ID 重新派发。
 
 Cloud 直接操作信箱与 Cloud 任务创建／续接分开：前者依赖该任务实际工具和 OAuth，后者仍沿原生云任务入口；`submit_job` 不创建云任务或唤醒 Worker。Cloud 按独立 job／结果引用取得自己的读写证据，未验不阻塞首轮 Dot／Mac 数据闭环。[Cloud 服务访问](https://learn.chatgpt.com/docs/environments/cloud-environments#connect-to-services)、[托管工具与命令网络边界](https://learn.chatgpt.com/docs/enterprise/agent-security#execution-controls-executor)
 

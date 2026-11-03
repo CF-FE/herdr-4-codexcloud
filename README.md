@@ -1,6 +1,6 @@
 # herdr-4-codexcloud
 
-面向多项目的协作环境仓库：**Dot ↔ VPS Task Mailbox ↔ Mac 协调桥（Mac Coordination Bridge）→ 按授权承接 Herdr 内项目 Lead（Codex／Kimi CLI）→ 原生 saved-machine／LAN SSH → Win Herdr**。桥已在 Mac 常驻收件、记录会话信号并补传结果；原数据任务的交付与读取已有分层回执，Lead 显式执行适配器已完成一次限定试点，自动收件派发未实现，反向新任务与按授权手工承接的业务验收仍未验，不能把图中的承接目标当作已执行。Mac → Win 的原生连接与只读查询已取得限定回执，旧 VPS Herdr 绑定和在途引用保留。**Codex Cloud 也可在任务实际具备获准 MCP 工具和认证时直接收发同一信箱**，其任务创建与生命周期仍沿原云入口；Dot 原生 Mac 任务另保留，未知执行不换通道重派。VPS 同时保留 Gitee MCP，HTTPS 经 ngrok／Caddy，各服务认证独立。实际采用边界见[本仓状态](docs/status.md)。
+面向多项目的协作环境仓库：**Dot ↔ VPS Task Mailbox ↔ Mac 协调桥（Mac Coordination Bridge）→ 按授权承接 Herdr 内项目 Lead（Codex／Kimi CLI）→ 原生 saved-machine／LAN SSH → Win Herdr**。桥已在 Mac 常驻收件、记录会话信号并补传结果；原数据任务的交付与读取已有分层回执，Lead 显式执行适配器已完成一次限定执行及结果回传并通过工程验收，自动收件派发未实现，反向新任务、Win／Cloud执行扩展与生产业务验收仍未验，不能把图中的承接目标当作已执行。Mac → Win 的原生连接与只读查询已取得限定回执，旧 VPS Herdr 绑定和在途引用保留。**Codex Cloud 也可在任务实际具备获准 MCP 工具和认证时直接收发同一信箱**，其任务创建与生命周期仍沿原云入口；Dot 原生 Mac 任务另保留，未知执行不换通道重派。VPS 同时保留 Gitee MCP，HTTPS 经 ngrok／Caddy，各服务认证独立。实际采用边界见[本仓状态](docs/status.md)。
 
 Task Mailbox 的代码、文档、配置、Skill／插件与 Issue 唯一维护于 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人 `create-network-sh` 仅保留历史整合来源。服务和 Mac 桥的逐项运行证据以该仓[验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)为准；本仓只维护 Herdr 采用边界，不复制服务或建立跨仓运行依赖。
 
