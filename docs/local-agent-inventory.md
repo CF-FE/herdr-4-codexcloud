@@ -1,6 +1,6 @@
 # Agent 与能力盘点：Mac 本机及 Win 执行侧
 
-观察日期：2026-11-02（Asia/Shanghai）。第 1—6 节记录信箱接入前的 Mac 本机快照；第 7 节单列 Win 执行侧交接，不混用两端版本和验证结果。后续新增 Task Mailbox 的配置、OAuth 与工具发现状态见[本次接入快照](status.md#vps-任务信箱与客户端接入进行中)，不据旧计数认定新服务缺失或已生效。后续链路评估见[给 Dot 的需求](dot-mac-herdr-evaluation.md)。配置存在、运行时发现及业务调用分别报告。
+观察日期：2026-11-02（Asia/Shanghai）。第 1—6 节是信箱接入前的 Mac 本机快照；第 7 节是 Win 执行侧交接，不混用两端版本和验证结果。后续 [Task Mailbox 接入](status.md#vps-任务信箱与客户端接入进行中)及 [2026-11-03 Mac 执行适配器验收](herdr-executor.md#验收记录)另有记录，本页的旧计数、未验范围和版本不代表实时状态。Dot 原生链路仍沿[专项评估](dot-mac-herdr-evaluation.md)取证。
 
 ## 1. Herdr 与两个本地 Agent
 
@@ -79,7 +79,7 @@ Codex 全局 `herdr` 技能位于其用户技能目录，当前桌面会话已�
 
 上述运行快照已作为[Worker 与角色库](worker-library/README.md)的证据引用：模板、明确后端和专业职责分别维护，按需组合版本与摘要，不将这里的安装／发现升级成实时可调度。库本身与具体实例、组织任职及业务结果分别验收。
 
-信箱接入由原实施侧按[限定需求的分层验收](dot-mac-herdr-evaluation.md#8-新增信箱链路分开验证不自动执行)分别取得云端／Mac OAuth、工具与双向数据回执，再接已获准的 Herdr 执行；Cloud 作为条件客户端另验。原生 Mac 任务 → Herdr → 两个协调 Agent 的原有评估分支保留，不将本盘点当成任一完整链路通过。两个 failed MCP 按项目需要定向诊断；不默认启用 disabled 插件、重复安装技能或清理缓存。当前本批文档尚未提交推送。
+本页发布后的信箱与显式 Mac 适配器进展统一见[当前结论](status.md#当前结论)；Cloud、Dot 原生定向交互及各 CLI 身份仍分别验收。两个 failed MCP 按项目需要定向诊断，不从历史盘点自动启用 disabled 插件、重复安装技能或清理缓存。
 
 ## 7. win-work harness：执行侧交接
 

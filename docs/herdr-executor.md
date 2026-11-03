@@ -56,7 +56,7 @@ policy、路径白名单、摘要和调用预算是适配器的边界防护，**
 
 policy、envelope、job、target、authority、budget、outputs 与 manifest 按上述键集校验，未知控制字段拒绝；payload 可保留额外数据字段，但不据此增加权限。`intent_id`／`job_id` 为 1–128 个 ASCII 字母、数字及 `_.:-`，首字符须为字母或数字；拒绝 focused／current／default 等模糊目标和占位控制值。owned paths 须是 cwd 内已有的、最多 100 个不重复目录；路径须为规范绝对路径且没有符号链接。目标 pane 不能是当前 driver 自身。
 
-本次正式任务已由唯一记录写者创建并回读，已关联既有总览且读回 In Progress。尚无 Herdr 专用正式板及原迭代，总览也无 Iteration；本次保持明确 `UNSCHEDULED`，不新建周期。私密 Project、item 与原生执行实值只保存在获准任务和本机配置，不进入公开示例。
+本次正式任务由唯一记录写者创建并关联既有总览，创建时回读为 In Progress；限定验收收尾后 Issue 为 Closed/completed、原条目为 Done，见[验收记录](#验收记录)。尚无 Herdr 专用正式板及原迭代，总览也无 Iteration；本次保持明确 `UNSCHEDULED`，不新建周期。私密 Project、item 与原生执行实值只保存在获准任务和本机配置，不进入公开示例。
 
 ## 显式操作
 
