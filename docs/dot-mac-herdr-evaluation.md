@@ -8,7 +8,7 @@ Dot，请评估并报告以下链路能否实际工作：
 
 目标是验证准确委派、执行和结果回收，不开展真实项目，不以设备在线或 Agent 已启动代替全链路通过。Mac 项目协调会话采用本地 Herdr 托管的 CLI；云端 Dot 保留全局协调角色。
 
-公子已另行采用 VPS Task Mailbox，改善 Dot／Mac 的任务投递与结果对账。原实施会话正在完成公网与客户端接入；本稿新增第 8 节，分开验证信箱与 Herdr 承接，不把信箱配置当作自动执行。E0—E5 保留原生 Mac 任务入口的限定评估及既定预算，信箱不作为该历史原生分支的前置；两条路径不对同一未决执行双发。VPS 仍同时承载 Gitee MCP，各服务认证与状态独立。
+公子已另行采用 VPS Task Mailbox，改善 Dot／Mac 的任务投递与结果对账。2026-11-03 接入说明已对齐：专用 Mac 协调桥已常驻收件／补传并有原任务数据回执；本稿第 8 节继续分开验证信箱与 Herdr 承接，不把收件当作自动执行。E0—E5 保留 2026-11-02 原生 Mac 任务入口的限定评估及既定预算，信箱不作为该历史原生分支的前置；两条路径不对同一未决执行双发。VPS 仍同时承载 Gitee MCP，各服务认证与状态独立。
 
 ## 1. 已有信息与本次假设
 
@@ -136,18 +136,20 @@ Win OMP／Hermes／Kimi 的 SSH 原生短对话另有[执行侧交接](local-age
 
 ## 8. 新增信箱链路：分开验证，不自动执行
 
-目标链路为 **Dot ↔ VPS 持久信箱 ↔ Mac MCP 客户端 → 主动承接 → Herdr／项目 Lead**。Codex Cloud 作为第三类客户端，可在该云任务实际获得获准 MCP 工具与认证时直接读取任务、发布结果或读取指定成果；不必经 Dot／Mac 转述，也不为信箱接 VPN。云任务的创建与生命周期仍沿其原生入口，信箱的 `submit_job` 不启动 Cloud 或 Mac。
+目标执行链路为 **Dot ↔ VPS 持久信箱 ↔ Mac 协调桥 → 按授权承接（未验）→ Herdr／项目 Lead**。桥已在 Mac 独立后台收件／补传，提交任务本身不启动执行。Codex／Kimi 原 MCP 客户端分别核验；Codex Cloud 也可在该云任务实际获得获准 MCP 工具与认证时直接读取任务、发布结果或读取指定成果，不必经 Dot／Mac 转述，也不为信箱接 VPN。云任务的创建与生命周期仍沿其原生入口，信箱的 `submit_job` 不启动 Cloud 或 Mac。
+
+以下 2026-11-02 为早期接入历史；当前证据依据服务仓文档 `ca8a480`，详见[本仓采用摘要](status.md#vps-任务信箱与客户端接入进行中)及[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。原数据任务由桌面云端 App 发起并读回；指定 Dot 读取区分用户回报与服务精确 ACK 回读，不能改写为 Dot 发起已验。反向新任务、长期稳定性和 Herdr 业务仍未验。
 
 2026-11-02 读取原实施会话：执行侧报告常驻服务、回环保护、HTTPS／OAuth 发现通过，云端私有插件已创建，Mac Codex／Kimi 配置与首次 OAuth 正在推进。该状态不是本会话直接复测，也不是 Dot／Cloud／Mac 工具调用或 Herdr 闭环完成。后续快照统一见[当前状态](status.md#vps-任务信箱与客户端接入进行中)。
 
 | 层 | 需要的真实回执 | 不可替代的边界 |
 | --- | --- | --- |
-| M1 客户端接入 | 云端 Dot、Mac Codex、Mac Kimi 分别完成有效 OAuth、工具发现与 `whoami`；Cloud 按其实际任务单独取证 | 插件创建不等于安装／连接，本地配置不自动继承至云端。Cloud 未验不阻塞首轮 Dot／Mac 数据闭环 |
+| M1 客户端接入 | Dot 与专用 Mac 桥的实际工具／身份回执分别留证；Mac Codex、Kimi 原客户端及 Cloud 具体任务独立取证，不由桥代验 | 插件创建不等于安装／连接，本地配置不自动继承至云端。Cloud 未验不阻塞首轮数据交接 |
 | M2 双向数据 | Dot 提交新的固定 job ID，Mac 读取并发布变换结果，Dot 读取精确版本／摘要并确认；再反向验证一次 | 记录真实调用侧与游标、版本和摘要，不用服务内模拟客户端冒充 Dot；不调用模型来证明数据可收发 |
-| M3 Herdr 承接 | Mac 主动读取获准任务，绑定本地目标与唯一写者，沿现有 Herdr 操作取证，再发布并由接收者读回结果 | 需要现成执行者或明确接线；没有后台 runner，不因 MCP 安装就自动承接。真实模型回合仍受对应任务已定预算约束，不重复测试已知结果来凑证据 |
+| M3 Herdr 承接 | Mac 读取获准任务，绑定本地目标与唯一写者，沿现有 Herdr 操作取证，再发布并由接收者读回结果 | 常驻桥只收件／补传，Herdr 执行 handler 未实现；仍需原执行者或明确接线。真实模型回合受对应任务已定预算约束，不重复测试已知结果来凑证据 |
 
 Cloud 如后续在获准任务内参与 M2，应按独立 job／事件／结果引用记录 Cloud → 信箱 → 指定接收者及反向读取，不能把 Dot 的回执改名为 Cloud 已调用。公网服务可达与 Cloud 命令网络、托管 MCP 工具分别核验；仅在采用命令客户端时才按该环境的实际网络配置核准目标域名与认证，不默认开放全部互联网或复制 Mac 的认证缓存。[Cloud 服务访问](https://learn.chatgpt.com/docs/environments/cloud-environments#connect-to-services)、[托管工具与命令网络](https://learn.chatgpt.com/docs/enterprise/agent-security#execution-controls-executor)
 
-信箱数据契约以外部[服务 SPEC](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/SPEC.md)为准：同 ID 同内容查原记录，冲突拒绝；结果状态为调用方报告，取消仅请求，读确认不代替业务验收或写权交还。模型／原件和大产物保留原宿主或获准 Space／Git 落点，只在信箱传小结果及可核引用。当前单用户认证不因 `sender/recipient` 标签而产生多租户隔离。
+信箱及 Mac 桥唯一维护仓为 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人整合仓只留历史来源；数据契约以其[服务 SPEC](https://github.com/CF-FE/task-mailbox-mcp/blob/main/SPEC.md)为准：同 ID 同内容查原记录，冲突拒绝；结果状态为调用方报告，取消仅请求，读确认不代替业务验收或写权交还。模型／原件和大产物保留原宿主或获准 Space／Git 落点，只在信箱传小结果及可核引用。当前单用户认证不因 `sender/recipient` 标签而产生多租户隔离。
 
 本次文档修订不执行上述步骤、不创建 Cloud 任务、登录或模型回合；原实施会话继续负责其已获准的部署／接入。本仓只保存方案和分层状态，不复制服务代码、私密配置或运行数据库。

@@ -1,6 +1,6 @@
 # 多项目协作架构迭代指引
 
-版本：0.13；编制日期：2026-11-01，修订日期：2026-11-02（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Mac 持续在线是当前设计与部署前提。Dot 全局协调，VPS Task Mailbox 正在建设为 Dot 与 Mac Codex／Kimi 客户端共用的 OAuth HTTPS 持久收发通道；执行侧报告服务和公网入口已运行，真实客户端与 Herdr 闭环仍待验。mac-work 的 Herdr 托管各项目 Codex／Kimi CLI Lead，以本地 saved-machine／--machine 经 LAN SSH 直接连接 Win collab，不经 VPS；原生连接与空 Agent 列表只读回读已有证据。VPS 保留 Gitee MCP、旧 Herdr profile／在途及网络，Cloud 独立执行。信箱收发不自动执行或移交生产写权，工具、Agent 与业务验收分别取证。**
+版本：0.14；编制日期：2026-11-01，修订日期：2026-11-03（Asia/Shanghai）。目标是让多个项目同时、可追溯地推进，减少公子在会话之间转述和跟进的负担。**Mac 持续在线是当前设计与部署前提。Dot 全局协调，VPS Task Mailbox 与常驻 Mac 协调桥承担持久收发、会话感知和显式结果补传；原数据任务已有交付／读取回执，Herdr 执行承接、反向新任务与长期稳定性仍未验。mac-work 的 Herdr 托管各项目 Codex／Kimi CLI Lead，以本地 saved-machine／--machine 经 LAN SSH 直接连接 Win collab，不经 VPS；原生连接与空 Agent 列表只读回读已有证据。VPS 保留 Gitee MCP、旧 Herdr profile／在途及网络，Cloud 独立执行。信箱收发不自动执行或移交生产写权，工具、Agent 与业务验收分别取证。**
 
 本文沉淀搭建次序、取舍与验证方法，不因写入文档而扩大安装、入网、派发或业务权限。2026-11-02 公子已授权调通组网与准备协作环境的 Goal，已实施必要网络与服务配置；当前证据和未验项统一见[本仓状态](status.md)。网络／SSH、Windows 转发恢复及限定 TUI 小任务通过，不代表 Dot、Agent 或业务全链路通过。各项目业务状态仍在各自正式入口，本文不维护第二份活动队列。
 
@@ -22,7 +22,7 @@
 
 建设基线是：**统一协调与可达资源视图，分布式执行与资产保管。** Dot 关联跨项目目标、依赖和资源；Mac 上的项目 AI Lead 拆任务、跟依赖、准备任务包并组织复核，本地 Herdr 原生连接 Win 执行端。VPS 提供 Task Mailbox 和其他自建 MCP 服务，旧控制支路只沿原执行处理其在途任务，不重复常驻项目规划 Agent。信箱持久任务数据与小结果，业务 owner、正式状态与验收仍沿原 Projects／Issues 或既有入口，不建立竞争业务库。接通与只读观察不移交正式生产写控制；独立 Cloud 任务不以 Mac 或信箱接通为前置。
 
-0.7 记录公子选择 Herdr TUI、替换此前 core／hc 优先分工的决定；0.8 的网络 Goal 已取得 VPS／Win EasyTier、Mac 经 Win 到 VPS SSH、VPS → Win SSH 与转发恢复证据。该轮 **VPS profile** 下的 running／reachable、94 字节文件与两个新窗格交叠执行是旧支路成果，不能冒称本次 Mac 原生直连成果。0.9 保留 FastMCP／ngrok 角色调整与当时的 LAN 简化候选；0.10 采用 Mac 经 LAN 原生直连 Win；0.11 明确 Mac 持续在线，不再要求脱离 Mac 运行；0.12 纳入正在接线的 Task Mailbox 输入通道；0.13 加入独立版本化 Worker／角色库及离线选型、准备稿，不新增调度服务或运行队列。Agent 配置与真实多项目业务分别取证，服务启动或库结构通过都不等于协作已验收；主机重启未测只限定历史恢复证据，不是本轮前置。
+0.7 记录公子选择 Herdr TUI、替换此前 core／hc 优先分工的决定；0.8 的网络 Goal 已取得 VPS／Win EasyTier、Mac 经 Win 到 VPS SSH、VPS → Win SSH 与转发恢复证据。该轮 **VPS profile** 下的 running／reachable、94 字节文件与两个新窗格交叠执行是旧支路成果，不能冒称本次 Mac 原生直连成果。0.9 保留 FastMCP／ngrok 角色调整与当时的 LAN 简化候选；0.10 采用 Mac 经 LAN 原生直连 Win；0.11 明确 Mac 持续在线，不再要求脱离 Mac 运行；0.12 纳入正在接线的 Task Mailbox 输入通道；0.13 加入独立版本化 Worker／角色库及离线选型、准备稿，不新增调度服务或运行队列；0.14 对齐 CF-FE 服务维护归属与 Mac 桥已常驻的数据层边界。Agent 配置与真实多项目业务分别取证，服务启动或库结构通过都不等于协作已验收；主机重启未测只限定历史恢复证据，不是本轮前置。
 
 ## 2. 逻辑分层与多项目职责
 
@@ -44,8 +44,9 @@ flowchart TD
     D <-->|"获准 MCP 工具"| NG["ngrok · 按需 HTTPS"]
     C -.->|"任务具备相应工具／权限时"| NG
     NG <--> MS["VPS · FastMCP 自建服务<br/>Gitee MCP：公子确认部署／登记"]
-    D <-.->|"新私有插件已创建<br/>真实调用待验"| EP["同一 OAuth HTTPS<br/>/mailbox/mcp"]
-    A <-.->|"Codex／Kimi MCP 客户端<br/>配置／首次 OAuth 中"| EP
+    D <-.->|"原结果读取：用户回报<br/>精确 ACK 由实施侧回读"| EP["同一 OAuth HTTPS<br/>/mailbox/mcp"]
+    BC["Mac 协调桥<br/>常驻收件／会话感知／补传"] <-->|"原数据任务已有回执"| EP
+    BC -.->|"Herdr 执行承接待验"| A
     C <-.->|"Cloud 任务具备 MCP／OAuth 时<br/>第三类客户端 · 未验"| EP
     EP <-->|"服务／HTTPS · 执行侧报告通过"| MB[("VPS Task Mailbox<br/>SQLite · 任务／事件／小结果")]
     A -->|"本地 saved-machine／--machine<br/>LAN SSH · 连接／只读验证"| M
@@ -69,7 +70,7 @@ flowchart TD
     I -.按需增强.-> W["事件直通 · Watchdog"]
 ```
 
-图是已选分工的连接设计，不表示全图已通。信箱服务／HTTPS 按执行侧报告记录，Dot 与 Mac 的虚线仍待真实客户端调用；既有 Dot 原生本地任务入口另列，不能互相代证。信箱没有通向 Herdr 的自动执行线。AI Lead 与业务验收者分列；Space 工具线以实际工具和资源权限为前提，Cloud 不必经 Mac 或信箱转述资料。Cloud 派发仍沿已获准 Dot 入口，Mac Lead 不自动取得另一派发入口。
+图是已选分工的连接设计，不表示全图已通。信箱／Mac 桥的数据回执归实施侧，指定 Dot 读取的用户回报与服务 ACK 回读分列；原任务不冒称 Dot 发起，反向新任务及 Herdr 执行另验。既有 Dot 原生本地任务入口另列，不能互相代证。信箱没有通向 Herdr 的自动执行线。AI Lead 与业务验收者分列；Space 工具线以实际工具和资源权限为前提，Cloud 不必经 Mac 或信箱转述资料。Cloud 派发仍沿已获准 Dot 入口，Mac Lead 不自动取得另一派发入口。
 
 当前区分两条物理路径：**Mac 本地 Herdr → LAN SSH → Win collab** 用于本次原生连接／只读验证；**Mac → LAN → Win 网关 → EasyTier → VPS 内网地址** 保留既有 VPS 访问。后一条已有源地址、默认路由／DNS 不变及服务重建恢复回执，不证明前一条 saved-machine 已通过。Mac 不装 EasyTier；Win 的 Mac `/32` 宣告、WLAN／TUN 转发和 Mac 的 VPS `/32` 主机路由保留，不发布整个 LAN。VPS ↔ Win 的旧 P2P 短样本有丢包，持续性能与业务 Agent 未验。简图见[组件图](architecture.md#三机组件与调用图)，详细范围见[独立组网方案](networking-plan.md)。Dot 原生入口与 Cloud 独立路线保留。
 
@@ -106,19 +107,23 @@ Win 的 OMP／Hermes／Kimi 代理分支可以依赖 Mac CLI Proxy，不要求�
 
 ### Task Mailbox：输入通道与验收边界
 
-公子已填好独立 OAuth，并授权启动服务与接入云端／本地。当前目标为 **Dot ↔ 同一 OAuth HTTPS `/mailbox/mcp` ↔ VPS SQLite 持久信箱 ↔ Mac Codex／Kimi MCP 客户端**。它补任务与结果的持久交接；既有 Dot 原生本地任务仍是另一入口，Mac Herdr → LAN SSH → Win 的机器主链不变。一个执行仍只有一个实际派发／续发入口，不能把两种收信方式变成双发。
+公子已填好独立 OAuth，并授权启动服务与接入云端／本地。当前数据支路为 **Dot ↔ 同一 OAuth HTTPS `/mailbox/mcp` ↔ VPS SQLite 持久信箱 ↔ 常驻 Mac 协调桥**，Codex／Kimi 原独立客户端另核。它补任务与结果的持久交接；既有 Dot 原生本地任务仍是另一入口，Mac Herdr → LAN SSH → Win 的机器主链不变。一个执行仍只有一个实际派发／续发入口，不能把两种收信方式变成双发。
 
 **Codex Cloud 也是条件客户端**：具体云任务具备相应获准 MCP 工具和认证时，可直接读取任务／结果、发布小结果并确认精确版本，无需经 Dot 或 Mac 转述，也不为此接 VPN。当前未取得该 Cloud 任务的发现、`whoami` 或读写回执，不从 Dot 插件创建推定已经接通；首次 Dot／Mac 闭环不以 Cloud 接入为前置。公网访问与命令网络、托管工具分别治理，环境允许域名不授予服务凭据；这里不提供把 Mac 本地配置复制为 Cloud 已就绪的做法。[Cloud 服务访问](https://learn.chatgpt.com/docs/environments/cloud-environments#connect-to-services)、[Cloud 托管工具边界](https://learn.chatgpt.com/docs/enterprise/agent-security#execution-controls-executor)
 
+以下为 2026-11-02 早期接入历史，不作为当前客户端状态：
+
 2026-11-02 来源会话最新快照：执行侧报告 `task-mailbox.service` 运行、回环未认证返回 401 与 OAuth discovery、公网 HTTPS 与 discovery 已通过；Caddy 安全热加载 PID 不变，原 Gitee 路径、OAuth 和进程保留。云端 Task Mailbox 私有插件已创建，Mac Codex／Kimi 正在配置及首次 OAuth；尚无完整的真实工具发现、`whoami`、双向 nonce 或 Herdr 闭环回执。这里是执行侧报告，本轮没有另行 SSH 或云端重测；外仓部分接入文档尚停留在启动前，不能将其旧“未启动”状态覆盖此快照，也不把新快照推广为全链通过。
+
+2026-11-03 当前采用依据服务仓文档 `ca8a480`：专用桥授权、目录迁移、唯一后台 collector 与新原生 hook 已取得实施侧证据；原任务结果经 Mac 回传并由桌面云端 App 读全确认，指定 Dot 读取归用户回报及精确 ACK 回读。反向新任务、长期稳定性和 Herdr 执行未验；本仓只保采用摘要，详细状态沿[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。
 
 采用主动收发：发送方 `submit_job`，接收方 `get_job`／`list_events` 查询原任务，核已有授权后才决定是否经原 Herdr 入口执行；随后 `publish_result`，对方 `get_result` 核版本与摘要，再 `ack_result_read`。同 ID 同内容返回原记录、冲突拒绝，是服务内去重约定，不保证外部命令恰好执行一次。`sender`／`recipient` 是任务数据，认证主体用 `whoami` 独立核；业务 owner 与正式记录不转交信箱。`request_cancel` 只是取消请求，读确认不是业务验收、进程停止或写权交还。
 
-本阶段没有自动执行、自动唤醒、后台 poll、常驻 Mac runner／bridge；客户端安装或在线不等于会主动消费任务。接线完成后先取得 Dot 与指定本地客户端各自的工具发现和身份回读，再以稳定 job／事件 ID、nonce、时间、结果版本与摘要做双向主动收发；收到、读取、执行、结果发布和读确认分别记录。Herdr 定向目标与回合仍沿原生引用单独验收，服务 HTTP／OAuth 成功不能替代它。
+Mac 桥的后台轮询和持久收件／补传已实现，Herdr／模型执行 handler 仍未实现，也不证明能自动唤醒 Dot。各客户端的身份、收到、读取、结果发布和读确认分别取证，不能从桥成功推广到 Codex／Kimi 原客户端或 Cloud。Herdr 定向目标、回合和业务产物仍沿原生引用单独验收，服务 HTTP／OAuth 或数据 ACK 不能替代它。
 
-后续可见进展为一次本地 OAuth 回调已返回、随后令牌交换失败；原实施侧先查同一交换日志，没有重新发起授权。原因与各客户端最终状态沿[本仓状态](status.md)更新，不将回调成功推广为客户端已接通，也不据此猜测回调地址错误。
+上述早期阶段曾有一次本地 OAuth 回调返回、随后令牌交换失败；这是原独立客户端的历史分支，不能覆盖专用桥后来的成功。各分支当前状态沿服务权威记录，不互相继承认证，也不据该旧错误猜测回调地址错误。
 
-实现与运维以 [create-network-sh 的契约](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/SPEC.md)、[接入记录](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/INTEGRATION.md)和[客户端指引](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/clients/README.md)为准，本文只引用，不复制代码、部署或建立跨仓运行导入。容量沿实际配置与契约核对，不复制资料间尚未统一的默认数字；大模型、音频原件、大产物留原保管方，只交获准引用与摘要，不进 VPS 信箱。
+实现、运维、配置、Skill／插件及 Issue 唯一维护于 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，参见其[契约](https://github.com/CF-FE/task-mailbox-mcp/blob/main/SPEC.md)、[来源记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/source-updates.json)和[客户端指引](https://github.com/CF-FE/task-mailbox-mcp/blob/main/clients/README.md)；个人 `create-network-sh` 只留历史整合来源。本文只引用，不复制代码、部署或建立跨仓运行导入。容量沿实际配置与契约核对；大模型、音频原件、大产物留原保管方，只交获准引用与摘要，不进 VPS 信箱。
 
 ### Worker 与角色组合：从选择到原生执行
 

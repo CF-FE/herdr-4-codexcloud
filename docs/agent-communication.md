@@ -1,6 +1,6 @@
 # 跨 Agent 通信与协作指引
 
-研究日期：2026-10-30；当前选择与运行修订：2026-11-02。公子已选 **Herdr TUI（`herdr` CLI／server）** 并授权网络／环境 Goal，替换早期 core 优先建议。主会话已完成私网、SSH、原生 profile／目标 session、小文件和新 pane 输出的限定验证；不据此宣称业务 Agent、Dot 权限、主机重启或长期稳定性通过。实际进度统一见[本仓状态](status.md)。
+研究日期：2026-10-30；当前选择与运行修订：2026-11-03。公子已选 **Herdr TUI（`herdr` CLI／server）** 并授权网络／环境 Goal，替换早期 core 优先建议。主会话已完成私网、SSH、原生 profile／目标 session、小文件和新 pane 输出的限定验证；不据此宣称业务 Agent、Dot 权限、主机重启或长期稳定性通过。实际进度统一见[本仓状态](status.md)。
 
 本指引与[仓库架构](architecture.md)共同说明采用边界；[现有试点指引](pilot.md)维护当前 TUI 路线的准备与检查。下文保留有日期的 core、插件与协议研究，不要求为执行 TUI 方案再部署 hc／Herdr App 或完成双栈比较。原任务上下文继续使用[交接模板](templates/pilot-task.md)和组织协议；新增信箱只记录投递／结果，不竞争正式项目状态。本文不扩大安装、入网、派发或权限授权；具体任务复用其有效授权，不重复确认已经获准的步骤。
 
@@ -10,13 +10,13 @@
 
 公子确认 Mac 持续在线，当前接受项目协调与 Win 代理模型对 Mac CLI Proxy 的依赖，不建设 Mac 离线接管或备用推理入口，不要求离线验收。Dot 投递超时、受理不明和结果回读仍沿原请求对账，不自动重派。
 
-公子已针对 Dot → Mac 原任务入口不稳定的问题采用 **VPS Task Mailbox MCP**，由原实施会话完成服务和客户端接入。信箱经同一 OAuth HTTPS 端点持久收发 `job_id`／内容摘要／事件／结果版本；Dot、Mac Codex／Kimi，以及实际具备相应获准工具与认证的 Codex Cloud，均可作为主动读写客户端。它不执行 Herdr、不唤醒 Agent，也没有常驻 Mac runner 或后台拉取。服务、公网发现及插件创建的执行侧回报与各客户端真实收发分列，见[当前接入快照](status.md#vps-任务信箱与客户端接入进行中)。
+公子已针对 Dot → Mac 原任务入口不稳定的问题采用 **VPS Task Mailbox MCP**，唯一维护仓为 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人整合仓只留历史来源。信箱经同一 OAuth HTTPS 端点持久收发 `job_id`／内容摘要／事件／结果版本；Mac 协调桥已常驻主动收件、会话感知及显式结果补传，原任务已有分层交付／读取回执。它不执行 Herdr 或模型，也不证明 Dot 自动唤醒；各 CLI 和 Cloud 的认证及工具权限分别核验。当前 Herdr 采用摘要见[本仓状态](status.md#vps-任务信箱与客户端接入进行中)，服务逐项运行证据沿[权威验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。
 
 Space 资料协作与机器控制分开接线：Dot 以及任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 可直接读写相应获准资料，不把 Dot 设为云任务资料的必经中转。Space 工具不等于 VM 文件挂载，也不继承 hc 通知语义；实际工具、资源权限、唯一写者及报告承接按上述迭代指引核验。
 
 ## 1. 当前建议与理由
 
-当前已按选定 TUI 完成无业务影响的控制闭环，后续项目复用原生 CLI、SSH 和正式记录。VPS 信箱现针对已观察到的投递／回执缺口建设，待客户端与 Herdr 承接分别验收；其他插件不因信箱采用而连带安装。相同 job ID／内容的传输去重不提供跨信箱和 Herdr 的原子执行保证，UNKNOWN 仍查原任务／pane 与实际效果，不能自动重发模型请求。
+当前已按选定 TUI 完成无业务影响的控制闭环，后续项目复用原生 CLI、SSH 和正式记录。VPS 信箱和 Mac 桥已补原任务的数据交接与对账，Herdr 执行承接、反向新任务与长期稳定性仍分别未验；其他插件不因信箱采用而连带安装。相同 job ID／内容的传输去重不提供跨信箱和 Herdr 的原子执行保证，UNKNOWN 仍查原任务／pane 与实际效果，不能自动重发模型请求。
 
 Mac／VPS／Win 已有 TUI 0.9.5 的版本证据，Win 的 LAN 免登、sshd 和 EasyTier GUI 2.6.4 已直接回读；尚无已验收的 Herdr 业务链路。Win 的 OMP／Hermes／Kimi 已收到原生 CLI 文本回合的[执行侧交接](local-agent-inventory.md#7-win-work-harness执行侧交接)，本会话未独立重测，Herdr 内启动、工具、项目目录和派发回收另验；Windows Codex 暂不考虑。旧 Lody 任务仍沿原入口收尾，一个执行及待写资产只保留一个控制入口、一个当前写者。
 

@@ -1,6 +1,6 @@
 # 架构与范围
 
-当前方案修订：2026-11-02。**按公子明确的 Mac 持续在线前提，Mac 的 Herdr 托管项目协调 CLI，并以原生 saved machine／`--machine` 经 LAN／SSH 直连 Win 既有 `collab` session；VPS 承载 FastMCP 工具服务及持久 Task Mailbox，经 ngrok HTTPS／Caddy 分路提供接入，不是 Win 机器控制中转层。** 信箱到 Mac 客户端的真实调用、再承接本地 Herdr 的链路仍待验，不把持久收发画成自动执行。公子确认既有 Gitee MCP 已部署并登记云端；其入口、认证与旧 Herdr profile／在途任务保留。文档更新不新增部署、Agent 启动或生产写控制切换；实际状态统一见[本仓状态](status.md)。
+当前方案修订：2026-11-03。**按公子明确的 Mac 持续在线前提，Mac 的 Herdr 托管项目协调 CLI，并以原生 saved machine／`--machine` 经 LAN／SSH 直连 Win 既有 `collab` session；VPS 承载 FastMCP 工具服务及持久 Task Mailbox，经 ngrok HTTPS／Caddy 分路提供接入，不是 Win 机器控制中转层。** Mac 协调桥已常驻收件、会话感知及补传，原数据任务已有交付／读取回执；再承接本地 Herdr 的执行链路仍未验，不把持久收发画成自动执行。公子确认既有 Gitee MCP 已部署并登记云端；其入口、认证与旧 Herdr profile／在途任务保留。文档更新不新增部署、Agent 启动或生产写控制切换；本仓采用边界见[本仓状态](status.md)，服务运行明细由其权威记录维护。
 
 ## 初始化决定
 
@@ -32,15 +32,19 @@ Mac 持续在线是公子确定的设计与部署前提，不是本轮已取得�
 
 ### Task Mailbox：持久收发与本地承接
 
+2026-11-03 当前采用：本地确定性组件名为 **Mac 协调桥（Mac Coordination Bridge）**，已完成新目录迁移、专用 OAuth 延续、唯一 launchd collector 与原生新 hook 取证；具体固定版本、游标和输出证据见[本仓摘要](status.md#vps-任务信箱与客户端接入进行中)及[服务权威验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。原任务由桌面云端 App 发起并读回，指定 Dot 读取另按用户回报及服务 ACK 回读归属；反向新任务、长期稳定性与 Herdr 业务仍未验。
+
+以下 2026-11-02 段落是早期接入快照，保留当时事实，不作为当前客户端状态：
+
 2026-11-02 来源会话的**执行侧进展报告**：公子已在 VPS 填完信箱独立 OAuth 并授权启动／接入；`task-mailbox.service` 运行，回环 MCP 未认证返回 401、OAuth discovery 成功，公网 HTTPS／discovery 通过；ngrok → Caddy 的信箱路由已热加载、PID 不变，旧 Gitee 路径保留，云端私有 Task Mailbox 插件已创建。Mac 客户端授权正在推进，最新一次本地回调返回后令牌交换失败，原实施侧正查原交换日志，尚未重启授权。上述为执行侧回报，本会话未亲测；各侧工具发现、真实调用、双向 nonce 及 Herdr 承接尚无完整通过回执，后续快照以[本仓状态](status.md)为准。
 
-信箱源码唯一维护在外部 [`create-network-sh/fastmcp/task-mailbox`](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/task-mailbox)，参见[服务契约](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/SPEC.md)、[接入记录](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/INTEGRATION.md)与[客户端指引](https://github.com/ghyghoo8/create-network-sh/blob/main/fastmcp/task-mailbox/clients/README.md)。本仓只维护架构与外部引用，不复制服务、共享运行库或自动同步。示例端点统一为 `https://mcp.example.com/mailbox/mcp`；信箱使用独立 OAuth，Gitee 继续原认证，不共用应用凭据。
+信箱及 Mac 桥的代码、文档、配置、Skill／插件和 Issue 唯一维护于外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人 `create-network-sh` 仅为历史整合来源；参见[服务契约](https://github.com/CF-FE/task-mailbox-mcp/blob/main/SPEC.md)、[逐文件来源记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/source-updates.json)与[客户端指引](https://github.com/CF-FE/task-mailbox-mcp/blob/main/clients/README.md)。本仓只维护架构与外部引用，不复制服务、共享运行库或自动同步。示例端点统一为 `https://mcp.example.com/mailbox/mcp`；信箱使用独立 OAuth，Gitee 继续原认证，不共用应用凭据。
 
 Dot 与指定 Mac 客户端需各自认证后主动读写：先保存稳定 `job_id`、`payload_hash` 和原任务引用，再由获准客户端按游标读取、核目标／输入并承接；结果保留不可变版本、摘要与准确读确认。`submit_job` 同 ID 同内容返回原记录，冲突拒绝；`ack_result_read` 只证明调用方确认了指定结果版本／摘要，不等于业务验收或写权交还，取消请求也不等于进程已停。
 
 **Codex Cloud 可作为第三类条件客户端**：该云任务实际具备信箱 MCP 工具、相应 OAuth 身份和动作权限时，可直接对同一公网 HTTPS 端点收发，无需经 Mac／Dot 转述，也不要求 VPN。Dot 私有插件已创建或 Mac CLI 已配置不证明 Cloud 任务获得工具与授权；命令网络和托管 apps／MCP 的执行控制分开核验。此路径尚未实际验收，信箱 `submit_job` 也不会创建 Codex Cloud 任务、唤醒 Worker 或替代其原生生命周期和成果验收。[Cloud 连接服务](https://learn.chatgpt.com/docs/environments/cloud-environments#connect-to-services)、[执行控制边界](https://learn.chatgpt.com/docs/enterprise/agent-security#execution-controls-executor)
 
-提交信箱不会执行、唤醒 Agent 或开始后台轮询；常驻 Mac bridge／runner 尚无实现。客户端到本地 Herdr 的定向承接仍待接线／验收，不能因 Mac 在线、模板存在或云端插件创建就报告自动链路通过。Dot 原生 Mac 任务入口独立保留，同一工作沿原任务／job 与执行引用对账，不因超时自动换入口或重派。后续 Herdr 仍由 Mac 直接管理 Win，不将信箱作为机器中转，也不公开 shell、Herdr socket 或 Codex app-server。
+提交信箱不会执行或唤醒 Agent。Mac 桥按现有授权主动轮询并持久接收、补传结果；它没有 Herdr／模型执行 handler，也不证明云端 Dot 可自动唤醒。到本地 Herdr 的定向承接仍待接线／验收，不能因收件、Mac 在线或模板存在就报告执行链路通过。Dot 原生 Mac 任务入口独立保留，同一工作沿原任务／job 与执行引用对账，不因超时自动换入口或重派。后续 Herdr 仍由 Mac 直接管理 Win，不将信箱作为机器中转，也不公开 shell、Herdr socket 或 Codex app-server。
 
 <a id="整套候选分工"></a>
 
@@ -65,13 +69,13 @@ flowchart TD
     A -->|"主链路：本地 machine／LAN SSH<br/>只读验收，未切生产写控制"| M
     A -.->|"仅原任务对账／收尾"| V["VPS · 旧 Herdr CLI 绑定<br/>保留 profile／在途任务"]
     V -.->|"旧支路 · 不迁移原执行"| M
-    D <-.->|"Mailbox 插件已创建<br/>实际工具调用待验"| NG["ngrok · HTTPS"]
+    D <-.->|"原结果读取：用户回报<br/>精确 ACK 由实施侧回读"| NG["ngrok · HTTPS"]
     C <-.->|"条件：信箱 MCP＋OAuth<br/>直接收发 · 未验"| NG
     NG <-->|"执行侧报告路由已加载"| RT["Caddy · 按服务分路"]
     RT <-->|"原路径／认证保留"| VS["VPS · Gitee MCP"]
     RT <--> MB["VPS · 持久 Task Mailbox<br/>只收发 job／result"]
-    MC["Mac Codex／Kimi MCP 客户端"] <-.->|"同一 OAuth HTTPS<br/>主动请求／对应响应 · 待验"| NG
-    MC -.->|"按授权承接并定向<br/>未实现常驻 runner／自动唤醒"| H
+    MC["Mac 协调桥<br/>常驻收件／会话感知／补传"] <-->|"同一 OAuth HTTPS<br/>原数据任务收发已有回执"| NG
+    MC -.->|"Herdr 定向执行待验<br/>无自动执行 handler"| H
     A -.->|"按本地 MCP 配置与权限"| VS
     D <-->|"获准 Pages 工具"| SP["ChatGPT Space<br/>资料 · 交接 · 精选成果"]
     C <-->|"获准 Pages 工具"| SP
@@ -92,9 +96,9 @@ flowchart TD
     I -.按需增强.-> W["事件直通 · Watchdog"]
 ```
 
-图中 VPS 节点表示同一宿主的不同职责：Gitee 与持久信箱是独立工具服务，Herdr CLI 保留原任务绑定。ngrok／Caddy／信箱部署进度为执行侧报告，虚线是尚未闭环的真实客户端调用与本地承接，不能读成自动唤醒／执行。Mac 原生 machine 直连 Win 已取得主会话的连接与 Agent 清单回执，仍未移交生产写控制；旧 VPS 小任务证据不转记给新入口。Cloud／Space 的工具和资源权限逐边核验，执行索引及信箱读确认不竞争正式业务验收。
+图中 VPS 节点表示同一宿主的不同职责：Gitee 与持久信箱是独立工具服务，Herdr CLI 保留原任务绑定。信箱／桥的数据回执归服务实施侧；指定 Dot 的读取行为与 ACK 证据分开归属，Cloud 条件路径及本地执行承接仍单列未验，不能读成自动唤醒／执行。Mac 原生 machine 直连 Win 已取得主会话的连接与 Agent 清单回执，仍未移交生产写控制；旧 VPS 小任务证据不转记给新入口。Cloud／Space 的工具和资源权限逐边核验，执行索引及信箱读确认不竞争正式业务验收。
 
-Mac MCP 客户端与项目 Lead 在图中按能力拆开，可由同一获准 Codex／Kimi 会话承担，不表示增加一层 AI 或新进程；所有客户端都经同一 OAuth HTTPS 端点访问，不直接共享 VPS 数据库。
+Mac 协调桥是独立的确定性收件进程，项目 Lead 仍是原 Herdr 内 Codex／Kimi 会话，不增加一层 AI。Codex／Kimi 各自 MCP 客户端与桥的认证分别取证；所有客户端经同一 OAuth HTTPS 端点访问，不直接共享 VPS 数据库。
 
 图中的[Worker 与角色库](worker-library/README.md)是随仓库维护的规划知识，不是实例池或调度服务。两库独立为 1.0.0：Worker 描述 host／harness／backend 与声明能力，角色描述职责、方法与交付；当前为 7 个模板、9 个后端、13 个角色，其中 11 个专业角色可选、2 个仅组织导航。每次任务组合固定版本／摘要、项目合同和实际原生引用；`active` 不表示实时可用，声明能力须预检，外部方法 `bundled: false` 不代表已安装。离线 `prepare` 不创建或派发实例，不将未提交的库写成云端已获取。
 
@@ -126,7 +130,7 @@ Mac 的 TUI **0.9.5** 由公子安装，主会话另核 Git **2.39.5**、OpenSSH
 | Herdr TUI／`herdr` CLI／server | **0.9.5**，本地 pane 托管 Lead；原生 profile 已保存，Win `collab` reachable，Agent 清单查询有效且为 0 | **0.9.5 CLI**；保留旧 Win profile／在途任务，无 VPS 本地 server | **0.9.5** 完整包；复用已运行 `collab`，未启动停止的默认 session | 原生连接与只读验收已通过，pane／业务执行分别取证；未移交生产写控制 |
 | herdr-core／hc、Herdr App | 不作为本轮组件 | 未安装，也非本轮必需 | 不作为当前 TUI 路线前置 | 仅保留历史研究，不与 TUI 混用 server、Agent 或命令 |
 | FastMCP 与各服务项目运行时 | MCP 客户端按任务配置 | 自建服务的优先框架；Gitee 部署／登记由公子确认，实际依赖另核 | MCP 客户端按任务配置 | 工具服务与项目 Lead 分层，不把本仓索引当已有服务源码 |
-| Task Mailbox MCP | Codex／Kimi 正配置及首次 OAuth；实际发现／读写与 Herdr 承接待验 | 执行侧报告服务与 HTTPS／discovery 通过，持久保存小任务／小结果 | 不作为 Mac 直连 Win 的中转层 | 主动读写；独立 OAuth，不自动执行、唤醒或后台轮询 |
+| Task Mailbox MCP／Mac 协调桥 | 桥已常驻收件／补传，原任务交付与读取有分层回执；各 CLI 认证另列 | 服务与 HTTPS／discovery、原数据任务收发已有执行侧记录 | 不作为 Mac 直连 Win 的中转层 | VPS 持久收发，Mac 桥主动轮询；无 Herdr 执行 handler 或已验 Dot 自动唤醒 |
 | ngrok | 不作本地 Lead 前置 | 服务需要公网 HTTPS 时复用；具体隧道与认证按现有部署核 | 不作机器执行前置 | 为目标 MCP 提供可达入口，HTTPS 不代替 MCP 认证与授权 |
 | OpenSSH Client | 复用原身份供本地 Herdr 经 LAN 直连 Win；既有到 VPS 的网络路径保留 | 旧支路专用身份保留，私钥留 VPS | 主动 SSH／SSH 方式 Git 等任务才需 | Mac 原生机器连接直接调用系统 SSH；普通 SSH 预检不能替代原生 profile 验收 |
 | OpenSSH Server／sshd | 本轮不新增 | 内网接收 Mac，源地址已核 | 服务运行，VPS 经 EasyTier 的 hostname 0／exit 23 已核 | 身份、host key 与目录／任务权限分开，SSH 成功不等于任意操作授权 |
@@ -145,9 +149,10 @@ flowchart LR
     D["Dot"] -->|"原生入口 · 未专项验收"| M["Mac · Herdr＋Codex／Kimi CLI<br/>Git／SSH · 不装 VPN"]
     M -->|"本地 saved machine／--machine<br/>LAN SSH · 原生只读已验"| W["Win · 既有 collab session<br/>TUI 0.9.5 · 网关保留"]
     V["VPS · FastMCP／按需 ngrok<br/>EasyTier 2.6.4 · 旧 profile 保留"] <-->|"私有 UDP P2P · 已建立"| W
-    D -.->|"Mailbox 真实调用待验"| N["ngrok HTTPS → Caddy → VPS 信箱"]
+    D -.->|"原结果读取：用户回报＋ACK 回读"| N["ngrok HTTPS → Caddy → VPS 信箱"]
     C["Codex Cloud · 独立 Worker"] -.->|"条件：任务提供 MCP＋OAuth<br/>直接收发 · 未验"| N
-    M -.->|"Mac 客户端主动读取／结果回传<br/>本地 Herdr 承接待验"| N
+    B["Mac 协调桥 · 常驻收件／补传"] <-->|"原数据任务已有回执"| N
+    B -.->|"Herdr 承接待验"| M
     M -.->|"既有内网路径 · 原任务对账"| V
     W --- L["本地制作环境与资产"]
 ```
@@ -175,7 +180,7 @@ VPS／Win TUN 已 up，普通 TUN 私网地址用于主动 SSH；无地址纯中
 | Git、SSH 客户端 | 读取固定版本；复用既有 SSH 身份与 LAN 直连 Win，供 Mac 原生 Herdr 使用；到 VPS 的限定主机路由保留，不装 VPN |
 | 项目上下文、组织技能和必要工具连接 | 显式绑定项目、任务、输入、预算与交付；Space／Projects 仅采用该任务实际提供且获准的工具，不从别的聊天继承权限 |
 | Codex／Kimi CLI | Codex 已补 `~/.local/bin/codex` 入口，复用应用内 0.166.0-alpha.5.1；Kimi 复用现有 2.4.1。普通 shell、实际 Herdr pane 及类型／就绪状态已核，业务模型回合未测 |
-| Task Mailbox MCP 客户端 | 来源会话正在为 Codex／Kimi 配置并完成各自首次 OAuth；实际工具发现／调用与双向读写另验。客户端主动调用，不因配置存在自动唤醒或消费任务，本地 Herdr 承接仍待接线 |
+| Mac 协调桥／Task Mailbox 客户端 | 桥的专用 OAuth、常驻收件／补传及新路径原生 hook 已有实施侧证据；Codex 原直接 OAuth 失败与 Kimi 登录／发现未验各自保留。桥不代替这些 CLI 的认证或本地 Herdr 执行承接；逐项状态见服务权威记录 |
 | 本地 Herdr TUI | 公子自行安装 0.9.5；托管本地项目协调 CLI。到 Win `collab` 的原生 profile 保存、reachable 与空 Agent 清单已由主会话直接回读，不沿旧 VPS profile 推定成功 |
 | 官方 Herdr Agent skill | 已按公子要求原样安装至当前 Codex 用户全局目录，与 TUI 0.9.5 内置内容一致；仅供满足 `HERDR_ENV=1` 的 Herdr 窗格内 Agent 使用。外部 SSH 协调及其他机器账号的范围见[技能与外部协调](pilot.md#官方操作技能与外部协调) |
 | 网络与历史组件 | 复用现有 LAN，持久主机路由经 Win；Mac 本身不装 EasyTier、hc 或 Herdr App，也不新增 sshd。Win 只代理指定 Mac 主机 |
@@ -190,7 +195,7 @@ VPS／Win TUN 已 up，普通 TUN 私网地址用于主动 SSH；无地址纯中
 | 组件／配置 | 采用条件与用途 |
 | --- | --- |
 | FastMCP／Gitee MCP | 作为自建工具服务承载；现有 Gitee 部署及云端登记由公子确认，服务框架／构建／传输／认证与实际调用分别回读 |
-| Task Mailbox／独立持久状态 | 执行侧报告 systemd 服务、回环认证门及公网 HTTPS／discovery 通过；云端私有插件已创建。只保存任务、结果与事件，客户端真实双向调用及 Herdr 承接尚未闭环 |
+| Task Mailbox／独立持久状态 | 服务、桥和云端 App 的原数据任务收发已有执行侧记录；只保存任务、结果与事件。指定 Dot 读取证据区分用户报告与 ACK 回读，反向新任务及 Herdr 业务未验，详见服务权威记录 |
 | Caddy 分路与独立 OAuth | 复用 ngrok HTTPS 后按服务分路；信箱新路由热加载及旧 Gitee 路径保留为执行侧回报。各服务保持独立认证／私密状态，不共享 Gitee 应用凭据，不暴露任意命令控制 |
 | ngrok HTTPS 入口 | 仅在客户端需要公网可达时提供目标 MCP 入口；保留已登记 URL 和有效认证，不连带开放 Herdr socket、Codex app-server 或任意 shell |
 | Herdr TUI／herdr | 0.9.5 CLI 与旧 Win profile 保留；此前小文件／新 pane 结果只归该支路，原任务沿原入口对账和收尾，不常驻本地 server，不作为新任务必经层 |
@@ -269,7 +274,7 @@ Windows 公钥免登参考：公子提供的 [wklchris《Windows 免密码 SSH �
 
 - `skill/<id>/` 维护技能及其相对资源。组织协议和 Projects 技能分别保持自己的版本。
 - `mcp/` 与 `plugin/` 当前仅保留分类索引；实现或打包有真实需求时再新增。
-- Task Mailbox 服务唯一源码维护于外部 `create-network-sh/fastmcp/task-mailbox`；本仓只保存方案／证据与外部链接，不复制或建立跨仓运行依赖。
+- Task Mailbox 及 Mac 协调桥的唯一维护仓为外部 `CF-FE/task-mailbox-mcp`；个人 `create-network-sh` 仅保留历史整合来源。本仓只保存 Herdr 采用边界与外部权威链接，不复制或建立跨仓运行依赖。
 - `docs/status.md` 维护本仓当前开发状态；正式项目绑定未建立前，不代写其他项目的进度。
 - `docs/worker-library/` 独立维护 Worker 注册表、角色索引及唯一正文；[库指引](worker-library/README.md)管理版本、证据、离线选型与准备稿，不另建运行队列。
 - 试点上下文、过程和验收复用组织技能已有字段，[任务模板](templates/pilot-task.md)只补充 Herdr 绑定信息，不建立第二套任务数据库。

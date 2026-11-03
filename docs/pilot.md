@@ -1,6 +1,6 @@
 # Herdr 限定试点指引
 
-修订日期：2026-11-02。本页按已确定的 **Mac 本地 Herdr 原生 saved machine／`--machine` → LAN／SSH → Win 既有 `collab`** 主链路准备验证；Dot 全局协调，Mac 的 Herdr 托管 Codex／Kimi 项目 Lead，Cloud 沿独立获准入口执行。VPS 继续承载 FastMCP／按需 ngrok／Gitee 工具服务及旧 profile／在途任务，不是机器任务必经层。实际进度统一见[本仓状态](status.md)。
+修订日期：2026-11-03。本页按已确定的 **Mac 本地 Herdr 原生 saved machine／`--machine` → LAN／SSH → Win 既有 `collab`** 主链路准备验证；Dot 全局协调，Mac 的 Herdr 托管 Codex／Kimi 项目 Lead，Cloud 沿独立获准入口执行。VPS 继续承载 FastMCP／按需 ngrok／Gitee 工具服务及旧 profile／在途任务，不是机器任务必经层。实际采用边界见[本仓状态](status.md)，信箱／桥的运行明细沿其权威记录。
 
 公子明确 Mac 会一直在线，作为本方案的设计与部署前提；Win 的代理分支可依赖 Mac 上的 CLI Proxy，官方 Kimi 入口按自身配置使用。当前试点不要求 Mac 离线后的备用入口、接管或独立推理，也不以未测离线作为阻塞；这一前提不冒充连续在线可用性实测。
 
@@ -14,9 +14,9 @@
 
 Dot 原生 Mac 任务的 E0—E5 沿[原限定需求](dot-mac-herdr-evaluation.md#4-有界测试步骤与通过条件)核身份、准确委派、Herdr／Lead 交互和原任务回收；新增信箱不是该入口已通过的替代证据，也不授权超时后重派或换路。
 
-新增数据支路为 **Dot ↔ ngrok HTTPS ↔ Caddy 的信箱路由 ↔ VPS 持久 Task Mailbox ↔ Mac Codex／Kimi MCP 客户端**。客户端需主动读取、核授权与输入后，再定向 Mac 本地 Herdr／项目 Lead；机器执行仍沿 Mac saved machine 经 LAN／SSH 直接连接 Win。信箱不运行 shell、Herdr 或模型，不自动唤醒、消费或执行任务，也没有已实现的常驻 Mac bridge／runner。
+数据支路为 **Dot ↔ ngrok HTTPS ↔ Caddy 的信箱路由 ↔ VPS 持久 Task Mailbox ↔ Mac 协调桥**，Codex／Kimi 独立 MCP 客户端各自另核。桥已常驻主动收件、会话感知与显式结果补传；核授权与输入后定向本地 Herdr／项目 Lead 的执行承接仍未验。机器执行仍沿 Mac saved machine 经 LAN／SSH 直接连接 Win；信箱与桥不运行任务携带的 shell、Herdr 或模型，也不自动唤醒 Dot 或派发业务。
 
-最新来源会话的**执行侧报告**已到 VPS 服务运行、回环未认证 401、HTTPS／OAuth discovery、Caddy 新路由热加载与云端私有插件创建；旧 Gitee 路径保留。Mac 客户端配置／首次 OAuth 正在进行，一次本地回调返回后令牌交换失败，原实施侧正查原请求日志。各侧工具发现、真实调用、双向 nonce 与本地 Herdr 承接仍待验，最新回执沿[本仓状态](status.md)更新。本会话未亲测该服务；模板、401、插件创建及服务 active 均不能单独作为双向或执行闭环通过。
+本次依据服务仓固定文档 `ca8a480` 对齐：Mac 桥专用授权、迁移与后台收件已取得实施侧回执；原任务由桌面云端 App 发起、Mac 回传并由原桌面会话读回，指定 Dot 读取另按公子回报及服务精确 ACK 回读记录。反向新任务、长期稳定性和本地 Herdr 执行仍未验，详细证据沿[本仓摘要](status.md#vps-任务信箱与客户端接入进行中)及[服务权威记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。本次没有重做该服务／云端测试，不将桥成功推广为 Codex／Kimi 原客户端全部通过。
 
 Codex Cloud 也可作为条件客户端：只有对应云任务实际具备信箱 MCP 工具、OAuth 身份与动作权限时，才直接访问同一公网 HTTPS 端点，不必经 Dot／Mac 转述或连接 VPN。该路径目前未验，不将 Cloud 的额外接入作为本次 Dot ↔ Mac 数据闭环前置；Dot 插件创建及 Mac CLI 配置不证明 Cloud 已接入。信箱提交不会创建云任务或唤醒 Worker，Cloud 仍沿原生任务入口和成果验收运行；条件依据见[架构信箱章节](architecture.md#task-mailbox持久收发与本地承接)。
 
@@ -31,7 +31,7 @@ Codex Cloud 也可作为条件客户端：只有对应云任务实际具备信�
 
 同 ID 同内容先查原记录，内容冲突明确停止；结果保持不可变版本与摘要，`ack_result_read` 仅确认准确版本已读，`request_cancel` 仅登记请求。超时或 UNKNOWN 沿原 job、原执行和当前写者对账，不切换 Dot 原生入口或重复投递。大产物保留固定引用，正式成果仍由有权负责人验收。
 
-服务契约、客户端模板与部署唯一维护于外部 [`create-network-sh/fastmcp/task-mailbox`](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/task-mailbox)，本仓不复制或共享运行库；本页占位端点为 `https://mcp.example.com/mailbox/mcp`。具体服务／路由与未验边界见[架构信箱章节](architecture.md#task-mailbox持久收发与本地承接)，实际进度只在[本仓状态](status.md)维护。
+服务、Mac 桥、客户端模板与部署唯一维护于外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人整合仓仅为历史来源；本仓不复制或共享运行库。本页占位端点为 `https://mcp.example.com/mailbox/mcp`。具体服务契约及运行证据由该仓维护，本仓只记录[架构边界](architecture.md#task-mailbox持久收发与本地承接)及[Herdr 当前采用](status.md)。
 
 ## 官方操作技能与外部协调
 
@@ -110,4 +110,4 @@ machine／status 的目标、reachable、session 和 pane／Agent 清单要关�
 
 正式结果由原项目负责人验收，记录写入该任务的现行入口并回读；初始化不创建或迁移正式 Project。操作约束沿[Projects 技能](../skill/github-projects-operations/SKILL.md)。
 
-本页原 CLI／恢复来源于 2026-10-29 核对，当前选型与安装边界于 2026-11-02 修订；官方文档描述不代表目标端运行了相同能力。真实试点以记录的二进制、运行中 server、当前帮助和执行回执为准。
+本页原 CLI／恢复来源于 2026-10-29 核对，选型与安装边界于 2026-11-02 修订，2026-11-03 仅对齐信箱归属与桥接入状态；官方文档描述不代表目标端运行了相同能力。真实试点以记录的二进制、运行中 server、当前帮助和执行回执为准。
