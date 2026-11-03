@@ -1,8 +1,8 @@
 # Worker 与角色库
 
-版本：Worker 库 **1.0.0**，角色库 **1.0.0**；更新日期：2026-11-02。
+版本：Worker 库 **1.0.0**，角色库 **1.0.1**；更新日期：2026-11-03。
 
-供云端 Dot 与 Mac 项目协调层按任务选择执行端、组装角色与任务包，再沿获准原生入口创建 Worker、派发和回收。当前包含 **7 个 Worker 模板、9 个后端配置、13 个角色定义，其中 11 个专业角色可参与选型，2 个仅供组织导航**。
+供云端Dot与 Mac 项目协调层按任务选择执行端、组装角色与任务包，再沿获准原生入口创建 Worker、派发和回收。当前包含 **7 个 Worker 模板、9 个后端配置、13 个角色定义，其中 11 个专业角色可参与选型，2 个仅供组织导航**。
 
 选型关系为：**Worker 模板 + 明确后端 + 专业角色 + 必要项目合同 + 本次任务／权限／原生目标**。库维护定义；实际实例、在途执行、写者和验收仍归原任务。源码与 JSON 均随本仓读取，无网络服务、运行数据库、模型调用或跨仓导入依赖。
 
@@ -51,14 +51,16 @@ Mac 持续在线，OMP／Hermes／Kimi 代理分支可以依赖 Mac CLI Proxy；
 
 `capabilities` 是用于初筛的**声明能力**，包括 `text-reasoning`、`repository-read`、`repository-edit`、`shell`、`artifact-review`、`research`、`file-transform`、`visual-inspection`、`audio-tools`。命中标签后仍须核所选后端的工具、依赖、权限和真实输入；例如 FFmpeg 存在不证明 Qwen、声线或听觉审查可用。各角色正文与项目合同中的额外条件不会因标签命中而消失。
 
-## 角色初始目录
+<a id="角色初始目录"></a>
+
+## 角色目录
 
 | 类型 | 角色 ID | 用途 |
 | --- | --- | --- |
 | 跨项目专业职责 | `software_implementation`、`artifact_processing` | 本次新增的代码实现、确定性文件／媒体变换职责 |
 | 共享专业职责 | `workspace_visual`、`workspace_research`、`workspace_quality`、`workspace_runtime`、`workspace_knowledge`、`workspace_dialectic` | 视觉、研究、独立质量复核、运行诊断、知识整理、方案辩证 |
 | 显式项目适配 | `fanren_canon_story`、`fanren_script_performance`、`fanren_audio_production` | 仅在选择 `fanren-work` 并取得其当前输入、授权及冻结合同后使用 |
-| 组织导航，不派发 | `g8_coordinator`、`fanren_owner` | 保留来源 ID 与组织／项目约束供查阅；`select`／`prepare` 拒绝将其当执行角色，不产生新负责人 |
+| 组织导航，不派发 | `cloud_dot_organization_lead`、`fanren_owner` | 云端Dot与凡人负责人的职责导航；只读 `role` 也支持旧导航 ID，`select`／`prepare` 不可将导航当执行角色 |
 
 共享角色按需加载 `common + 指定角色`；显式项目再加该项目合同。项目角色必须给匹配的 `--project`；任务文件已指向库内已知项目时，也必须显式选择该项目，避免漏装项目硬约束。未知项目的共享角色仍须由原任务提供该项目规则，不自动套用凡人项目。
 

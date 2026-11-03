@@ -7,6 +7,7 @@
 | 要做什么 | 直接阅读 |
 | --- | --- |
 | 查已交付、已部署和未验范围 | [当前结论](docs/status.md#当前结论) · [后续缺口](docs/status.md#后续缺口) |
+| 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |
 | 理解分工与组件 | [架构总图](docs/architecture.md#整套协作分工) · [各端组件](docs/architecture.md#各端组件清单) |
 | 使用执行适配器 | [输入合同](docs/herdr-executor.md#冻结输入) · [操作](docs/herdr-executor.md#显式操作) · [安装](docs/herdr-executor.md#安装与资源) · [验收](docs/herdr-executor.md#验收记录) |
 | 选择 Worker 与角色 | [离线查询与准备](docs/worker-library/README.md#离线查询与准备) |

@@ -1,6 +1,6 @@
-# G8 总协调（旧ID兼容入口）
+# 云端Dot（组织总负责人导航）
 
-`g8_coordinator`仅保留为查询和历史记录的兼容ID，索引标记`dispatchable:false`，不得用于Worker选择或任务准备。通用组织职责已归独立[组织协作skill](../../../../skill/organization-collaboration/SKILL.md)的`organization_lead`岗位，具体工作法见[总协调](../../../../skill/organization-collaboration/references/organization-lead.md)。此处只导航，不维护第二套组织规则，也不提供实际任命、派发或通信权限。
+`cloud_dot_organization_lead` 是只读组织导航，历史来源 ID 仍可用于查询。云端Dot 接收目标、向公子回报；Mac 上的[常驻项目协调员](../../../project-coordinator.md#agent-lifecycle)另有独立职责。组织规则见[组织协作技能](../../../../skill/organization-collaboration/SKILL.md)的[总负责人](../../../../skill/organization-collaboration/references/organization-lead.md)。本项不任命参与者，也不提供 Worker、派发或通信权限。
 
 实际总负责人、参与者、项目负责人、report_to／report_route和当前任务来自公子或已授权负责人确认的有效关系记录，不能从旧角色名称推定。新岗位维护从组织skill开始，专业角色选择另行进行。
 

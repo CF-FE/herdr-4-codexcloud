@@ -68,7 +68,7 @@
       "initial_receiver_sha256": "c4e160dc2f83f25c101619de68f300c711d1aa79dc5556d8bb49fc95f0b8e152",
       "adaptations": [
         "两个组织协议链接改接本仓skill，兼容ID只作只读导航，禁止Worker选择或任务准备。",
-        "G8及第二人称隐含写权改为当前report_to/report_route与实际任命、精确授权；保留项目特有生产、审定、恢复与阶段约束。"
+        "云端Dot及第二人称隐含写权改为当前report_to/report_route与实际任命、精确授权；保留项目特有生产、审定、恢复与阶段约束。"
       ]
     },
     {
@@ -133,7 +133,7 @@
       "target_path": "docs/worker-library/roles/workspace/quality.md",
       "initial_receiver_sha256": "b403759159d5b95d4dd2bf21154de85a634c6bc59d62decbfa414420ed33b181",
       "adaptations": [
-        "去除G8中转绑定，质量报告沿当前任务report_to/report_route交实际责任接收者；保留独立QA及完整对象要求。"
+        "去除云端Dot中转绑定，质量报告沿当前任务report_to/report_route交实际责任接收者；保留独立QA及完整对象要求。"
       ]
     },
     {
