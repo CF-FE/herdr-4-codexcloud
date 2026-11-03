@@ -20,7 +20,10 @@ import sys
 import uuid
 
 
-COORDINATOR_ID = "g8-project-coordinator"
+COORDINATOR_ID = "cloud-dot-project-coordinator"
+# The old ledger ID is part of hashed report content and event-id derivation.
+LEGACY_COORDINATOR_ID = "g8-project-coordinator"
+LEGACY_PRINCIPAL_COLUMN = "g8_principal"
 MAX_MESSAGE = 256 * 1024
 DEFAULT_BUDGET = {"contact_attempts": 1, "production_writes": 0, "audio_generations": 0}
 UNRESOLVED = ("INTENT", "UNKNOWN", "SUBMITTED", "OWNER_READ")
@@ -94,7 +97,7 @@ def strings(value, required=False):
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects(
  project_id TEXT PRIMARY KEY, repository TEXT NOT NULL, project_ref TEXT NOT NULL,
- g8_principal TEXT NOT NULL, report_route TEXT NOT NULL, generation INTEGER NOT NULL DEFAULT 0,
+ cloud_dot_principal TEXT NOT NULL, report_route TEXT NOT NULL, generation INTEGER NOT NULL DEFAULT 0,
  owner_principal TEXT, endpoint TEXT, assignment_state TEXT NOT NULL DEFAULT 'UNVERIFIED');
 CREATE TABLE IF NOT EXISTS assignments(
  project_id TEXT NOT NULL REFERENCES projects, generation INTEGER NOT NULL, proof TEXT NOT NULL,
@@ -163,10 +166,21 @@ class Coordinator:
                     and not info.st_mode & 0o077, "PRIVATE_STATE_REQUIRED")
         finally:
             os.close(fd)
-        if read_only:
-            return
-        # Schema and every decision that can admit an effect are serialized across processes.
-        with self._db() as db:
+        # Select the fixed ledger identity before reading evidence or admitting any effect.
+        # Never rename a stored principal or rehash old records during an upgrade.
+        with self._db(not read_only) as db:
+            columns = {row["name"] for row in db.execute("PRAGMA table_info(projects)")}
+            if columns:
+                require(("cloud_dot_principal" in columns) != (LEGACY_PRINCIPAL_COLUMN in columns),
+                        "UNSUPPORTED_PROJECT_SCHEMA")
+            if LEGACY_PRINCIPAL_COLUMN in columns:
+                self._principal_column = LEGACY_PRINCIPAL_COLUMN
+                self.coordinator_id = LEGACY_COORDINATOR_ID
+            else:
+                self._principal_column = "cloud_dot_principal"
+                self.coordinator_id = COORDINATOR_ID
+            if read_only:
+                return
             had_schedule = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='wait_schedule'").fetchone()
             for statement in SCHEMA.strip().split(";"):
                 if statement.strip():
@@ -201,13 +215,14 @@ class Coordinator:
         require(isinstance(now, datetime) and now.tzinfo is not None, "INVALID_CLOCK")
         return now.astimezone(timezone.utc)
 
-    @staticmethod
-    def _project(db, project_id, principal=None):
+    def _project(self, db, project_id, principal=None):
         row = db.execute("SELECT * FROM projects WHERE project_id=?", (identifier(project_id),)).fetchone()
         if principal is not None:
-            require(row is not None and row["g8_principal"] == text(principal), "ACCESS_DENIED")
+            require(row is not None and row[self._principal_column] == text(principal), "ACCESS_DENIED")
         require(row is not None, "PROJECT_NOT_FOUND")
-        return row
+        project = dict(row)
+        project["cloud_dot_principal"] = project.pop(self._principal_column)
+        return project
 
     @staticmethod
     def _request(db, project_id, request_id):
@@ -229,7 +244,7 @@ class Coordinator:
                                                        self._now().isoformat(), encoded, key))
         if notify and cursor.rowcount:
             db.execute("INSERT INTO notifications(seq,project_id,request_id,recipient)"
-                       " SELECT ?,project_id,?,g8_principal FROM projects WHERE project_id=?",
+                       f" SELECT ?,project_id,?,{self._principal_column} FROM projects WHERE project_id=?",
                        (cursor.lastrowid, request_id, project_id))
 
     def _schedule(self, db, p, r, wait):
@@ -267,7 +282,7 @@ class Coordinator:
     def route(self, project_id):
         """Privileged local routing view for the verified bridge adapter."""
         with self._db(False) as db:
-            return dict(self._project(db, project_id))
+            return self._project(db, project_id)
 
     def _status(self, db, project_id, request_id):
         r = self._request(db, project_id, request_id)
@@ -278,7 +293,7 @@ class Coordinator:
         schedule = db.execute("SELECT revision,phase FROM wait_schedule WHERE project_id=? AND request_id=?",
                               (project_id, request_id)).fetchone()
         if latest:
-            state = "G8_READ" if latest["read_ref"] else "RESULT_AVAILABLE"
+            state = "CLOUD_DOT_READ" if latest["read_ref"] else "RESULT_AVAILABLE"
         elif r["cancel_ref"]:
             state = "CANCEL_REQUESTED" if contact else "CANCELLED_BEFORE_CONTACT"
         elif contact:
@@ -289,7 +304,7 @@ class Coordinator:
             project = self._project(db, project_id)
             state = ("READY" if project["owner_principal"] and project["generation"] == r["target_generation"]
                      else "WAITING_OWNER")
-        return {"coordinator_id": COORDINATOR_ID, "project_id": project_id, "request_id": request_id,
+        return {"coordinator_id": self.coordinator_id, "project_id": project_id, "request_id": request_id,
                 "job_id": body["job_id"], "payload_hash": body["payload_hash"], "state": state, "target_generation": r["target_generation"],
                 "contact_state": contact["state"] if contact else None,
                 "contact_reason": contact["reason"] if contact else None,
@@ -297,7 +312,7 @@ class Coordinator:
                 "owner_read": bool(contact and contact["read_ref"]), "cancel_requested": bool(r["cancel_ref"]),
                 "stopped": bool(contact and contact["state"] == "STOPPED"), "unblocked": bool(r["unblock_ref"]),
                 "result_version": latest["version"] if latest else None,
-                "g8_read": bool(latest and latest["read_ref"]), "waiting": json.loads(r["waiting"]),
+                "cloud_dot_read": bool(latest and latest["read_ref"]), "waiting": json.loads(r["waiting"]),
                 "wait_revision": schedule["revision"], "waiting_active": schedule["phase"] != "CLOSED",
                 "observed_at": self._now().isoformat()}
 
@@ -328,7 +343,7 @@ class Coordinator:
                 return self._status(db, p, prior["request_id"])
             require(expected == project["generation"], "STALE_GENERATION")
             require(timestamp(request["deadline"]) > self._now(), "DEADLINE_EXPIRED")
-            wait = {"follow_up_owner": COORDINATOR_ID, "action_owner": COORDINATOR_ID,
+            wait = {"follow_up_owner": self.coordinator_id, "action_owner": self.coordinator_id,
                     "reason": "CONTACT_ADMISSION" if project["owner_principal"] else "VERIFY_APPOINTMENT",
                     "next_condition": "Verified project owner and approved contact route",
                     "deadline": request["deadline"], "escalate_to": principal,
@@ -370,7 +385,7 @@ class Coordinator:
                 db.execute("INSERT INTO contacts(project_id,request_id,action_id,generation,owner,endpoint,state)"
                            " VALUES(?,?,?,?,?,?,'INTENT')", (project_id, request_id, action, expected_generation,
                                                              project["owner_principal"], project["endpoint"]))
-                self._event(db, project_id, request_id, "CONTACT_INTENT", COORDINATOR_ID,
+                self._event(db, project_id, request_id, "CONTACT_INTENT", self.coordinator_id,
                             {"action_id": action, "generation": expected_generation})
                 wait = json.loads(request["waiting"])
                 wait.update(action_owner=project["owner_principal"], reason="AWAIT_OWNER_REPLY",
@@ -421,7 +436,7 @@ class Coordinator:
                         wait.update(action_owner=row["owner"], reason="AWAIT_OWNER_REPLY",
                                     next_condition="Verified receipt or reply on the original contact action")
                     else:
-                        wait.update(action_owner=COORDINATOR_ID,
+                        wait.update(action_owner=self.coordinator_id,
                                     reason="RECONCILE_ORIGINAL_CONTACT" if outcome == "UNKNOWN" else "CONTACT_NOT_SENT",
                                     next_condition="Read original native action evidence and report the next authorized step")
                 wait["evidence_ref"] = evidence_ref
@@ -469,10 +484,10 @@ class Coordinator:
             return self._delivery(db, p, r, existing["version"])
         version = db.execute("SELECT COALESCE(MAX(version),0)+1 FROM results WHERE project_id=? AND request_id=?",
                              (p, r)).fetchone()[0]
-        event_id = "coordinate-" + canonical_hash([COORDINATOR_ID, p, r, result["job_id"], version])
+        event_id = "coordinate-" + canonical_hash([self.coordinator_id, p, r, result["job_id"], version])
         db.execute("INSERT INTO results(project_id,request_id,version,result_hash,body,event_id) VALUES(?,?,?,?,?,?)",
                    (p, r, version, digest, canonical(result).decode(), event_id))
-        self._event(db, p, r, "RESULT_AVAILABLE", COORDINATOR_ID, {"version": version, "result_hash": digest},
+        self._event(db, p, r, "RESULT_AVAILABLE", self.coordinator_id, {"version": version, "result_hash": digest},
                     notify=True)
         return self._delivery(db, p, r, version)
 
@@ -512,9 +527,9 @@ class Coordinator:
                 self._event(db, project_id, request_id, "VERIFIED_REPLY", principal,
                             {"action_id": action_id, "generation": generation, "evidence_ref": evidence_ref})
                 db.execute("UPDATE contacts SET state='REPLIED',reply_hash=? WHERE action_id=?", (digest, action_id))
-                wait = {"follow_up_owner": COORDINATOR_ID, "action_owner": report["next_owner"],
+                wait = {"follow_up_owner": self.coordinator_id, "action_owner": report["next_owner"],
                         "reason": "VERIFY_UNBLOCK_CONDITION", "next_condition": report["next_condition"],
-                        "deadline": request["deadline"], "escalate_to": self._project(db, project_id)["g8_principal"],
+                        "deadline": request["deadline"], "escalate_to": self._project(db, project_id)["cloud_dot_principal"],
                         "evidence_ref": evidence_ref}
                 self._wait(db, project_id, request_id, wait)
             return {"accepted": True, "late": False, "delivery": self._save_result(db, project_id, request_id, result)}
@@ -536,8 +551,13 @@ class Coordinator:
             require(result["result_hash"] == result_hash, "RESULT_HASH_MISMATCH")
             db.execute("UPDATE results SET read_ref=COALESCE(read_ref,?) WHERE project_id=? AND request_id=?"
                        " AND version=?", (evidence_ref, project_id, request_id, version))
-            self._event(db, project_id, request_id, "G8_READ", principal,
-                        {"version": version, "result_hash": result_hash, "evidence_ref": evidence_ref})
+            body = {"version": version, "result_hash": result_hash, "evidence_ref": evidence_ref}
+            # Replaying an acknowledged receipt must not append a second event under its new name.
+            if self._principal_column == LEGACY_PRINCIPAL_COLUMN:
+                old_key = canonical_hash([project_id, request_id, "G8_READ", principal, body])
+                if db.execute("SELECT 1 FROM events WHERE event_key=?", (old_key,)).fetchone():
+                    return self._status(db, project_id, request_id)
+            self._event(db, project_id, request_id, "CLOUD_DOT_READ", principal, body)
             return self._status(db, project_id, request_id)
 
     def cancel(self, principal, project_id, request_id, evidence_ref):
@@ -551,7 +571,7 @@ class Coordinator:
                 self._event(db, project_id, request_id, "CANCEL_REQUESTED", principal,
                             {"evidence_ref": evidence_ref}, notify=True)
                 wait = json.loads(row["waiting"])
-                wait.update(reason="RECONCILE_CANCELLED_ACTION", action_owner=COORDINATOR_ID,
+                wait.update(reason="RECONCILE_CANCELLED_ACTION", action_owner=self.coordinator_id,
                             next_condition="Establish original action effects and actual stop from native evidence",
                             evidence_ref=evidence_ref)
                 self._wait(db, project_id, request_id, wait)
@@ -610,7 +630,7 @@ class Coordinator:
                                  f" AND kind IN ({marks}) ORDER BY seq DESC LIMIT 1",
                                  (project_id, *kinds)).fetchone()
                 observations[label] = dict(row) if row else None
-            return {"coordinator_id": COORDINATOR_ID, "project_id": project_id, "generation": project["generation"],
+            return {"coordinator_id": self.coordinator_id, "project_id": project_id, "generation": project["generation"],
                     "assignment_state": project["assignment_state"], "observed_at": self._now().isoformat(),
                     "scope": "LOCAL_LEDGER", "open_followups": pending[0], "oldest_open_at": pending[1],
                     "oldest_request": oldest["request_id"] if oldest else None,
@@ -625,20 +645,20 @@ class Coordinator:
             return getattr(self, "_admin_" + operation)(db, data)
 
     def _admin_register_project(self, db, data):
-        fields(data, "project_id repository project_ref g8_principal report_route")
+        fields(data, "project_id repository project_ref cloud_dot_principal report_route")
         p = identifier(data["project_id"])
-        for key in ("project_ref", "g8_principal", "report_route"):
+        for key in ("project_ref", "cloud_dot_principal", "report_route"):
             text(data[key])
         require(isinstance(data["repository"], str) and
                 re.fullmatch(r"[\w.-]+/[\w.-]+", data["repository"], re.ASCII), "INVALID_REPOSITORY")
-        prev = db.execute("SELECT * FROM projects WHERE project_id=?", (p,)).fetchone()
-        if prev:
+        if db.execute("SELECT 1 FROM projects WHERE project_id=?", (p,)).fetchone():
+            prev = self._project(db, p)
             require(all(prev[k] == v for k, v in data.items()), "REGISTRATION_CONFLICT")
         else:
-            db.execute("INSERT INTO projects(project_id,repository,project_ref,g8_principal,report_route)"
-                       " VALUES(:project_id,:repository,:project_ref,:g8_principal,:report_route)", data)
+            db.execute(f"INSERT INTO projects(project_id,repository,project_ref,{self._principal_column},report_route)"
+                       " VALUES(:project_id,:repository,:project_ref,:cloud_dot_principal,:report_route)", data)
             self._event(db, p, None, "PROJECT_REGISTERED", "local:administrator", data)
-        return dict(self._project(db, p))
+        return self._project(db, p)
 
     @staticmethod
     def _no_unresolved_contacts(db, p):
@@ -671,7 +691,7 @@ class Coordinator:
         db.execute("UPDATE projects SET generation=?,owner_principal=?,endpoint=?,assignment_state='BOUND'"
                    " WHERE project_id=? AND generation=?", (expected + 1, data["owner_principal"], data["endpoint"], p, expected))
         self._event(db, p, None, "OWNER_HANDOFF_ATTESTED", "local:administrator", data)
-        return dict(self._project(db, p))
+        return self._project(db, p)
 
     def _admin_confirm_vacancy(self, db, data):
         fields(data, "project_id expected_generation vacancy_ref release_ref")
@@ -688,7 +708,7 @@ class Coordinator:
         db.execute("UPDATE projects SET generation=?,owner_principal=NULL,endpoint=NULL,"
                    "assignment_state='VACANCY_CONFIRMED' WHERE project_id=?", (next_generation, p))
         self._event(db, p, None, "VACANCY_ATTESTED", "local:administrator", data)
-        return dict(self._project(db, p))
+        return self._project(db, p)
 
     def _admin_begin_creation(self, db, data):
         fields(data, "project_id expected_generation creation_id vacancy_ref release_ref authorization_ref")
@@ -742,7 +762,7 @@ class Coordinator:
                         {"action_id": row["action_id"], "evidence_ref": witness}, notify=True)
             request = self._request(db, row["project_id"], row["request_id"])
             wait = json.loads(request["waiting"])
-            wait.update(action_owner=COORDINATOR_ID, reason="RECONCILE_CANCELLED_ACTION" if request["cancel_ref"]
+            wait.update(action_owner=self.coordinator_id, reason="RECONCILE_CANCELLED_ACTION" if request["cancel_ref"]
                         else "RECONCILE_ORIGINAL_CONTACT", next_condition="Read original native action evidence",
                         evidence_ref=witness)
             self._wait(db, row["project_id"], row["request_id"], wait)
@@ -765,7 +785,7 @@ class Coordinator:
         db.execute("UPDATE requests SET target_generation=? WHERE project_id=? AND request_id=?",
                    (project["generation"], p, r))
         wait = json.loads(request["waiting"])
-        wait.update(action_owner=COORDINATOR_ID, reason="CONTACT_ADMISSION",
+        wait.update(action_owner=self.coordinator_id, reason="CONTACT_ADMISSION",
                     next_condition="Contact the verified owner within the original request budget",
                     evidence_ref=data["authorization_ref"])
         self._wait(db, p, r, wait)
@@ -781,7 +801,7 @@ class Coordinator:
         text(data["evidence_ref"])
         db.execute("UPDATE contacts SET state='STOPPED' WHERE action_id=?", (contact["action_id"],))
         wait = json.loads(self._request(db, p, r)["waiting"])
-        wait.update(reason="NATIVE_STOP_ATTESTED", action_owner=COORDINATOR_ID,
+        wait.update(reason="NATIVE_STOP_ATTESTED", action_owner=self.coordinator_id,
                     next_condition="Report original action stop and reconcile remaining responsibility",
                     evidence_ref=data["evidence_ref"])
         self._wait(db, p, r, wait)
@@ -801,7 +821,7 @@ class Coordinator:
         if "next_check_at" in data:
             require(timestamp(data["next_check_at"]) <= deadline, "INVALID_CHECKPOINT")
         wait = {k: v for k, v in data.items() if k not in ("project_id", "request_id")}
-        wait["follow_up_owner"] = COORDINATOR_ID
+        wait["follow_up_owner"] = self.coordinator_id
         old = json.loads(request["waiting"])
         changed = any(wait.get(k) != old.get(k) for k in (set(old) | set(wait)) - {"evidence_ref"})
         revision = self._wait(db, p, r, wait)
@@ -809,7 +829,7 @@ class Coordinator:
         return self._status(db, p, r)
 
     def _admin_tick(self, db, data):
-        """Materialize bounded due reminders only. Native contact and G8 reading have separate receipts."""
+        """Materialize bounded due reminders only. Native contact and result reads have separate receipts."""
         fields(data, "", "limit project_id")
         limit = data.get("limit", 25)
         require(type(limit) is int and 1 <= limit <= 100, "INVALID_PAGE")
@@ -829,7 +849,7 @@ class Coordinator:
                      "due_at": entry["deadline"] if phase == "DEADLINE" else entry["due"],
                      "action_owner": wait["action_owner"], "next_condition": wait["next_condition"],
                      "escalate_to": wait["escalate_to"], "evidence_ref": wait["evidence_ref"]}
-            self._event(db, p, r, "WAIT_" + phase, COORDINATOR_ID, event, notify=True)
+            self._event(db, p, r, "WAIT_" + phase, self.coordinator_id, event, notify=True)
             db.execute("UPDATE wait_schedule SET due=?,phase=? WHERE project_id=? AND request_id=?",
                        (entry["deadline"] if phase == "CHECKPOINT" else None,
                         "DEADLINE" if phase == "CHECKPOINT" else "ESCALATED", p, r))
@@ -847,7 +867,7 @@ class Coordinator:
                                  {"schema_version": 1, "kind": "COORDINATOR_WAIT_REPORT",
                                   "project_id": p, "request_id": r, "job_id": body["job_id"],
                                   "payload_hash": body["payload_hash"], "task_ref": body["task_ref"],
-                                  "source_principal": COORDINATOR_ID, "source_evidence_ref": text(data["evidence_ref"]),
+                                  "source_principal": self.coordinator_id, "source_evidence_ref": text(data["evidence_ref"]),
                                   "waiting": json.loads(request["waiting"])})
 
     def _admin_notifications(self, db, data):

@@ -1,24 +1,24 @@
 {
   "schema_version": 1,
-  "library_version": "1.0.0",
+  "library_version": "1.0.1",
   "common": {
     "resource": "common.md",
     "version": "1.0.0"
   },
   "roles": [
     {
-      "id": "g8_coordinator",
-      "name": "G8 总协调",
+      "id": "cloud_dot_organization_lead",
+      "name": "云端Dot（组织总负责人导航）",
       "scope": "workspace",
       "kind": "coordinator",
-      "summary": "旧ID组织导航；通用职责沿独立组织协作维护，不用于Worker选择或任务准备。",
+      "summary": "云端Dot 的组织职责导航；项目协调员另有独立入口。本项不能派发 Worker。",
       "resource": "workspace/coordinator.md",
       "methods": [
         "task-planning",
         "role-method-separation"
       ],
       "source_role_id": "g8_coordinator",
-      "definition_version": "1.0.0",
+      "definition_version": "1.0.1",
       "dispatchable": false,
       "requirements": [],
       "lifecycle": "active"

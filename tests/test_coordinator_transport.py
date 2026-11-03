@@ -120,22 +120,22 @@ class CoordinatorTransportTests(unittest.TestCase):
         self.core = Coordinator(self.state, clock=self.clock)
         self.port = FixturePorts()
         self.alpha, self.beta, self.second = object(), object(), object()
-        self.a_peer, self.b_peer = Peer('fixture-native', 'alpha-g8'), Peer('fixture-native', 'beta-g8')
+        self.a_peer, self.b_peer = Peer('fixture-native', 'alpha-cloud-dot'), Peer('fixture-native', 'beta-cloud-dot')
         self.second_peer = Peer('fixture-native', 'another-enrolled-session')
         self.port.sessions = {self.alpha: self.a_peer, self.beta: self.b_peer, self.second: self.second_peer}
         owner_actions = frozenset({'owner_read', 'owner_reply'})
-        g8_actions = ACTIONS - owner_actions
+        cloud_dot_actions = ACTIONS - owner_actions
         self.owner, self.owner_peer = object(), Peer('fixture-owner-channel', 'alpha-owner')
         self.port.sessions[self.owner] = self.owner_peer
-        self.grants = [Grant(self.a_peer, 'alpha', 'native:alpha', 'send-alpha', g8_actions),
-                       Grant(self.b_peer, 'beta', 'native:beta', 'send-beta', g8_actions),
-                       Grant(self.second_peer, 'alpha', 'native:alpha', 'other-alpha', g8_actions),
+        self.grants = [Grant(self.a_peer, 'alpha', 'native:alpha', 'send-alpha', cloud_dot_actions),
+                       Grant(self.b_peer, 'beta', 'native:beta', 'send-beta', cloud_dot_actions),
+                       Grant(self.second_peer, 'alpha', 'native:alpha', 'other-alpha', cloud_dot_actions),
                        Grant(self.owner_peer, 'alpha', 'owner:alpha', 'owner-alpha', owner_actions)]
         self.adapter = self.new_adapter()
         for project, peer in [('alpha', self.a_peer), ('beta', self.b_peer)]:
             project_ref = 'https://github.com/orgs/CF-FE/projects/' + ('1' if project == 'alpha' else '2')
             self.core.manage('register_project', {'project_id': project, 'repository': 'CF-FE/' + project,
-                'project_ref': project_ref, 'g8_principal': 'native:' + project, 'report_route': 'read:' + project})
+                'project_ref': project_ref, 'cloud_dot_principal': 'native:' + project, 'report_route': 'read:' + project})
             self.core.manage('activate_owner', {'project_id': project, 'expected_generation': 0,
                 'owner_principal': 'owner:' + project, 'endpoint': 'owner-route:' + project,
                 'appointment_ref': 'test:appointment', 'verification_ref': 'test:native-contact',
@@ -277,7 +277,7 @@ class CoordinatorTransportTests(unittest.TestCase):
         sent = self.adapter.enqueue('alpha', 'req-alpha')
         self.assertEqual((sent['state'], sent['version'], self.port.enqueue_calls), ('SENT', 7, 1))
 
-    def test_read_and_ack_use_original_g8_job_actual_wire_version_and_digest(self):
+    def test_read_and_ack_use_original_cloud_dot_job_actual_wire_version_and_digest(self):
         outcome = self.complete_query()
         self.adapter.enqueue('alpha', 'req-alpha')
         self.port.upload(outcome['job_id'], outcome['event_id'])
@@ -288,14 +288,14 @@ class CoordinatorTransportTests(unittest.TestCase):
         self.assertEqual(result['result_hash'], canonical_hash(result['result']))
         self.assertNotEqual(result['result_hash'], outcome['result_hash'])
         self.assertEqual(result['result']['core_result_hash'], outcome['result_hash'])
-        self.assertFalse(self.adapter.status(self.alpha, 'alpha', 'req-alpha')['g8_read'])
+        self.assertFalse(self.adapter.status(self.alpha, 'alpha', 'req-alpha')['cloud_dot_read'])
         receipt = self.port.confirm_native_read(self.alpha)
         self.assert_transport_error('READ_RECEIPT_MISMATCH', lambda: self.adapter.ack(self.alpha, 'alpha', 'req-alpha',
             mailbox_version=1, receipt_handle=receipt))
         self.assert_transport_error('READ_RECEIPT_MISMATCH', lambda: self.adapter.ack(self.second, 'alpha', 'req-alpha',
             mailbox_version=7, receipt_handle=receipt))
         ack = self.adapter.ack(self.alpha, 'alpha', 'req-alpha', mailbox_version=7, receipt_handle=receipt)
-        self.assertTrue(ack['g8_read'])
+        self.assertTrue(ack['cloud_dot_read'])
 
     def test_mismatched_durable_receipt_and_replaced_wire_payload_are_rejected(self):
         outcome = self.complete_query()

@@ -1,4 +1,4 @@
-"""Project coordinator boundary for the original mailbox bridge and G8 client.
+"""项目协调员与原信箱桥、云端Dot客户端之间的接口。
 
 The host supplies two *trusted* ports. The bridge owns its collector, original
 jobs and idempotent outbox. The caller port authenticates native sessions and
@@ -130,7 +130,7 @@ class OriginalBridge(Protocol):
 
         Return the ordinary bridge outbox record, including final result_hash,
         state and any exact remote receipt. Conflicting event reuse must fail.
-        No Codex Stop or interactive G8 identity is used for this producer.
+        The producer is independent of Codex Stop and the authenticated reader.
         """
         ...
 
@@ -236,7 +236,7 @@ class CoordinatorTransport:
         grant = self.grants.get((delivery.origin, project_id))
         require(grant is not None, 'ACCESS_DENIED')
         route = self.core.route(project_id)
-        require(grant.principal == route['g8_principal'], 'ACCESS_DENIED')
+        require(grant.principal == route['cloud_dot_principal'], 'ACCESS_DENIED')
         require(payload.get('sender') == grant.sender_alias, 'SENDER_BINDING_MISMATCH')
         require(payload.get('recipient') == self.recipient and payload.get('report_route') == route['report_route']
                 and payload.get('target') == {'service': 'project-coordinator', 'project_id': project_id},
@@ -305,7 +305,7 @@ class CoordinatorTransport:
                 'result': outcome['result'], 'task_tracking': payload['tracking']}
 
     def enqueue(self, project_id, request_id, version=1):
-        """Recover an already-durable answer. Never call this as the G8 reader."""
+        """Recover a durable answer using the bridge producer identity."""
         outcome = self.core.delivery(project_id, request_id, version)
         wire = self._wire(outcome)
         job_id, event_id = outcome['job_id'], outcome['event_id']

@@ -373,7 +373,14 @@ def main(argv=None):
                                 and (r["scope"] == "workspace" or r.get("project_id") == arguments.project)],
                       "library_version": library["roles"]["library_version"]}
         else:
-            role = render_role(library, arguments.role, arguments.project,
+            role_id = arguments.role
+            if arguments.command == "role" and role_id not in library["role_map"]:
+                # Old imported navigation IDs are lookup-only, never dispatch aliases.
+                matches = [r["id"] for r in library["role_map"].values()
+                           if r["kind"] in {"coordinator", "project_owner"} and r.get("source_role_id") == role_id]
+                if len(matches) == 1:
+                    role_id = matches[0]
+            role = render_role(library, role_id, arguments.project,
                                render=arguments.command == "prepare" or getattr(arguments, "render", False))
             if arguments.command == "role":
                 result = role

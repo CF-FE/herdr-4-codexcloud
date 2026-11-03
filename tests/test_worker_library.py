@@ -378,6 +378,14 @@ class WorkerLibraryTests(unittest.TestCase):
         self.failure("select", "--role", "writer")
         self.failure("prepare", "--worker", "win-omp", "--role", "writer")
 
+    def test_imported_navigation_id_resolves_only_for_read_only_lookup(self):
+        role = next(r for r in self.index["roles"] if r["kind"] == "coordinator")
+        role["source_role_id"] = "legacy-navigation"
+        self.write_json("roles/index.json", self.index)
+        self.assertEqual(self.success("role", "legacy-navigation"), self.success("role", role["id"]))
+        self.failure("select", "--role", "legacy-navigation")
+        self.failure("prepare", "--worker", "win-omp", "--role", "legacy-navigation")
+
     def test_known_task_project_cannot_silently_skip_the_project_contract(self):
         path = self.write_json("task.json", self.task())
         arguments = ("prepare", "--worker", "win-omp", "--role", "writer", "--task-file", str(path))
