@@ -13,6 +13,7 @@
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
 | 本仓技能 | 组织协作 1.5.2、Projects 1.1.0 源码可按路径读取，来源闭包已核 | 所有目标宿主原生安装、自动发现和工具权限 |
+| G8 项目协调员（本地开发分支） | 已实现持久跟进、任职代次、有界到期提醒和受限传输接口。已在 win-work 核到凡人最后可证的 Lody 负责人，工程验证及精确范围见[本机交付](project-coordinator.md#7-本机交付与运行) | 现任接手与可达性、G8 服务主体、真实业务联络与解除阻塞、长期值守 |
 
 运行前提保持 **Mac 持续在线**：项目 Lead 和 CLI Proxy 在 Mac，Win 的代理入口可依赖它；不建设 Mac 离线接管。当前采用 Herdr TUI，core／`hc` 和 Herdr App 属于历史对照。职责与路径见[架构](architecture.md)，实际操作前沿[试点绑定](pilot.md#启动前绑定)核当前目标与授权。
 
