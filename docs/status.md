@@ -13,7 +13,7 @@
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
 | 本仓技能 | 组织协作 1.5.2、Projects 1.1.0 源码可按路径读取，来源闭包已核 | 所有目标宿主原生安装、自动发现和工具权限 |
-| 云端Dot与 Mac 项目协调员 | 协调员与原信箱桥均已升级，隔离联调通过请求交付、结果回传及丢回执恢复。正式 collector 已恢复，原等待观察器在原台账运行。[部署回执](project-coordinator.md#mac-deployment) | 正式端口签名探针待密钥启用。凡人查询待云端Dot与现任负责人完成身份绑定与原端读回。[入口核验](project-coordinator.md#可信入口核验p0) |
+| 云端Dot与 Mac 项目协调员 | 正式 Mac 协调员和原信箱桥已通过双向签名探针，原 collector 随后完成一次远端收集。隔离联调已验证请求交付、结果回传及丢回执恢复。[部署回执](project-coordinator.md#mac-deployment) | 凡人单件业务密钥已获条件授权。云端Dot原任务与凡人现任负责人绑定待核，真实查询及原端读回待验。[入口核验](project-coordinator.md#可信入口核验p0) |
 | Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main` | Cloud Worker 实际运行、工具权限及成果回传待验 |
 
 运行前提保持 **Mac 持续在线**：项目 Lead 和 CLI Proxy 在 Mac，Win 的代理入口可依赖它；不建设 Mac 离线接管。当前采用 Herdr TUI，core／`hc` 和 Herdr App 属于历史对照。职责与路径见[架构](architecture.md)，实际操作前沿[试点绑定](pilot.md#启动前绑定)核当前目标与授权。
