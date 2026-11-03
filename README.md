@@ -15,6 +15,7 @@ Dot 与具备获准 Pages 工具的 Cloud Worker 可直接参与 Space 协作，
 | 要做什么 | 入口 |
 | --- | --- |
 | 查看当前状态、已做检查与下一步 | [本仓状态](docs/status.md) |
+| 通过 Lead 显式调用确定性适配器、查 journal 与产物回收 | [执行适配器规范及验收](docs/herdr-executor.md) |
 | 按任务组合 Worker、后端与专业角色，准备原生派发草稿 | [Worker 与角色库](docs/worker-library/README.md) · [离线选型入口](docs/worker-library/README.md#离线查询与准备) |
 | 查 Mac 能力及 Win OMP／Hermes／Kimi 的执行侧结果 | [Agent 与能力盘点](docs/local-agent-inventory.md) |
 | 转给 Dot 评估 Mac → Herdr → 项目协调层 | [限定评估需求](docs/dot-mac-herdr-evaluation.md) |
