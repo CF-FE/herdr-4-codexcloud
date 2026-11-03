@@ -63,6 +63,7 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 | --- | --- |
 | 当前采用摘要／后续缺口 | 本页；具体任务仍在原 Issue／Project |
 | 职责、组件、源码与资产归属 | [架构](architecture.md) |
+| 协调员、负责人、Worker 的生效、交接、恢复与退出 | [生命周期设计依据](project-coordinator.md#agent-lifecycle)，各运行端的 [hooks 与证据边界](project-coordinator.md#lifecycle-hooks) |
 | 网络、SSH、服务恢复 | [网络指引](networking-plan.md)；VPS 特有事项见[专项指引](vps-control-pilot.md) |
 | 多项目合同与分阶段路线 | [迭代指引](collaboration-iteration-guide.md) |
 | 通用执行准备、UNKNOWN 与退出 | [试点指引](pilot.md)及[任务模板](templates/pilot-task.md) |
