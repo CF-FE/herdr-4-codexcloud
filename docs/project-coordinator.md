@@ -205,10 +205,10 @@ Watchdog 负责发现异常，例如“负责人到期未回”。本机 `tick` 
 | 对象 | 已取得的证据 | 仍待取得的证据 |
 | --- | --- | --- |
 | 云端Dot | 已定位登录中的 ChatGPT Work 原生对话。此前在原对话读到云端Dot报告已向 Mac 发起联系检查；本次未取得该检查的确切请求号、受理凭据或负责人回复。历史信箱样本的读取回报和 ACK 属于另一项验证 | 可供协调员核验的发送主体、该检查的原任务引用，以及按同一 job 读取结果的获准通道。发起方的陈述只能按来源保留，不能推定执行仍在途或判定无人回复 |
-| Mac 协调员 | 11 月 3 日 17:23 的核验早于正式安装。17:37–17:38 北京时间已在默认私有目录部署合并版本，并从用户登录启动项核到两次成功运行。[宿主部署回执](#mac-deployment) | 云端可认证的受理与恢复入口、三个生产端口的绑定仍待核验 |
+| Mac 协调员 | 11 月 3 日 17:37–17:38 北京时间在正式目录部署本机台账与等待观察器，随后部署了原桥端口和协调员客户端。[宿主部署回执](#mac-deployment) | 正式本机端口的密钥启用、云端调用主体、凡人现任联系与恢复入口待核 |
 | 凡人负责人 | **11 月 3 日 17:22–17:23（北京时间）**，在 win-work 复查正式项目索引、切权原件及六个相关治理目录。最后一份可核任命为 10 月 31 日的旧 Lody 负责人，制作执行者另列；11 月 1 日该回合已交还。按原会话键仍可定位。所查目录、[Project #5](https://github.com/orgs/CF-FE/projects/5) 五个条目和[制作 Issue](https://github.com/CF-FE/fanren-work/issues/2)未给出新任命或现任接手答复 | 任职状态为待核；历史地址可以定位，不证明现在仍接任或可安全投递。沿原联系检查核接手、当前授权范围及可验证的答复端。无负责人或已换任也须由项目任命方确认 |
 | 生产对账 | 云端Dot原对话和制作端原生记录均有晚于公开 Issue 阶段记录的技术回执。精确批次与受控资料保存在审查端 | 指定负责人的本次答复、独立听检和生产业务验收分开取证 |
-| 信箱 | 服务维护方核过历史 job／ACK 和已装桥源码。17:28 北京时间，按凡人仓库、Project #5 URL 和项目引用只读筛本机桥已保存的路由，命中 **0**。桥[只保留路由及可选 tracking](https://github.com/CF-FE/task-mailbox-mcp/blob/87cfb6551240c08d5aa8df3a8afdc305c5388a86/mac/bridge_store.py#L263-L270)，该结果不能排除未登记 tracking 的原任务，不能判为负责人未回复 | `OriginalBridge` 的受限完整请求交付／独立入队、原生 `CallerChannel` 与 `OwnerChannel` 的生产绑定。先前的云端联系检查仍须依原发送端的关联回执对账 |
+| 信箱 | 17:28 北京时间，按凡人仓库、Project #5 与项目引用筛原桥路由，命中 **0**。当时版本[保存路由及可选 tracking](https://github.com/CF-FE/task-mailbox-mcp/blob/87cfb6551240c08d5aa8df3a8afdc305c5388a86/mac/bridge_store.py#L263-L270)，缺失 tracking 的早期原件需沿原发送端核对。新版只对有独立来源凭证的具体原件保留正文、交付及入队 | 正式业务授权、云端Dot原端读回及负责人原生答复 |
 
 11 月 3 日接线时再次单独读取 [Project #5 的生产条目](https://github.com/orgs/CF-FE/projects/5?pane=issue&itemId=285760278)。条目 `285760278` 的原件是[凡人制作 Issue #2](https://github.com/CF-FE/fanren-work/issues/2)，状态为 In Progress，未列 assignee。这个条目可作为查询的工作项来源。win-work 的正式索引仍指向已交还上一回合的原负责人。将云端原对话中可见的三个既有工作项逐一匹配原桥已保存的路由，匹配数为 0。云端原生对话的地址可以定位，本次读取正文超时，未取得先前检查的确切 job 或可核答复。
 
@@ -241,6 +241,15 @@ Mac 桥侧的 `coordinator-port.json` 与桥配置同目录。协调员侧的 `b
 
 首轮接入沿用原桥的网络轮询和 OAuth，协调员只调用本地端口。原桥待发队列保存结果后，网络错误沿原 event 对账和补传。云端Dot 是否实际读回，仍须由其原生端提供同一 job、信箱版本、结果摘要和答复内容。Mac 上读取待发记录只证明本机已入队。
 
+启用时先在正式安装根准备两份私有配置。按服务仓的[密钥准备与轮换说明](https://github.com/CF-FE/task-mailbox-mcp/blob/b6dc6b6dafff08f4ba25ddd999df4e679bb4a802/mac/README.md#协调员本地签名探针)将已批准的探测密钥绑定到 `probe-` 身份，由原 collector 加载策略。用已安装解释器运行下列命令。只有 `PORT_VERIFIED` 证明实际安装的双方完成了签名握手。需要持续运行时，在当前用户 LaunchAgents 安装并加载本版的 `bridge-pump.plist`，服务名为 `io.projectcoordinator.bridge-pump`。两端在业务凭据核实后分别绑定同一原件，完整流程才进入受理。
+
+```bash
+"$PYTHON" -I -B "$RELEASE/scripts/coordinator_bridge.py" --config "$APP/bridge-port.json" probe
+"$PYTHON" -I -B "$RELEASE/scripts/coordinator_bridge.py" --config "$APP/bridge-port.json" pump
+```
+
+首次受理持久保存原生通道、主体以及任务与发送证据引用。出件时复核同一绑定。升级前已受理且缺这些证据的记录保留原台账，只读对账，由原端补证。回退时先停桥端口的 pump，再依两仓各自的手册恢复固定发布，保留已提交事件与原队列。
+
 ### 安装、启动和查看
 
 <a id="mac-deployment"></a>
@@ -248,6 +257,14 @@ Mac 桥侧的 `coordinator-port.json` 与桥配置同目录。协调员侧的 `b
 **Mac 部署回执（2026-11-03，北京时间）**。从远端与本地一致的 [main 合并提交](https://github.com/CF-FE/herdr-4-codexcloud/commit/a0d2e60aa8b550b5893fd2a630db5552d4675a90)安装协调核心、传输接口与等待观察器。四个安装文件的摘要与收据一致，两份 Python 源码逐字节匹配 Git 对象。当前用户的登录 plist 与该版本生成的 plist 一致。17:37、17:38 两次读取 launchd，运行次数从 1 增至 2，最近退出码均为 0，间隔为 60 秒。生产 SQLite 权限为 0600，完整性快检通过，项目、任职、请求、联系、结果和等待项均为 0。
 
 同一已安装程序在隔离台账处理了一个到期检查点，新 Python 进程再次读取同一台账得到 0 个重复提醒。生产验收覆盖当前登录会话的自然定时触发。重新登录、整机重启和长期运行待验。源码回归 92 项通过。
+
+**18:02 接线部署回执。** Mac 已安装[协调端 `418b5a2`](https://github.com/CF-FE/herdr-4-codexcloud/commit/418b5a25265dab0b2a612ccf92982476a2e930ef)和[原桥端 `b6dc6b6`](https://github.com/CF-FE/task-mailbox-mcp/commit/b6dc6b6dafff08f4ba25ddd999df4e679bb4a802)。原等待观察器在原台账上切版并由 launchd 实际运行成功。原 collector 重启后 18:02:23 健康为 OK。桥的 13 个安装文件全部匹配固定 Git 对象和收据，原任务、收发队列、游标、hook 定义和启动配置均核对保全。
+
+| 验收层 | 结果 |
+| --- | --- |
+| 两仓固定版本隔离联调 | PASS。实际 socket、协调 CLI、原 collector 及信箱 Store 完成双向交付。两个并发进程只受理一次。预置结果 v1 后，合成负责人答复进入信箱 v2，丢失上传回执后仍按同一事件恢复。精确读回后重复 ACK 只入账一条。来源、服务签名或摘要不符均拒绝。协调仓 97 项、服务仓 147 项和桥 SDK 9 项离线检查通过 |
+| 正式 Mac 安装 | 程序与原有服务已升级。18:02 核验时，生产原件捕获数与项目、请求、联系及结果数均为 0。正式双方签名探针待本机密钥获准启用，定向 pump 待试点绑定 |
+| 云端Dot → 凡人现任 → 云端Dot | `NOT_RUN`。云端主体及原联系检查的凭据、凡人现任的接手和答复端仍未取得。本轮业务请求发送数为 0 |
 
 在本仓选择已审阅的完整提交作为 `REV`。用原有 Python 3.10+ 运行。安装需要当前用户可写的目录。每个发布目录保留固定源码与解释器路径，共用的 `state` 保留台账。首次安装默认没有生产项目绑定。
 
