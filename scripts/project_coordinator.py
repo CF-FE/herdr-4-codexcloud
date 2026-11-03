@@ -316,7 +316,19 @@ class Coordinator:
                 "wait_revision": schedule["revision"], "waiting_active": schedule["phase"] != "CLOSED",
                 "observed_at": self._now().isoformat()}
 
-    def submit(self, principal, request):
+    @staticmethod
+    def _require_bridge_origin(db, project_id, request_id, origin):
+        row = db.execute("SELECT body FROM events WHERE project_id=? AND request_id=? AND kind='REQUEST_ACCEPTED'"
+                         " ORDER BY seq LIMIT 1", (project_id, request_id)).fetchone()
+        recorded = json.loads(row["body"]).get("bridge_origin") if row else None
+        require(recorded is not None, "ORIGIN_BINDING_UNATTESTED")
+        require(recorded == origin, "ORIGIN_BINDING_CONFLICT")
+
+    def verify_bridge_origin(self, project_id, request_id, origin):
+        with self._db(False) as db:
+            self._require_bridge_origin(db, project_id, request_id, origin)
+
+    def submit(self, principal, request, *, bridge_origin=None):
         fields(request, "project_id request_id job_id task_ref idempotency_key kind expected_generation deadline "
                         "question authorization_ref payload_hash evidence_refs budget")
         p, r = identifier(request["project_id"]), identifier(request["request_id"])
@@ -329,6 +341,12 @@ class Coordinator:
                 text(request[key])
             text(request["question"], 32768)
             strings(request["evidence_refs"])
+            if bridge_origin is not None:
+                fields(bridge_origin, "channel subject origin_ref task_evidence_ref")
+                for value in bridge_origin.values():
+                    text(value)
+                require(request["evidence_refs"][-2:] == [bridge_origin["origin_ref"], bridge_origin["task_evidence_ref"]],
+                        "ORIGIN_BINDING_CONFLICT")
             expected = _generation(request["expected_generation"])
             require(isinstance(request["payload_hash"], str) and
                     re.fullmatch("[a-f0-9]{64}", request["payload_hash"]), "INVALID_HASH")
@@ -340,6 +358,8 @@ class Coordinator:
                                "principal=? AND kind=? AND idem=?", (p, principal, request["kind"], idem)).fetchone()
             if prior:
                 require(prior["input_hash"] == digest, "IDEMPOTENCY_CONFLICT")
+                if bridge_origin is not None:
+                    self._require_bridge_origin(db, p, prior["request_id"], bridge_origin)
                 return self._status(db, p, prior["request_id"])
             require(expected == project["generation"], "STALE_GENERATION")
             require(timestamp(request["deadline"]) > self._now(), "DEADLINE_EXPIRED")
@@ -356,7 +376,10 @@ class Coordinator:
             except sqlite3.IntegrityError as error:
                 raise CoordinatorError("REQUEST_ID_CONFLICT") from error
             self._schedule(db, p, r, wait)
-            self._event(db, p, r, "REQUEST_ACCEPTED", principal, {"input_hash": digest}, notify=True)
+            evidence = {"input_hash": digest}
+            if bridge_origin is not None:
+                evidence["bridge_origin"] = bridge_origin
+            self._event(db, p, r, "REQUEST_ACCEPTED", principal, evidence, notify=True)
             return self._status(db, p, r)
 
     def status(self, principal, project_id, request_id):
@@ -537,6 +560,24 @@ class Coordinator:
     def delivery(self, project_id, request_id, version=1):
         with self._db(False) as db:
             return self._delivery(db, project_id, request_id, version)
+
+    def pilot_outbox_version(self, project_id, request_id, *, version=None, receipt=None):
+        """Next contiguous version, advanced only by the local pump's verified outbox receipt."""
+        with self._db(version is not None) as db:
+            row = db.execute("SELECT body FROM events WHERE project_id=? AND request_id=? AND kind='PILOT_RESULT_ENQUEUED'"
+                             " ORDER BY seq DESC LIMIT 1", (project_id, request_id)).fetchone()
+            next_version = json.loads(row["body"])["version"] + 1 if row else 1
+            if version is None:
+                return next_version
+            original = self._delivery(db, project_id, request_id, version)
+            require(receipt["state"] in ("PENDING", "SENT") and original["job_id"] == receipt["job_id"]
+                    and original["event_id"] == receipt["event_id"], "OUTBOX_RECEIPT_MISMATCH")
+            require(version <= next_version, "OUTBOX_VERSION_GAP")
+            if version == next_version:
+                self._event(db, project_id, request_id, "PILOT_RESULT_ENQUEUED", "local:original-bridge",
+                            {"version": version, "event_id": receipt["event_id"], "wire_hash": receipt["result_hash"]})
+                return version + 1
+            return next_version
 
     def result(self, principal, project_id, request_id, version=1):
         with self._db(False) as db:

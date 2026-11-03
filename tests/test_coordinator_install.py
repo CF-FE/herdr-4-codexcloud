@@ -35,6 +35,14 @@ class CoordinatorInstallation(unittest.TestCase):
             plist = plistlib.loads((release / 'observer.plist').read_bytes())
             outcome = json.loads(subprocess.check_output(plist['ProgramArguments'], cwd=tmp, timeout=10))
             self.assertIsInstance(outcome, dict)
+            pump = plistlib.loads((release / 'bridge-pump.plist').read_bytes())
+            self.assertNotEqual(plist['Label'], pump['Label'])
+            config = dest / 'bridge-port.json'
+            config.write_text(json.dumps({'v': 1, 'socket_path': str(dest / 'absent.sock'), 'key_id': 'probe-only',
+                'key_hex': '00' * 32, 'recipient': 'fixture', 'grants': [], 'pilot': None}))
+            config.chmod(0o600)
+            observed = json.loads(subprocess.check_output(pump['ProgramArguments'], cwd=tmp, timeout=10))
+            self.assertEqual(observed, {'state': 'NO_PILOT'})
             state = dest / 'state' / 'project-coordinator.sqlite3'
             self.assertTrue(state.is_file())
             sentinel = dest / 'state' / 'operator-recovery-reference'

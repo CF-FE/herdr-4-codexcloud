@@ -15,7 +15,9 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
-FILES = ('scripts/project_coordinator.py', 'scripts/coordinator_transport.py')
+CORE_FILES = ('scripts/project_coordinator.py', 'scripts/coordinator_transport.py')
+BRIDGE = 'scripts/coordinator_bridge.py'
+FILES = (*CORE_FILES, BRIDGE)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
 
@@ -36,7 +38,9 @@ def install(revision, destination, *, repository=ROOT):
     if git('rev-parse', '--verify', revision + '^{commit}').decode().strip() != revision:
         raise ValueError('Not a commit')
     payload = {}
-    for name in FILES:
+    # Older fixed commits can still be verified/reinstalled using their original manifest.
+    has_bridge = bool(git('ls-tree', revision, '--', BRIDGE).strip())
+    for name in (FILES if has_bridge else CORE_FILES):
         entry = git('ls-tree', revision, '--', name).decode().strip().split()
         if len(entry) != 4 or entry[0] not in ('100644', '100755') or entry[1] != 'blob' or entry[3] != name:
             raise ValueError('The selected commit lacks an ordinary coordinator source file')
@@ -53,6 +57,11 @@ def install(revision, destination, *, repository=ROOT):
                                    '--state-dir', str(destination / 'state'), 'tick',
                                    '--input', str(release / 'tick-input.json')]}
     payload['observer.plist'] = plistlib.dumps(config)
+    if has_bridge:
+        pump = {'Label': 'io.projectcoordinator.bridge-pump', 'StartInterval': 60, 'RunAtLoad': True,
+                'ProgramArguments': [interpreter, '-I', '-B', str(release.resolve() / BRIDGE),
+                                     '--config', str(destination.resolve() / 'bridge-port.json'), 'pump']}
+        payload['bridge-pump.plist'] = plistlib.dumps(pump)
     receipt = {'source_commit': revision, 'scope': 'LOCAL_WAIT_OBSERVER', 'python': interpreter,
                'files': {key: hashlib.sha256(data).hexdigest() for key, data in payload.items()}}
     payload['receipt.json'] = (json.dumps(receipt, sort_keys=True, indent=2) + '\n').encode()

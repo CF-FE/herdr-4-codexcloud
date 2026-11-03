@@ -171,7 +171,7 @@ class CoordinatorTransport:
     """
 
     def __init__(self, coordinator, *, grants, recipient, bridge: OriginalBridge,
-                 callers: CallerChannel, owners: OwnerChannel | None = None):
+                 callers: CallerChannel | None, owners: OwnerChannel | None = None):
         self.core, self.bridge, self.callers, self.owners = coordinator, bridge, callers, owners
         require(isinstance(recipient, str) and bool(recipient.strip()), 'INVALID_RECIPIENT')
         self.recipient = recipient
@@ -232,7 +232,12 @@ class CoordinatorTransport:
             require('issue_url' not in tracking and isinstance(draft, str) and re.fullmatch(r'DI_[A-Za-z0-9_-]{1,125}', draft)
                     and payload.get('origin_task_id') == task.task_ref == draft, 'TASK_BINDING_MISMATCH')
 
-    def _verify_route(self, delivery, payload, project_id):
+    @staticmethod
+    def _origin(delivery):
+        return {'channel': delivery.origin.channel, 'subject': delivery.origin.subject, 'origin_ref': delivery.origin_ref,
+                'task_evidence_ref': delivery.task.evidence_ref}
+
+    def _verify_route(self, delivery, payload, project_id, *, admitted_request=None):
         grant = self.grants.get((delivery.origin, project_id))
         require(grant is not None, 'ACCESS_DENIED')
         route = self.core.route(project_id)
@@ -243,14 +248,18 @@ class CoordinatorTransport:
                 'WRONG_RECIPIENT')
         require(type(payload.get('schema_version')) is int and payload['schema_version'] == 1, 'INVALID_JOB_SCHEMA')
         self._verify_task(delivery, payload, route)
+        if admitted_request is not None:
+            self.core.verify_bridge_origin(project_id, admitted_request, self._origin(delivery))
 
-    def deliver(self, job_id):
+    def deliver(self, job_id, *, expected_project_id=None, expected_payload_hash=None, expected_request_id=None):
         """The original bridge can acknowledge delivery after core.submit commits."""
         delivery, payload = self._original(job_id)
         target = payload.get('target')
         require(isinstance(target, dict) and set(target) == {'service', 'project_id'}
                 and target['service'] == 'project-coordinator', 'WRONG_RECIPIENT')
         project_id = target['project_id']
+        require(expected_project_id is None or expected_project_id == project_id, 'PILOT_BINDING_MISMATCH')
+        require(expected_payload_hash is None or expected_payload_hash == delivery.payload_hash, 'PILOT_BINDING_MISMATCH')
         grant = self._grant(delivery.origin, project_id, 'submit')
         self._verify_route(delivery, payload, project_id)
         require(delivery.record.get('cancel_requested') is False, 'JOB_CANCELLED_OR_UNVERIFIED')
@@ -260,18 +269,19 @@ class CoordinatorTransport:
                 and body['kind'] == 'QUERY_BLOCKER' and isinstance(body['evidence_refs'], list)
                 and len(body['evidence_refs']) <= 62,
                 'INVALID_COORDINATOR_REQUEST')
+        require(expected_request_id is None or body['request_id'] == expected_request_id, 'PILOT_BINDING_MISMATCH')
         request = {k: v for k, v in body.items() if k != 'schema_version'}
         request.update(project_id=project_id, job_id=job_id, payload_hash=delivery.payload_hash,
                        task_ref=payload.get('origin_task_id'), question=payload.get('content'),
                        evidence_refs=[*body['evidence_refs'], delivery.origin_ref, delivery.task.evidence_ref])
-        return self.core.submit(grant.principal, request)
+        return self.core.submit(grant.principal, request, bridge_origin=self._origin(delivery))
 
     def _request_state(self, grant, project_id, request_id):
         state = self.core.status(grant.principal, project_id, request_id)
         delivery, payload = self._original(state['job_id'])
         require(delivery.origin == grant.peer, 'ACCESS_DENIED')
         require(delivery.payload_hash == state['payload_hash'], 'ORIGINAL_JOB_MISMATCH')
-        self._verify_route(delivery, payload, project_id)
+        self._verify_route(delivery, payload, project_id, admitted_request=request_id)
         return state
 
     def status(self, session, project_id, request_id):
@@ -295,7 +305,7 @@ class CoordinatorTransport:
                 and isinstance(association, dict) and association.get('request_id') == outcome['request_id'],
                 'ORIGINAL_JOB_MISMATCH')
         require(canonical_hash(outcome['result']) == outcome['result_hash'], 'CORE_RESULT_MISMATCH')
-        self._verify_route(delivery, payload, outcome['project_id'])
+        self._verify_route(delivery, payload, outcome['project_id'], admitted_request=outcome['request_id'])
         # Pre-attach exactly the tracking the bridge would add. This lets both
         # sides verify the final wire bytes without equating local/server versions.
         return {'schema_version': 1, 'type': 'PROJECT_COORDINATOR_RESULT',
