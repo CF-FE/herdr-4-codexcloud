@@ -1,173 +1,94 @@
-# 跨 Agent 通信与协作指引
+# 跨 Agent 通信选型与研究边界
 
-研究日期：2026-10-30；当前选择与运行修订：2026-11-03。公子已选 **Herdr TUI（`herdr` CLI／server）** 并授权网络／环境 Goal，替换早期 core 优先建议。主会话已完成私网、SSH、原生 profile／目标 session、小文件和新 pane 输出的限定验证；不据此宣称业务 Agent、Dot 权限、主机重启或长期稳定性通过。实际进度统一见[本仓状态](status.md)。
+<a id="跨-agent-通信与协作指引"></a>
 
-本指引与[仓库架构](architecture.md)共同说明采用边界；[现有试点指引](pilot.md)维护当前 TUI 路线的准备与检查。下文保留有日期的 core、插件与协议研究，不要求为执行 TUI 方案再部署 hc／Herdr App 或完成双栈比较。原任务上下文继续使用[交接模板](templates/pilot-task.md)和组织协议；新增信箱只记录投递／结果，不竞争正式项目状态。本文不扩大安装、入网、派发或权限授权；具体任务复用其有效授权，不重复确认已经获准的步骤。
-
-2026-11-01 编制的[多项目协作迭代指引](collaboration-iteration-guide.md)维护后续搭建次序、资源整合、优化取舍和多项目验收。Codex Cloud 与机器两类后端共用任务间无隐式业务状态的执行契约，运行实例、宿主资产及控制层仍按真实状态管理。本文聚焦机器侧通信选型并保留研究快照；Codex Cloud 不要求经过 Herdr／hc，不能把下文机器通信图当整套执行架构。资源配置可升级，具体采用仍需按实际接口与授权验证。
-
-当前分工为 mac-work 的 Herdr 托管 Codex／Kimi CLI 项目 Lead，**Mac 原生 saved-machine／`--machine` 经 LAN SSH 直连 Win `collab`**，保存连接、reachable 和定向空 Agent 清单已获限定回执。VPS 以 FastMCP 自建 MCP 服务为主要定位，按需 ngrok HTTPS，旧 TUI CLI／SSH 的 Win session 绑定和在途引用保留，执行机保管工作进程及本地资产；VPS 不常驻项目规划 Codex 或无用途的本地 TUI server。EasyTier 仅 VPS／Win 入网，Mac 经 Win 限定主机代理和专用路由访问 VPS 内网，原默认出口／DNS 不变；这条 VPS 网络路径不替代 Mac → Win 的 LAN 主链。完整图和[各端组件](architecture.md#各端组件清单)以架构为准；下方历史图不代替当前部署。Cloud 不因此必须安装 Herdr 或接 VPN。
-
-公子确认 Mac 持续在线，当前接受项目协调与 Win 代理模型对 Mac CLI Proxy 的依赖，不建设 Mac 离线接管或备用推理入口，不要求离线验收。Dot 投递超时、受理不明和结果回读仍沿原请求对账，不自动重派。
-
-公子已针对 Dot → Mac 原任务入口不稳定的问题采用 **VPS Task Mailbox MCP**，唯一维护仓为 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人整合仓只留历史来源。信箱经同一 OAuth HTTPS 端点持久收发 `job_id`／内容摘要／事件／结果版本；Mac 协调桥已常驻主动收件、会话感知及显式结果补传，原任务已有分层交付／读取回执。它不执行 Herdr 或模型，也不证明 Dot 自动唤醒；各 CLI 和 Cloud 的认证及工具权限分别核验。当前 Herdr 采用摘要见[本仓状态](status.md#vps-任务信箱与客户端接入进行中)，服务逐项运行证据沿[权威验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。
-
-Space 资料协作与机器控制分开接线：Dot 以及任务实际提供获准 Pages／Space 工具的 Codex Cloud Worker 可直接读写相应获准资料，不把 Dot 设为云任务资料的必经中转。Space 工具不等于 VM 文件挂载，也不继承 hc 通知语义；实际工具、资源权限、唯一写者及报告承接按上述迭代指引核验。
+整理日期：2026-11-03。本文保留通信路线的选择理由、TUI／core差异及固定研究来源；当前组件与连接见[架构](architecture.md)，执行判据见[试点指引](pilot.md)，运行状态只在[状态入口](status.md)维护。
 
 ## 1. 当前建议与理由
 
-当前已按选定 TUI 完成无业务影响的控制闭环；独立[Herdr 执行适配器](herdr-executor.md)另取得桌面 Lead 显式调用 Mac 既有 Codex 的首版工程限定通过，一次 prompt、实际产物、Lead 交还、原自然 Stop／collector 补传及原 review 读取／ACK 分别留证。信箱／桥本身仍不执行，自动消费／无人值守派发未实现；反向新任务、Win／Cloud、生产业务与长期稳定性未验，其他插件不连带安装。指定 Dot 原数据读取不冒称本次调用；相同 job ID／内容的传输去重也不提供跨信箱和 Herdr 的原子执行保证，UNKNOWN 仍查原任务／pane 与实际效果，不自动重发模型请求。
+**当前采用Herdr TUI＋Task Mailbox传输＋Lead显式执行适配器。** TUI负责准确目标上的终端／Agent控制；信箱与Mac桥负责持久交接、会话信号和补传；Lead决定是否执行，[适配器](herdr-executor.md)保存意图、一次prompt和产物关联。这样分别解决机器控制、数据对账和执行可追溯问题，不把传输ACK当业务完成。
 
-Mac／VPS／Win 已有 TUI 0.9.5 的版本证据，Win 的 LAN 免登、sshd 和 EasyTier GUI 2.6.4 已直接回读；Mac 合成试点不作为生产业务验收。Win 的 OMP／Hermes／Kimi 已收到原生 CLI 文本回合的[执行侧交接](local-agent-inventory.md#7-win-work-harness执行侧交接)，本会话未独立重测，Herdr 内启动、工具、项目目录和派发回收另验；Windows Codex 暂不考虑。旧 Lody 任务仍沿原入口收尾，一个执行及待写资产只保留一个控制入口、一个当前写者。
-
-以下为 **2026-10-30 的 core 采用评估历史**，不是当前 TUI 方案的执行门槛：
-
-| 项目 | 判断 |
-| --- | --- |
-| 增量价值 | MEDIUM，信心中等：第一方父子协作与远端控制有望减少适配器和回报脚本；实际提效未测 |
-| 总成本 | MEDIUM，信心中等：需要核版本、Agent 启动方式、OSC 状态、Dot 外部查询及故障对账；长期维护成本尚无运行数据 |
-| 净收益 | UNCERTAIN |
-| 建议 | PILOT，先验证 core 的适配条件，不能据此直接切换主入口 |
+2026-11-03的已有Mac Agent／显式Lead切片已工程限定通过；它不证明自动消费、Win／Cloud扩展、生产业务或长期可用性。不再把2026-10-30的“core优先PILOT”建议当当前待执行门槛，不要求同时部署hc／Herdr App。具体证据与固定实现沿[适配器验收](herdr-executor.md#验收记录)。
 
 ## 2. 先区分两套 Herdr
 
-| 项目 | Herdr TUI | Herdr App / herdr-core |
+下表为**2026-10-30官方文档与固定源码研究**，本轮未重新核验上游版本；目标端行为仍按实际版本与原生回执判断。
+
+| 项目 | Herdr TUI | Herdr App／herdr-core |
 | --- | --- | --- |
-| 入口 | `herdr` CLI、TUI 及其 server | `hc` 核心 CLI；App 是可选客户端 |
-| Agent 状态 | 支持屏幕识别及集成报告，按实际版本核对 | 只保存程序通过 OSC 7501 报告的状态，不按品牌或屏幕猜测 |
-| 协作方式 | `agent prompt/read/wait`，可选插件适配 | `run/send/wait`、父子终端、自动系统通知和远端地址 |
-| 运行关系 | 自己的 Agent、server 和状态 | 独立程序；与 TUI 不共享 Agent |
+| 入口 | `herdr` CLI、TUI、server | `hc`核心CLI，App为可选客户端 |
+| Agent状态 | 屏幕识别及集成报告，按版本核 | 程序通过OSC 7501报告，不按品牌或屏幕猜测 |
+| 通信 | `agent prompt/read/wait`，可选插件 | `run/send/wait`、父子终端及系统通知 |
+| 运行关系 | 独立Agent、server和状态 | 与TUI不共享Agent，不能机械替换命令 |
 
-独立 PTY 不自动提供共享上下文，但运行时可以提供通信。不能将“默认互不感知”推广成“任何运行时都原生无法通信”；也不能把 TUI 插件的能力和限制套到新 core。[官方产品区别](https://herdr.dev/#questions)、[core 概览](https://herdr.dev/core/)、[TUI 自动化](https://herdr.dev/tui/docs/agent-automation/)
+TUI研究源固定为 [`ee5bfb5`](https://github.com/herdrdev/herdr/tree/ee5bfb5041bb3e4a49d591c72308aae3c81ecdde)，当时核到发布[v0.9.5](https://github.com/herdrdev/herdr/releases/tag/v0.9.5)。core研究源固定为 [`dbcdcff`](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/Cargo.toml)，crate为0.1.14；当时官方latest发行入口403，未取得最新可安装版，不能用源码版本替代发行证据。后续版本观察留在[历史状态](history/status-through-2026-11-03.md)，本页不维护“最新版本”结论。
 
-研究基线与目标端实际版本分别记录：
-
-- **TUI：**核查时 GitHub 最新发布为 `v0.9.5`；研究的官方文档源码提交为 `ee5bfb5041bb3e4a49d591c72308aae3c81ecdde`。这不证明目标端安装了该版本或包含相同能力。[发布](https://github.com/herdrdev/herdr/releases/tag/v0.9.5)
-- **core：**研究固定提交为 `dbcdcffc779f7516d5815cbd6f0a37da2b5e6628`，源码 crate 版本为 `0.1.14`。官方发行使用 `releases.herdr.dev/core/latest.json`；本轮该入口返回 403，最新可安装发行版保留 **UNKNOWN**。源码版本不能冒充发行证据。[源码版本](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/Cargo.toml)
+独立PTY不自动共享上下文，但运行时可以提供通信；不能把某插件限制推广成所有Agent都不能通信。参考：[产品区别](https://herdr.dev/#questions)、[core概览](https://herdr.dev/core/)、[TUI自动化](https://herdr.dev/tui/docs/agent-automation/)。
 
 ## 3. 通信路线比较
 
-| 路线 | 已核范围 | 对本仓的采用边界 |
+以下比较同样限定于2026-10-30研究快照，说明当时为什么没有整包采用；不是对今日版本的断言。
+
+| 路线 | 研究得到的范围 | 本仓取舍 |
 | --- | --- | --- |
-| herdr-core 原生协作 | 第一方启动、发送、父子通知及 SSH 远端控制 | 历史候选，本轮不部署；不能当业务可靠消息队列 |
-| TUI CLI | 通过准确机器与原生引用跨 workspace 控制 Agent | 当前已选；`prompt/wait` 不代替本次任务与产物回执 |
-| Herdr Link 0.6.0 | 同一 workspace 内的工具适配与消息包装，底层调用 TUI `agent prompt` | 不提供跨机器、离线 inbox 或业务 ACK；需要逐 runtime 接线 |
-| Chatter 0.19.0 | 本机、同 Git 仓库的共享聊天、上下文及任务辅助功能 | 当前支持 Linux/macOS，不覆盖 win-work 的原生 Windows 路线；自身任务功能不能成为第二权威 |
-| AWP | 跨机器持久发件、收件去重及 daemon 接收 ACK | 额外引入 daemon、身份、存储与连接维护；有实际离线投递需求时再评估 |
-| A2A | 远程 Agent 服务的发现、消息、任务与产物协议 | CLI 仍需适配成服务，当前不引入这层基础设施 |
+| TUI原生CLI | 按准确机器与原生引用控制Agent | 已选控制入口；结果关联由任务与适配器补足 |
+| herdr-core | 父子通知、发送及SSH远端控制 | 独立运行时与适配成本；旧评估为价值MEDIUM／成本MEDIUM／净收益UNCERTAIN，后由TUI选择替代 |
+| Herdr Link 0.6.0 | 同一workspace内live named peers的工具适配 | 不覆盖跨机、持久inbox或业务ACK；不因工具封装连带安装 |
+| Chatter 0.19.0 | 本机同Git仓库的共享聊天与任务辅助 | 研究版Linux/macOS，不覆盖原生Win；内部任务不能竞争正式记录 |
+| AWP v0.6.0 | 持久发件、收件去重和daemon ACK | 增加身份、daemon、存储与连接维护；本仓已选独立Task Mailbox，不再并行建设第二通道 |
+| A2A 1.0 | Agent服务的发现、任务和产物协议 | 现有CLI还需服务适配，当前没有采用这一层的需求证据 |
+| MCP Agent Mail Rust v0.3.39 | 另一种持久邮箱 | 新增有状态服务且研究版有附加许可条款，本轮不复制或安装 |
 
 ### Herdr Link：工具化没有消除范围和投递限制
 
-研究基线为发布包 `0.6.0` 的 Git 提交 `b795e8f3d6719c20fa7c8164d294be21914c308d`，要求 Node ≥22.6.0。协议限定同一 workspace 的 live named peers，不承担跨 workspace、跨机器、持久队列、ACK、离线投递或自动重试。`sent` 只表示 Herdr 接受投递，`done` 是普通文本。[发布配置](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/package.json)、[协议](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/PROTOCOL.md)
+固定发布源 [`b795e8f`](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/package.json)要求Node≥22.6.0。[协议](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/PROTOCOL.md)不承诺跨workspace／机器、持久队列、离线投递、ACK或自动重试；`sent`只说明Herdr接受，`done`仍是普通文本。
 
-TUI 的 `herdr worktree create` 会把 worktree 打开为独立 workspace；Link 拒绝跨 workspace 通信，因此不能直接组合成“每 Worker 一个官方 worktree，彼此通过 Link 通信”。同 workspace、不同 tab/cwd 指向既有 worktree，从代码看不会被这个 guard 排除，但本项目尚未实测。[TUI worktree 语义](https://herdr.dev/tui/docs/cli-reference/#worktrees)、[固定实现](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/src/herdr.ts#L975-L1049)
-
-工具接口可能减少重复学习 CLI 的成本；本轮未找到可复核的 Token/延迟对照基准，不将“零学习”或“几乎零延迟”列为已证实收益。
+TUI的worktree创建会打开独立workspace；因此不能直接组合成“每Worker一个官方worktree并通过Link互通”。同workspace下不同tab／cwd引用既有worktree，从[固定guard实现](https://github.com/LZHcode1986/herdr-link/blob/b795e8f3d6719c20fa7c8164d294be21914c308d/src/herdr.ts#L975-L1049)看可能不被拒绝，但本仓未实测。[TUI worktree语义](https://herdr.dev/tui/docs/cli-reference/#worktrees)与插件限制须分别核。工具封装可能减少CLI学习成本；研究没有可复核token／延迟对照，不记录“零学习／几乎零延迟”为收益。
 
 ### Chatter：共享聊天不等于可靠任务回执
 
-研究基线为 `0edc18f4a130a6e013b24f9090b07372c8c41feb`、版本 `0.19.0`，要求 Herdr ≥0.8、Node ≥22.5，仅列 Linux/macOS。SQLite 按本机 Git common-dir 定位，同仓 worktree 可共享；不同机器的 clone 不会自动共享聊天。[平台条件](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/herdr-plugin.toml)、[存储定位](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/src/db.ts#L15-L31)
+固定源 [`0edc18f`](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/herdr-plugin.toml)要求Herdr≥0.8、Node≥22.5，列出Linux/macOS。[SQLite定位](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/src/db.ts#L15-L31)基于本机Git common-dir，同仓worktree可共享，不同机器clone不会自动共享。
 
-底层投递仍运行 `herdr agent prompt`。源码先记录投递标记，CLI 成功后便记录 `read_at`；它们不等于接收 Agent 已理解或接受任务。由调用顺序可推断存在标记与注入之间的崩溃窗口，本轮未做故障实测，不赋予 exactly-once 语义。[投递实现](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/src/team.ts#L296-L355)
+[投递源码](https://github.com/marcvermeeren/chatter/blob/0edc18f4a130a6e013b24f9090b07372c8c41feb/src/team.ts#L296-L355)先记投递标记，再调用TUI prompt，CLI成功后记`read_at`。这不证明接收Agent已理解任务；标记与注入之间的崩溃窗口是源码推断，未经本仓故障实测，不能赋予恰好一次语义。
 
 ### 持久邮箱与远程协议：由实际需求触发
 
-AWP 文档描述了先落盘发件、收件 commit 后 ACK、重连重放和去重；ACK 只证明接收 daemon 持久保存，不证明 Agent 已读、任务完成或负责人验收。研究时核心发布为 `v0.6.0`，当前源码 `cc6d6ac3dc165ceb15a9cfe3173afa726e6b55c8` 的 CHANGELOG 仍将 Herdr 插件列在 Unreleased。核心与插件当前均面向 Linux/macOS，不作为 win-work 的直接接入方案。[投递语义](https://docs.agentwireprotocol.com/concepts/delivery)、[固定 CHANGELOG](https://github.com/agentwireprotocol/awp/blob/cc6d6ac3dc165ceb15a9cfe3173afa726e6b55c8/CHANGELOG.md)
+AWP的[投递语义](https://docs.agentwireprotocol.com/concepts/delivery)描述先落盘、收件commit后ACK及重连去重；ACK只到接收daemon，不到业务验收。固定[CHANGELOG](https://github.com/agentwireprotocol/awp/blob/cc6d6ac3dc165ceb15a9cfe3173afa726e6b55c8/CHANGELOG.md)仍把Herdr插件列为Unreleased，研究版核心／插件面向Linux/macOS。其[tailcat路线](https://docs.agentwireprotocol.com/guides/across-machines)不能继承既有Tailscale tailnet策略，更不能作为本仓现行EasyTier的隐式替换。
 
-AWP 默认 tailcat 路线不属于已有 Tailscale tailnet，不能自动继承其访问策略。将来若采用，单独确定传输、身份、存储、消费者唤醒和保留期限；不默默换网络，也不连带启用远程命令或文件写入。[跨机器指引](https://docs.agentwireprotocol.com/guides/across-machines)、[tailcat 说明](https://github.com/tailscale/tailcat#tailcat)
-
-A2A 1.0 定义跨服务任务交互，但不能默认获得消息幂等或可靠持久投递。MCP Agent Mail Rust 提供另一种持久邮箱方向，不过新增有状态服务，且研究版许可证带附加条款；本轮不复制或安装。[A2A 规范](https://a2a-protocol.org/v1.0.0/specification/)、[Agent Mail Rust v0.3.39](https://github.com/Dicklesworthstone/mcp_agent_mail_rust/blob/v0.3.39/README.md)、[许可证](https://github.com/Dicklesworthstone/mcp_agent_mail_rust/blob/v0.3.39/LICENSE)
+[A2A 1.0规范](https://a2a-protocol.org/v1.0.0/specification/)不自动赋予CLI可靠持久投递或业务幂等；[Agent Mail Rust说明](https://github.com/Dicklesworthstone/mcp_agent_mail_rust/blob/v0.3.39/README.md)与[许可证](https://github.com/Dicklesworthstone/mcp_agent_mail_rust/blob/v0.3.39/LICENSE)须连同部署成本评估。后续只有现有通道确实缺少已确认能力时，再定向复查受影响选项，不整包引入新平台。
 
 ## 4. 候选协作结构
 
-下图保留 **2026-10-30 的 core／Tailscale 候选快照**；当前 TUI、Mac Lead 与双节点 EasyTier 图见[整体架构](architecture.md#整套候选分工)，不沿本图新增安装或连接。
-
-```mermaid
-flowchart TD
-    D["Dot：外部协调与结果查询"] <-->|"Tailscale + SSH"| H["执行机 herdr-core：候选运行时"]
-    H --> L["多 Agent 任务的协调者"]
-    L <--> W1["Worker：独立可写 worktree"]
-    L <--> W2["Reviewer：明确版本的复核"]
-    W1 --> A["固定产物与执行回执"]
-    W2 --> A
-    A --> O["项目负责人验收"]
-    D <--> P["各项目现行正式任务入口"]
-    O --> P
-```
-
-图示是候选关系，不表示连接、任职或正式 Project 已建立。
-
-- **Dot 首轮保持外部协调者。** 通过已授权控制入口查询结果；core 的自动父子回报发生在真实 hc 终端之间，不能假定会自动进入 Dot 聊天。以后如需自动唤醒 Dot，再单独核平台能力，不在首轮增设消息桥接服务。
-- **按任务规模安排协调者。** 单任务可直接交 Worker；只有多 Agent 任务需要对应协调关系。协调者可承担互不冲突的实现工作，不强制全职派单。角色按任务能力与责任安排，不固定为模型品牌。
-- **按写入冲突隔离代码。** 并行写代码使用独立 worktree；只读复核不强制创建分支。Git worktree、TUI workspace、core session 和通信身份不是同一种边界。
-- **正式记录保留原入口。** Projects/Issues 沿各项目已确认的采用范围使用；本仓未绑定项继续记 UNKNOWN。聊天、插件任务和原生进程状态不接管负责人验收。
-- **两个环境仓库继续独立。** 不为通信引入跨仓库运行目录、软链接或自动同步。消息传递和按任务授权的产物交接不要求共享源码目录。
+2026-10-30的core／Tailscale候选图及当时分工保留在[固定历史稿](https://github.com/CF-FE/herdr-4-codexcloud/blob/9c704572930c721ad061bf44f774763e96096e52/docs/agent-communication.md#4-候选协作结构)。它不是当前部署路线；现行总图只在[架构](architecture.md)维护。worktree、workspace、session和通信身份是不同边界，不能从其中一种推导权限隔离或任务关联。
 
 ## 5. core 适配与可靠性边界
 
-以下为 2026-10-30 的 core 固定源码研究，未在目标端实测，也不适用于当前 TUI 的命令、状态或生命周期。当前 TUI 操作按[试点指引](pilot.md)及目标版本帮助核对，不能将 `hc` 命令机械改名为 `herdr`。
+本节只解释为何旧候选需要额外验证，**不适用于当前TUI调用合同**。全部实现判断绑定core `dbcdcff`，没有目标端运行或恢复验收。
 
 ### 启动配置与状态报告
 
-core 只保存程序报告的 OSC 7501 状态。模板不安装 Agent，也不自动配置状态报告；`ready: quiet` 只是等待启动输出安静，不会产生 Agent 状态。未报告状态的长驻交互程序不能直接套用 Agent 的等待语义；这与上文任务间无隐式业务状态是不同含义。[模板条件](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/templates.md#L62-L88)
-
-该源码快照的内嵌手册要求 Codex 使用 `--no-daemon`，包括模板，否则命令可能在 hc 之外执行。这是该路线的待核适配条件，不是可以机械附加到任意 Codex 版本的默认参数。核对实际 CLI 支持、执行位置，以及 win-work 的 `codex over Claude` 供应商、模型、认证和权限映射；不得静默替换。[固定手册](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/SKILL.md)
+core只保存程序报告的OSC 7501状态；模板不安装Agent，`ready: quiet`只是等启动输出安静，不产生状态报告，见[模板](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/templates.md#L62-L88)。该快照的[内嵌手册](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/SKILL.md)要求Codex使用`--no-daemon`；它是旧路线待核适配条件，不能添加到任意Codex版本或替换既有provider配置。
 
 ### 发送、等待与对账
 
-core 会串行处理同一终端的输入，普通发送仍是 paste＋Enter；`blocked` 默认拒绝。不要为方便投递默认使用 `--force` 回答权限或问题对话。普通消息没有因此成为带业务 ACK 的持久 inbox。[输入实现](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/input.rs#L102-L213)
+[输入实现](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/input.rs#L102-L213)仍以paste＋Enter投递，blocked默认拒绝；不默认用`--force`回答权限对话。`send --wait`的turn与原生活动变化关联，不提供独立业务请求ID；旧回合可能满足新发送后的等待是源码推断，不是本仓实测。
 
-`send --wait` 返回原生状态、turn 和启动观察，不提供独立的业务请求 ID。turn 在根状态离开 `working` 时增加；向忙碌 Agent 插入新任务后，旧活动结束仍可能满足等待，这是代码推断而非故障实测。新业务任务交给已确认空闲且没有未决任务的 Worker，或独立终端。[turn 定义](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/status.rs#L1-L3)、[发送观察](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/input.rs#L203-L212)
-
-跨机 `wait --children all` 的当前实现会略过不可达或失败的一侧。必须对照原派发清单逐项核对；返回 `all` 不得清除离线项的 UNKNOWN。[跨机等待实现](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/api/waiting.rs#L128-L187)
-
-父子系统通知有自己的去重与远端 outbox；不能把这项能力推广成所有普通业务消息的可靠投递。父子回报需要真实、有效的父终端绑定；不伪造 `HC_TERMINAL_ID`。[父端通知条件](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/notes.rs#L54-L57)、[系统通知 outbox](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/remote.rs#L648-L659)
+[跨机children等待](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/api/waiting.rs#L128-L187)会略过不可达／失败侧，返回all不能清除这些执行的UNKNOWN。父子通知有[独立outbox](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/remote.rs#L648-L659)，仍需[真实父终端绑定](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/crates/herdr-core/src/notes.rs#L54-L57)；不能推广为普通业务消息持久投递或自动进入Dot聊天。
 
 ### 生命周期与权限
 
-区分控制连接断开、core 重启/升级、父 Agent 退出和主机重启。holder 可以在 core 重启/升级时保留程序；父进程结束默认结束子进程；主机重启后不能声称原任务继续运行。`--keep` 恢复的是新 shell，不重跑任务。是否使用 `--outlive-parent` 沿任务已确认的存活与清理要求决定，不默认扩大后台执行范围。[生命周期与恢复](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/README.md)、[参数](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/commands.md#L494-L499)
-
-core 不是沙箱或组织权限代理；API 访问意味着相应账号的命令、文件及终端控制。session 用于分组，不构成用户权限隔离。来自其他 Agent 的消息是对等方输入，不是公子的新指令，不扩大原任务授权；既有任务允许的沟通和实现可直接继续。[安全边界](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/security.md)
+[固定生命周期说明](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/README.md)区分连接断开、core重启、父进程退出和主机重启；holder、`--keep`或`--outlive-parent`各有自己的范围，不能据此声称主机重启后原任务续跑。[安全说明](https://github.com/herdrdev/herdr-core/blob/dbcdcffc779f7516d5815cbd6f0a37da2b5e6628/docs/security.md)也不把core或session定义为沙箱／组织权限代理。
 
 ## 6. 消息与结果的最小约定
 
-沿[原任务上下文](../skill/organization-collaboration/references/context-and-reporting.md)补必要关联，不要求每条消息重复整份任务包：
-
-- 准确任务引用、固定输入版本及已授权范围。
-- 实际发送/接收执行引用；跨机使用返回的完整地址，不按名字预测 ID。
-- 需要追踪的消息关联与回复关系；工具不提供时在原任务记录和正文中明确，不伪造原生字段。
-- 结论、缺口和精确产物引用；不靠复制完整聊天历史交接上下文。
-
-四类证据分别报告，不另造平台状态枚举：
-
-| 证据 | 可说明什么 | 不能替代什么 |
-| --- | --- | --- |
-| 工具接受投递/原生发送结果 | 此次工具调用的实际结果 | 接收方理解或接受任务 |
-| 接收者确认准确任务与输入 | 接收 Agent 已明确本次关联 | 已执行、已产出 |
-| 固定产物与检查回执 | 明确版本的成果及检查范围 | 负责人正式验收 |
-| 负责人验收并回读正式记录 | 本次约定范围的正式结论 | 其他机器、版本或任务的通过 |
-
-超时、断线、`started=false/null` 或回执不完整时，保留原生信息并先查询原执行和产物，不自动重派、切换 Lody 或新建替代任务。对账和验收仍沿[任务追溯](../skill/organization-collaboration/references/task-traceability.md)与[产物复核](../skill/organization-collaboration/references/execution-and-review.md#产物就地复核)。
+使用[多项目任务关联与可达汇报](collaboration-iteration-guide.md#3-从第一条任务就保留的身份与证据)，不因更换通信工具另造任务状态。工具受理、接收者确认、固定产物和负责人验收是四层证据；插件的sent／read_at／done字段不能替代后两层。
 
 ## 7. 后续最小验证切片
 
-选择一台已获授权的非生产执行机、一个新任务、两个需要协作的实际 Agent；不把全部生产任务或角色库接入试点。
-
-| 顺序 | 验证内容 | 放行依据 |
-| --- | --- | --- |
-| 1. 版本与配置 | TUI 客户端与运行中 server 的实际版本、机器／session 绑定、Agent 参数、供应商／模型／认证／权限及所选集成状态 | 现有版本回读只覆盖二进制；目标端配置与运行条件分别取证 |
-| 2. 双向通信 | 空闲/工作/blocked 情况、准确发送者与接收者、任务/输入关联、回报到底进入谁的上下文 | 双端回读；不能假定外部 Dot 自动收信 |
-| 3. 并行与原请求查询 | 必要的独立 worktree、正常在线的并行与超时后原任务查询；不注入 Mac 离线或接管测试 | 按 TUI 原生执行引用对照派发清单；保留 UNKNOWN，无重复执行 |
-| 4. 交付与比较 | 固定产物、约定检查、负责人验收；人工转述次数、调用次数、耗时及错误关联情况 | 与同口径原流程比较；不强制部署 core，无基线项标 UNKNOWN |
-
-步骤 1 不满足时，只暂停依赖它的试点分支并比较补齐成本，不自动改供应商、网络、权限或切换工具重派。TUI 选型、版本、网络及远端小任务已有证据；模型、Dot 回报与业务闭环仍须分别验证。
-
-只有取得上述证据后，才决定哪些项目的新任务采用该运行时，再更新相应架构、运行指引和正式记录入口。在途任务按原引用处理，采用结论不追溯为旧任务的通过。
+按[试点指引](pilot.md#逐层验证)选择当前任务确实依赖的入口和能力，复用已有显式Mac验收，不要求再建两个Agent或比较core来证明选型。只有通信瓶颈的新证据、实际范围变化或上游不兼容，才复查对应候选；多项目与性能验证按[迭代指引](collaboration-iteration-guide.md#4-分阶段迭代)单独安排。
 
 ## 8. 证据范围与维护
 
-2026-10-30 的研究快照依据官方文档、GitHub 讨论、协议和固定源码，当时没有本项目真机投递、恢复或业务验收证据；两段视频及旧布局页未取得可核正文，不作为结论依据。2026-11-02 Goal 已补充页首所列限定实测，仍未取得模型或业务验收。静态推断、作者主张、固定源码、发行版本和目标端证据分别记录。
+研究采用官方文档、协议和固定源码；两段视频及旧布局页没有可核正文，未用作结论。[跨Agent委派提案#741](https://github.com/herdrdev/herdr/discussions/741)与[排队／发送者归因提案#2401](https://github.com/herdrdev/herdr/discussions/2401)只作需求背景，不当发布承诺；旧`agent.send`名称不是当前接口。
 
-原讨论保留为需求背景，不能当成当前发布功能的承诺：[跨 Agent 委派提案 #741](https://github.com/herdrdev/herdr/discussions/741)、[排队投递与发送者归因提案 #2401](https://github.com/herdrdev/herdr/discussions/2401)。TUI 旧 `agent.send` 名称不作为本仓当前调用合同；按目标端实际帮助和 schema 核对。
-
-后续只更新这一份指引，不另建“补充版/增强版”。能力或版本变化时定向复核影响范围；实际进度与验收结论仍统一写入[本仓状态](status.md)或已确认的正式项目入口。
+后续定向更新同一选型稿，分别标明研究日期、固定来源、推断和目标端证据。当前运行和验收只链接其权威记录，不在本页追加逐轮部署流水。
