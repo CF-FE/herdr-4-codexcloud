@@ -1,6 +1,6 @@
 # Herdr 确定性执行适配器
 
-修订日期：2026-11-03。状态：**已接受设计，实施与限定试点进行中**。正式任务为 [CF-FE/herdr-4-codexcloud#1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本页统一维护该适配器的边界、接口和验收记录；全仓采用状态仍见[本仓状态](status.md)，Worker 定义仍见[双库入口](worker-library/README.md)。
+修订日期：2026-11-03。状态：**固定源码与独立安装已验，一次限定执行通过，结果回传待自然 Stop／读回**。正式任务为 [CF-FE/herdr-4-codexcloud#1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本页统一维护该适配器的边界、接口和验收记录；全仓采用状态仍见[本仓状态](status.md)，Worker 定义仍见[双库入口](worker-library/README.md)。
 
 ## 决策与退出依据
 
@@ -80,7 +80,7 @@ python3 scripts/herdr_executor.py --state-dir ABS --policy ABS [--catalog-root A
 | cancel | 发送前可阻止执行；发送后只记 CANCEL_REQUESTED，不调用停止／kill／interrupt，不声称原生 Agent 已停止 |
 | release | 仅在已收集结果后，由 Lead 提供 `evidence_ref` 显式登记交还；不操作原生进程、不代替负责人业务验收 |
 
-stdout 只输出结构摘要，包含 `schema_version`、`intent_id`、`job_id`、`payload_hash`、`input_hash`、`state`、`rpc_used`、`rpc_limit`、`native`、`artifacts`、`detail`、`next_owner`、`business_accepted=false`；不输出 payload、完整 prompt、终端文本或原始 stderr。`input_hash` 是完整 envelope 的摘要，`next_owner` 始终为 `PROJECT_LEAD`，表示由 Lead 承接下一决定，不表示已释放。release 另记 `hand_back={state:'LEAD_REPORTED_HAND_BACK', evidence_ref:...}`；它表示 Lead 的交还报告，不是自动业务通过。错误只输出安全 `code` 与可用的 native `exit_code`；CLI 退出 0 仍不证明业务通过。
+stdout 只输出结构摘要，包含 `schema_version`、`intent_id`、`job_id`、`payload_hash`、`input_hash`、`state`、`rpc_used`、`rpc_limit`、`cancel_requested`、`cancel_requested_at`、`native`、`artifacts`、`detail`、`next_owner`、`business_accepted=false`；不输出 payload、完整 prompt、终端文本或原始 stderr。`input_hash` 是完整 envelope 的摘要，`next_owner` 始终为 `PROJECT_LEAD`，表示由 Lead 承接下一决定，不表示已释放。release 另记 `hand_back={state:'LEAD_REPORTED_HAND_BACK', evidence_ref:...}`；它表示 Lead 的交还报告，不是自动业务通过。错误只输出安全 `code` 与可用的 native `exit_code`；CLI 退出 0 仍不证明业务通过。
 
 ## Lead 结果回传
 
@@ -97,7 +97,7 @@ session／turn 必须来自该 Lead 自己的真实 Codex hook 观察；Herdr ta
 
 状态集为 `PREPARED / DISPATCHING / SUBMITTED / UNKNOWN / FAILED_NOT_DISPATCHED / EXPIRED / CANCEL_REQUESTED / CANCELLED / COLLECTED / RELEASED`。只读预检失败用 FAILED_NOT_DISPATCHED；启动期限已过且未发送用 EXPIRED。DISPATCHING 在原生调用前提交；发送阶段出错或崩溃后恢复为 UNKNOWN，不能据错误发生时间推断没发送，也不重新 prompt。同 intent 后续查询沿原 journal 和原目标对账。每次使用存量记录先核完整 envelope 的 canonical hash 与原 input_hash、intent ID；损坏拒绝，不按漂移路径读取产物或查询目标。这只检测意外漂移，不防止同 UID 同时重写内容和摘要。
 
-manifest 使用 `schema_version=1`、`intent_id`、`job_id`、`payload_hash`、`status`、`files`、`summary`；status 只接受 `REPORTED_COMPLETED / REPORTED_FAILED`，每个 `files[]` 含 `path`、`bytes`、`sha256`，REPORTED_COMPLETED 的路径清单及顺序与 outputs.paths 精确一致；REPORTED_FAILED 可为计划内按原相对顺序的实际产物子集或空集，仍拒绝额外／重复路径并逐件核字节。报告状态仍是调用方报告；适配器核实际字节，不把名称、最后一条模型文本、shell 回显、native idle 或退出 0 当结果。缺 manifest、错误关联、越界路径、缺件、长度或摘要不一致均不能 collect。
+manifest 使用 `schema_version=1`、`intent_id`、`job_id`、`payload_hash`、`status`、`files`、`summary`；status 只接受 `REPORTED_COMPLETED / REPORTED_FAILED`，每个 `files[]` 含 `path`、`bytes`、`sha256`，REPORTED_COMPLETED 的路径清单及顺序与 outputs.paths 精确一致；REPORTED_FAILED 可为计划内按原相对顺序的实际产物子集或空集，仍拒绝额外／重复路径并逐件核字节。报告状态仍是调用方报告；适配器核实际字节，不把名称、最后一条模型文本、shell 回显、native idle 或退出 0 当结果。缺 manifest、错误关联、越界路径、长度或摘要不一致均不能 collect；成功报告缺计划文件也拒绝，失败报告可保留上述合法子集／空集。
 
 同一 journal 内，未释放请求保留目标及重叠 owned paths 的占用；只有 RELEASED、CANCELLED、EXPIRED 不再占用。COLLECTED 和 UNKNOWN 不自动释放，截止、取消请求或失联也不等于写者已停止；cancel_requested／cancel_requested_at 独立持久保存，collect 不抹去取消请求。跨 journal、其他协调者或直接 Herdr 控制不受此锁保护，Lead 仍须落实唯一派发者与当前写者；不能并行建另一 state 目录绕过占用。
 
@@ -121,7 +121,7 @@ python3 scripts/install_herdr_executor.py --revision FULL_40_HEX_COMMIT --destin
 | SQLite 主数据库 | 默认 32 MiB；policy.max_database_bytes 可配置，整数且至少 128 KiB。满额拒写，不删旧记录；不含 rollback journal、catalog、产物或其他进程文件，无 intent 条数自动清理 |
 | 输入／catalog／prompt | policy、envelope、manifest 单 JSON 和 catalog 单文件各至多 1 MiB，完整 canonical envelope 及拼装 prompt 也至多 1 MiB；catalog 成员至多 256，拒绝符号链接 |
 | 产物 | paths 至多 100 个，每份文件至多 1 MiB，manifest.summary 至多 64 KiB；无额外总产物字节配额 |
-| RPC | 每 intent 的调用次数持久计数，调用前先扣；rpc_calls 为 1–100。预检需要两次只读 RPC，dispatch 还要一次 prompt，预算不足就失败，不自动补预算 |
+| RPC | 每 intent 的调用次数持久计数，调用前先扣；rpc_calls 为 1–100。单独 preflight 用 2 次只读 RPC；随后 dispatch 会重新预检 2 次并发 prompt 1 次，先后合计 5 次，inspect 每次另用 1 次。直接 dispatch 为 3 次；预算不足就失败，不自动补预算 |
 | native 等待 | 一次 native 操作流程共享 monotonic 超时，timeout_seconds 为 1–60；每个调用不超过剩余时间；新投递受执行截止约束，超期后的只读 inspect 仍在持久 RPC／本次 timeout 预算内对账，不无限轮询 |
 | native 输出 | stdout／stderr 捕获后各核至多 1 MiB；这是事后长度检查，不是流式内存硬上限或整机 RSS 保证 |
 | 模型行为 | model_turns=1 约束适配器只提交一次 prompt；不能硬性统计或阻止 Agent 内部工具、子任务或模型行为，仍须依赖既有权限、prompt 合同及 Lead 监督 |
@@ -135,13 +135,30 @@ python3 scripts/install_herdr_executor.py --revision FULL_40_HEX_COMMIT --destin
 | 层次 | 当前状态 | 最小证据与边界 |
 | --- | --- | --- |
 | 决策与实施授权 | 已接受 | 上述 gate 退出依据；不扩大到自动收件、Win／Cloud 或任意业务 |
-| 源码与隔离合同检查 | IN_PROGRESS | 固定提交、确切文件、命令及结果；假的 native transport 只证明离线合同 |
-| 独立安装 | NOT_RUN | app／catalog 摘要、解释器、policy／state 权限与 receipt 回读；Mac 桥不变 |
-| Herdr 原生入口与预检 | NOT_RUN | 真实 driver pane 注入 ENV、准确测试 session／pane／Agent、cwd 与 kind；只读回执单列 |
-| 一次合成模型回合 | NOT_RUN | 唯一 intent、job／payload 摘要、原生一次 prompt、实际产物及 manifest；旧 turn 和等待返回不能替代 |
-| collect 与 handback | NOT_RUN | 实际长度／SHA-256 匹配、COLLECTED 不释放，再由 Lead 显式 release 并回读 |
-| 负责人限定验收 | NOT_RUN | 负责人绑定固定版本、产物及覆盖范围的结论；不外推生产业务或长期稳定性 |
+| 源码与隔离合同检查 | PASS | 固定源码 c89d5c5；主执行与原 review 主线程分别直接61项通过，库／结构检查通过；模拟不代替真实运行 |
+| 独立安装 | PASS | 24文件同时匹配receipt与固定Git对象；实际解释器、权限及安装后调用已核，Mac桥不变 |
+| Herdr 原生入口与预检 | PASS | 真实driver注入ENV1，client/server均0.9.5且协议兼容，准确Agent/pane/cwd/kind匹配，预检2RPC |
+| 一次合成模型回合 | PASS（限定） | 唯一prompt，完整payload／角色／task合同；41字节变换产物与独立计算的期望一致，累计6RPC；未用旧turn/等待代替 |
+| collect 与 handback | PASS（分记） | 实际长度／SHA匹配；COLLECTED仍占用，随后Lead显式RELEASED，原生试点资源按创建ID清理 |
+| Lead自然Stop／结果补传／读取 | PARTIAL | 已bind及stage-report，精确结果保全；仍WAITING_FOR_BOUND_SESSION_STOP，collector近期失败沿原退避，尚未声称上传或ACK |
+| 负责人限定验收 | PARTIAL | 源码/安装已有独立读回；native/产物与自然Stop后的结果读全/ACK仍待原review绑定固定版本验收 |
 
-公子已明确授权一次 desktop 创建并控制的独立 Mac 测试 session、项目测试目录、既有 Codex 模型及认证，**最多一个合成回合**。主线程计划从真实 Herdr 注入的 driver pane 执行适配器，保持默认 ENV1 条件；本文不伪造环境、不触发该试点。试点不改已有业务 pane、模型／认证、Mac 桥、网络或任务入口，不重复不确定发送。清理只限按真实创建 ID 绑定的测试资源，先保全 journal、原生回执、manifest 与产物；活动／UNKNOWN 先对账，不能靠关闭测试资源掩盖未决效果。
+公子已明确授权一次 desktop 创建并控制的独立 Mac 测试 session、项目测试目录、既有 Codex 模型及认证，**最多一个合成回合**。本次已从真实 Herdr 注入的 driver pane 执行适配器，保持默认 ENV1 条件；本文不伪造环境、不触发该试点。试点不改已有业务 pane、模型／认证、Mac 桥、网络或任务入口，不重复不确定发送。清理只限按真实创建 ID 绑定的测试资源，先保全 journal、原生回执、manifest 与产物；活动／UNKNOWN 先对账，不能靠关闭测试资源掩盖未决效果。
 
 验收记录由主线程按实际发生结果就地更新，不另建“补充版”。源、安装、执行侧与负责人证据分别归属，未取得的 native facts 保持 NOT_RUN／UNKNOWN。
+
+### 2026-11-03 固定版本及真实试点证据
+
+实现提交为 `c89d5c5a63072f6f42afcd4a7e03360919c4f746`，已正常推送并独立 `git ls-remote` 回读。文件为 README、status、本规范、`scripts/herdr_executor.py`、`scripts/install_herdr_executor.py`、`tests/test_herdr_executor_contract.py`、`tests/test_herdr_executor_native_schema.py`；本次文档收尾不改变安装代码版本。源码 SHA-256 `68f56e6bd63074c871363952fffabfb2aed7ebf3c75ede6e72902c131e98596a`，installer `beecdd202ff66a4ad107543c438934024551a70b5b146b977e1e3ce34b870481`。
+
+主执行侧直接通过规定三命令：`python3 scripts/worker_library.py check`（7/9/13/11）、`python3 scripts/check_repository.py`（mcp0/skill2/plugin0）、`python3 -m unittest discover -s tests -v`（61 PASS）。其中新增34项含目标／预算／撤权、一次发送与硬进程退出UNKNOWN、完整task实际投递、失败子集、取消保留、journal漂移和真实native缺省字段。审查发现的完整任务未传、无产物失败不能回收、存量journal未校验、原生false字段省略均先复现再修。原review主线程独立全61项、task／FAILED两项通过；其子审查journal／installer9项通过并由主线程绑定摘要复核；自检没有替代独立复核。
+
+主执行侧从固定Git对象独立安装24文件，并逐一核receipt／Git／磁盘字节；原review主线程又只读核同24文件、实际解释器及SQLite integrity。无新venv、依赖、daemon或自动收件。安装前不可执行Herdr文件被拒，安装后CLI实际由原生driver调用；试点结束policy.targets清空，仅保留显式工具及历史journal，不留下长期outside控制许可。
+
+本次使用公子额外明确授权的新命名Mac测试session；原生client/server0.9.5兼容，既有Codex与认证、实际模型/权限只在私密回执绑定。Lead通过原App实际submit/get同一完整payload、核hash及未取消，再从真实Herdr driver调用已装CLI。两次预检合计4RPC、一次prompt1RPC、一次inspect1RPC；只发1个模型prompt，无二发、备用模型、认证/网络切换或生产资产操作。输入只给随机片段及变换规则，不含完整预期输出。模型生成的文件为41字节，SHA-256为 `0727f68372173e47ddc55f339d19d8f91e48dde54b5a2c633d2f389282e35a68`，与Lead独立计算的字节完全一致；manifest身份、实际长度和摘要通过collect。COLLECTED与Lead显式RELEASED分记，business_accepted仍false。
+
+先保全原件、journal和回执，再只按本次真实创建ID关闭测试workspace，停止/删除本次独立session，回读空布局及session目录不存在；原有pane/server未动。产物和私密证据留在获准本地位置，未进入public仓库；项目临时agent-state与既有local目录显式排除发布。
+
+结果已使用本Lead真实Codex session／turn的原生hook观察bind及stage-report，Herdr目标session没有冒充这些身份。桥附加task_tracking后的精确canonical结果为2973字节，hash与稳定event保存在私密 `result-handoff.json`、`expected-result.json`。**当前仍等待本会话自然Stop；没有直接publish_result、伪造Stop或第二collector。** 原review按约定随后读精确版本、核全件与hash并ACK，再由实施侧核原outbox／同步正式记录。此阶段未通过前，任务继续Open／In Progress。
+
+传输另有自然失败观察：2026-11-03T02:12:30Z最后成功，02:16:30Z collector为 `NETWORK_FAILED / UNKNOWN_CAUSE stage:CLIENT_OPEN type:RuntimeError`，仍沿原退避；不是明确认证诊断，不推定注册或凭据失效。本页保留PARTIAL，不因执行层PASS声称出件成功或长期稳定。

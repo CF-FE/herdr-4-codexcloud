@@ -4,11 +4,11 @@
 
 <a id="vps-任务信箱独立仓库开发"></a>
 
-## Lead 确定性执行适配器：实现与限定试点进行中
+## Lead 确定性执行适配器：首版安装与一次限定执行通过，回传待验
 
 公子已明确接受 Lead 决策、adapter 执行、桥传数据的边界并授权辩证优化后实现，正式任务为 [Herdr #1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1)。本仓新增显式 CLI、独立执行 journal、固定输入／目标校验、一次 prompt 与 UNKNOWN 对账、实际产物核验及独立安装器；详细合同与逐层证据统一维护于[执行适配器规范](herdr-executor.md)。它不自动消费信箱、不修改桥／hook／九项 MCP 工具，不给 Win／Cloud 批量安装库或创建任务。
 
-首版实现与隔离验证已推进，固定源、安装、原生一次合成任务及负责人验收分别记录，当前不把文件落盘或模拟通过当作真实链路完成。公子另授权单次 desktop 控制独立 Mac 测试 session，既有 Codex 模型／认证、项目测试目录、最多 1 个合成回合；不操作旧 pane 或生产资产。下文早期“自动 handler 未实现”继续指自动收件派发路径，不否定本次显式适配器新增源码。
+固定实现c89d5c5已发布，主执行与原review分别61项通过；24文件独立安装回读，真实Herdr driver一次prompt完成41字节变换产物并核独立预期，COLLECTED后Lead显式RELEASED，专用测试资源已按原ID清理。结果已用真实Lead Codex session／turn暂存至原桥，仍待自然Stop、collector出件、接收者精确读回及ACK；近期collector有UNKNOWN_CAUSE的CLIENT_OPEN失败，保持PARTIAL，不将执行通过当传输或整体业务通过。公子另授权单次 desktop 控制独立 Mac 测试 session，既有 Codex 模型／认证、项目测试目录、最多 1 个合成回合；不操作旧 pane 或生产资产。下文早期“自动 handler 未实现”继续指自动收件派发路径，不否定本次显式适配器新增源码。
 
 ## VPS 任务信箱与客户端接入：进行中
 
