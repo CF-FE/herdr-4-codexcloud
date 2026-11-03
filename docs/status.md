@@ -8,12 +8,13 @@
 | --- | --- | --- |
 | Lead 显式 Mac 执行适配器 | 源码已发布、独立安装；已有 Mac Codex Agent 的一次合成执行、产物核验、结果回传及独立工程验收通过；[Herdr #1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1) Closed/completed，原 Project 条目 Done | 自动收件派发、Win／Cloud 执行扩展、任意业务任务、长期稳定性 |
 | Task Mailbox／Mac 协调桥 | 专用桥迁移与三项修复已安装；原任务持久收发、精确结果读取／ACK、Mac 收取 ACK 已验 | Dot 发起新任务、Mac 发起反向新任务、各 CLI／Cloud 独立接入及长期可用性 |
-| Worker／角色库 | 两库 1.0.0 已发布；本地角色库 1.0.1 将云端Dot导航与项目协调员区分。7 个 Worker、9 个后端、13 个角色（11 个专业、2 个组织导航） | 所有模板都已运行、角色已任命、全库已部署到 Win／Cloud |
+| Worker／角色库 | 主干提供 Worker 库 1.0.0、角色库 1.0.1，含 7 个 Worker、9 个后端、13 个角色。已安装的显式执行适配器按自己的固定目录制稿和校验 | 所有模板都已运行、角色已任命、全库已部署到 Win／Cloud |
 | Mac → Win Herdr | TUI 0.9.5 原生 saved-machine／LAN SSH 的保存连接、reachable 及定向 Agent 清单回读通过 | Win Herdr 内模型派发、业务产物回收与生产写权切换 |
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
 | 本仓技能 | 组织协作 1.5.2、Projects 1.1.0 源码可按路径读取，来源闭包已核 | 所有目标宿主原生安装、自动发现和工具权限 |
-| 云端Dot与项目协调员（本地开发分支） | 本机协调核心与受限接口已实现。11 月 3 日 17:23 复核，Mac 信箱桥在线，未找到生产协调员的权威入口；win-work 可定位最后一任，但未证实当前接手。详见[可信入口核验](project-coordinator.md#可信入口核验p0) | 本轮未提交生产查询；云端Dot联系现任及精确读回、真实解阻和长期值守均未验收 |
+| 云端Dot与 Mac 项目协调员 | 合并版本已安装到 Mac，用户级等待观察器已连续两次由 launchd 成功启动。生产台账已初始化。[部署回执](project-coordinator.md#mac-deployment) | 云端Dot及原桥生产端口、凡人现任答复、精确读回和长期运行仍待验。[入口核验](project-coordinator.md#可信入口核验p0) |
+| Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main` | Cloud Worker 实际运行、工具权限及成果回传待验 |
 
 运行前提保持 **Mac 持续在线**：项目 Lead 和 CLI Proxy 在 Mac，Win 的代理入口可依赖它；不建设 Mac 离线接管。当前采用 Herdr TUI，core／`hc` 和 Herdr App 属于历史对照。职责与路径见[架构](architecture.md)，实际操作前沿[试点绑定](pilot.md#启动前绑定)核当前目标与授权。
 
@@ -78,7 +79,7 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 
 1. **传输稳定性**：沿服务仓原任务核长期运行、反向新任务与原异常原因，保留 UNKNOWN。
 2. **Dot 原生入口**：已有局部用户回报；具体工具发现、目标绑定、定向执行和回读仍按[专项评估](dot-mac-herdr-evaluation.md)取证，不由网络或桌面试点代证。
-3. **Win／Cloud 扩展**：当前适配器只验已有 Mac Agent。Cloud 尚未创建／发布本项目环境或验证具体任务接入；Win 的原生 CLI 旁支不代替 Herdr 派发。
+3. **Win／Cloud 扩展**。Cloud 环境已发布，下一项是核验具体 Cloud 任务的实际工具、权限与回传。Win 的 Herdr 定向派发及业务产物仍待验。
 4. **多项目与生产**：真实项目产物、并行容量、生产业务验收及新旧写控制切换未验；选择下一步沿[迭代路线](collaboration-iteration-guide.md#4-分阶段迭代)，本列表不启动任务。
 5. **目标工具与恢复**：Worker 自身 Projects／Space 工具、权限、资源读取，技能原生发现，主机重启、未来版本兼容及所依赖的网络拒绝用例分别待核。只限制依赖这些条件的动作，不重做已经通过的独立切片。
 

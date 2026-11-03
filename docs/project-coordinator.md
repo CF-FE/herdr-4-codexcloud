@@ -205,7 +205,7 @@ Watchdog 负责发现异常，例如“负责人到期未回”。本机 `tick` 
 | 对象 | 已取得的证据 | 仍待取得的证据 |
 | --- | --- | --- |
 | 云端Dot | 已定位登录中的 ChatGPT Work 原生对话。此前在原对话读到云端Dot报告已向 Mac 发起联系检查；本次未取得该检查的确切请求号、受理凭据或负责人回复。历史信箱样本的读取回报和 ACK 属于另一项验证 | 可供协调员核验的发送主体、该检查的原任务引用，以及按同一 job 读取结果的获准通道。发起方的陈述只能按来源保留，不能推定执行仍在途或判定无人回复 |
-| Mac 协调员 | **11 月 3 日 17:23（北京时间）**，当前登录用户的默认 ProjectCoordinator 安装／state、登录 plist 均未找到，launchd 也未登记 `io.projectcoordinator.waits`。独立 Mac 信箱桥当时在运行；它的最近一次收集成功约为 17:22:39。既往私有试装只跑过空台账 `tick` | 未取得其他安装位置的唯一权威登记、可认证的受理入口或恢复入口。当前实现的三个受信端口尚无可供这次查询使用的生产绑定 |
+| Mac 协调员 | 11 月 3 日 17:23 的核验早于正式安装。17:37–17:38 北京时间已在默认私有目录部署合并版本，并从用户登录启动项核到两次成功运行。[宿主部署回执](#mac-deployment) | 云端可认证的受理与恢复入口、三个生产端口的绑定仍待核验 |
 | 凡人负责人 | **11 月 3 日 17:22–17:23（北京时间）**，在 win-work 复查正式项目索引、切权原件及六个相关治理目录。最后一份可核任命为 10 月 31 日的旧 Lody 负责人，制作执行者另列；11 月 1 日该回合已交还。按原会话键仍可定位。所查目录、[Project #5](https://github.com/orgs/CF-FE/projects/5) 五个条目和[制作 Issue](https://github.com/CF-FE/fanren-work/issues/2)未给出新任命或现任接手答复 | 任职状态为待核；历史地址可以定位，不证明现在仍接任或可安全投递。沿原联系检查核接手、当前授权范围及可验证的答复端。无负责人或已换任也须由项目任命方确认 |
 | 生产对账 | 云端Dot原对话和制作端原生记录均有晚于公开 Issue 阶段记录的技术回执。精确批次与受控资料保存在审查端 | 指定负责人的本次答复、独立听检和生产业务验收分开取证 |
 | 信箱 | 服务维护方核过历史 job／ACK 和已装桥源码。17:28 北京时间，按凡人仓库、Project #5 URL 和项目引用只读筛本机桥已保存的路由，命中 **0**。桥[只保留路由及可选 tracking](https://github.com/CF-FE/task-mailbox-mcp/blob/87cfb6551240c08d5aa8df3a8afdc305c5388a86/mac/bridge_store.py#L263-L270)，该结果不能排除未登记 tracking 的原任务，不能判为负责人未回复 | `OriginalBridge` 的受限完整请求交付／独立入队、原生 `CallerChannel` 与 `OwnerChannel` 的生产绑定。先前的云端联系检查仍须依原发送端的关联回执对账 |
@@ -224,6 +224,12 @@ Watchdog 负责发现异常，例如“负责人到期未回”。本机 `tick` 
 
 ### 安装、启动和查看
 
+<a id="mac-deployment"></a>
+
+**Mac 部署回执（2026-11-03，北京时间）**。从远端与本地一致的 [main 合并提交](https://github.com/CF-FE/herdr-4-codexcloud/commit/a0d2e60aa8b550b5893fd2a630db5552d4675a90)安装协调核心、传输接口与等待观察器。四个安装文件的摘要与收据一致，两份 Python 源码逐字节匹配 Git 对象。当前用户的登录 plist 与该版本生成的 plist 一致。17:37、17:38 两次读取 launchd，运行次数从 1 增至 2，最近退出码均为 0，间隔为 60 秒。生产 SQLite 权限为 0600，完整性快检通过，项目、任职、请求、联系、结果和等待项均为 0。
+
+同一已安装程序在隔离台账处理了一个到期检查点，新 Python 进程再次读取同一台账得到 0 个重复提醒。生产验收覆盖当前登录会话的自然定时触发。重新登录、整机重启和长期运行待验。源码回归 92 项通过。
+
 在本仓选择已审阅的完整提交作为 `REV`。用原有 Python 3.10+ 运行。安装需要当前用户可写的目录。每个发布目录保留固定源码与解释器路径，共用的 `state` 保留台账。首次安装默认没有生产项目绑定。
 
 ```bash
@@ -235,7 +241,14 @@ plutil -lint "$RELEASE/observer.plist"
 python3 -I -B "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" tick
 ```
 
-需要在当前 Mac 登录会话启用本地定时检查时，运行 `launchctl bootstrap "gui/$(id -u)" "$RELEASE/observer.plist"`。用 `launchctl print "gui/$(id -u)/io.projectcoordinator.waits"` 核注册和实际退出状态。配置为 RunAtLoad 及每 60 秒执行一次，单轮最多 25 项到期等待。每个等待版本的检查点与截止升级分别持久化、去重。是否实际联系负责人和云端Dot是否读取，查各自回执。需要跨登录自动加载时，另按宿主用户级 LaunchAgents 安装约定持久登记并验证重新登录。
+正式安装把已校验的 `observer.plist` 以 0600 权限复制到 `~/Library/LaunchAgents/io.projectcoordinator.waits.plist`，从这份持久文件加载。首次加载与后续查看命令如下。
+
+```bash
+launchctl bootstrap "gui/$(id -u)" "$HOME/Library/LaunchAgents/io.projectcoordinator.waits.plist"
+launchctl print "gui/$(id -u)/io.projectcoordinator.waits"
+```
+
+每轮最多处理 25 项到期等待。两次运行之间 launchd 可显示 `not running`。核对运行次数是否随时间增加及最近退出码，业务联系和结果读取另外查原回执。
 
 项目登记使用受信本机 `register_project` 操作和私有 JSON 输入，字段为 `project_id, repository, project_ref, cloud_dot_principal, report_route`。只有在任命、来源验证、交接和旧写权四类证据齐全时才执行 `activate_owner`。该操作同时要求 `expected_generation, owner_principal, endpoint, appointment_ref, verification_ref, handoff_ref, release_ref` 及项目 ID。负责人创建操作登记经授权的原生意图与回读，实际创建依赖经授权的生命周期入口。业务消息里的“任命”文本没有这些权限。
 
@@ -252,6 +265,6 @@ python3 -I -B "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state"
 
 1. 暂停新准入与外部发送，核现有动作／写者和已发布结果。已加载的本机定时器用 `launchctl bootout "gui/$(id -u)/io.projectcoordinator.waits"` 停止；该命令只停等待观察器，须分别确认实际调用端与发送端已停写。保存 SQLite 一致性备份、各项目最高代次和未决关联到已批准的私有落点。
 2. 用新固定提交安装另一版本目录，在私有副本先运行 `tick` 和状态查询，核旧请求、代次和事件可读，再切换观察器。`recover` 是停止原发送者后的显式恢复动作，需输入 `evidence_ref`，将未定意图转入 UNKNOWN，继续对账原生动作。
-3. 回滚时先停止新版，核旧版与当前数据结构兼容，再用原发布目录的 plist 启动本机观察器。若需恢复旧备份，必须先对照原生动作和已知最高代次，避免复活旧写权。尚不能对齐时只做只读检查。
+3. 回滚时先停止新版，核旧版与当前数据结构兼容，把登录 plist 换回已验证版本并从该文件重新加载。首次安装需要撤回时，卸载该 label，将其登录 plist 移入私有备份目录，保留台账与收据。若需恢复旧数据，先对照原生动作和已知最高代次。尚不能对齐时只做只读检查。
 
 2026-11-03 北京时间 16:55 在 Mac 上回读固定实现 `6252cf39fffd08b80d82ee1150a9b56e895fa479`。全仓 90 项测试通过，包含原有 61 项以及协调核心 10 项、端口联调 18 项、安装升级 1 项。另用该固定 Git 对象作独立私有安装，核对四个文件摘要及 plist 语法，按 plist 中的真实解释器和完整参数成功执行一次 `tick`，空台账处理 0 项。定时器为可启用配置，长期运行、原桥生产端口、业务负责人答复与云端Dot精确读回仍待实地验收。[本机事务和并发](../tests/test_project_coordinator.py) · [隔离端口联调](../tests/test_coordinator_transport.py) · [安装与升级](../tests/test_coordinator_install.py)
