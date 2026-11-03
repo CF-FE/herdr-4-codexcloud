@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2400" height="2260" viewBox="0 0 2400 2260" role="img" aria-labelledby="svg-title svg-desc">
+<title id="svg-title">Super-Agent 多项目协作系统分层架构</title>
+<desc id="svg-desc">总控层由 Dot 承担；Router 是 Dot 与项目 Lead 共同承担的逻辑职责，包含项目拆解、准入、任务包和执行路由；Worker 分为 Cloud、Mac、Win 三类。任务信箱与 Mac 协调桥提供数据交接，Git、Space、角色库和正式项目记录提供上下文。Mac 执行接入器正在实施，仅覆盖本地已有 Agent。箭头为职责和路径设计，不代表全链路业务验收。</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker><marker id="arrowBack" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 10 0 L 0 5 L 10 10 z" fill="context-stroke"/></marker></defs>
+<style>text {font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif} a {cursor:pointer}</style>
+<rect x="0" y="0" width="2400" height="2260" rx="0" fill="#f4f7f8"/>
+<text id="t0" x="80" y="79" font-size="25" font-weight="750" fill="#166c68" text-anchor="start">SUPER-AGENT</text>
+<text id="t1" x="80" y="142" font-size="51" font-weight="700" fill="#173047" text-anchor="start">多项目协作系统 · 分层架构</text>
+<text id="t2" x="80" y="185" font-size="27" font-weight="400" fill="#516475" text-anchor="start">统一目标与协调，按任务路由到不同 Worker，以实际产物和负责人验收闭环。</text>
+<text id="t3" x="2320" y="77" font-size="22" font-weight="500" fill="#516475" text-anchor="end">2026-11-03  /  对外分享版</text>
+<path d="M 1725 126 H 1780" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<text id="t4" x="1797" y="134" font-size="20" font-weight="400" fill="#516475" text-anchor="start">既定职责／路径</text>
+<path d="M 2025 126 H 2080" fill="none" stroke="#9b621b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
+<text id="t5" x="2097" y="134" font-size="20" font-weight="400" fill="#516475" text-anchor="start">实施中／待验</text>
+<text id="t6" x="2320" y="179" font-size="20" font-weight="400" fill="#516475" text-anchor="end">连线表示设计关系，验证范围以文字标注为准。</text>
+<rect x="80" y="230" width="1610" height="100" rx="18" fill="#e8eff3"/>
+<text id="t7" x="110" y="273" font-size="30" font-weight="650" fill="#173047" text-anchor="start">公子 / 项目业务负责人</text>
+<text id="t8" x="110" y="307" font-size="23" font-weight="400" fill="#516475" text-anchor="start">需求与授权的来源 · 最终业务采用与验收</text>
+<text id="t9" x="1655" y="272" font-size="27" font-weight="550" fill="#173047" text-anchor="end">目标  ·  范围  ·  预算  ·  验收标准</text>
+<text id="t10" x="1655" y="307" font-size="23" font-weight="400" fill="#516475" text-anchor="end">授权向下传递，结果与风险向上汇报</text>
+<path d="M 875 331 V 371" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
+<rect x="80" y="380" width="1610" height="220" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="80" y="380" width="7" height="220" rx="3" fill="#244d70"/>
+<text id="t11" x="110" y="425" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">01  总控与交互层  /  SUPER-AGENT FRONTEND</text>
+<text id="t12" x="110" y="462" font-size="22" font-weight="400" fill="#516475" text-anchor="start">当前映射：Dot · 面向用户的连续交互与跨项目协调</text>
+<rect x="110" y="483" width="480" height="90" rx="13" fill="#f5f8fa"/>
+<text id="t13" x="134" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">理解目标与上下文</text>
+<text id="t14" x="134" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">识别项目 · 关联输入 · 明确优先级</text>
+<rect x="630" y="483" width="480" height="90" rx="13" fill="#f5f8fa"/>
+<text id="t15" x="654" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">跨项目统筹</text>
+<text id="t16" x="654" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">协调依赖 · 资源冲突 · 总体进展</text>
+<rect x="1150" y="483" width="510" height="90" rx="13" fill="#f5f8fa"/>
+<text id="t17" x="1174" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">结果与风险汇总</text>
+<text id="t18" x="1174" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">整合回报 · 暴露阻塞 · 组织验收</text>
+<path d="M 875 601 V 644" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
+<rect x="900" y="609" width="420" height="28" rx="0" fill="#f4f7f8"/>
+<text id="t19" x="910" y="631" font-size="20" font-weight="400" fill="#516475" text-anchor="start">目标、约束与任务 / 进展、结果与风险</text>
+<rect x="80" y="650" width="1610" height="560" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="80" y="650" width="7" height="560" rx="3" fill="#166c68"/>
+<text id="t20" x="110" y="695" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">02  ROUTER 层  /  项目协调与执行路由</text>
+<text id="t21" x="110" y="732" font-size="22" font-weight="400" fill="#516475" text-anchor="start">逻辑职责由 Dot + 项目 Lead 承担；当前没有独立 Router 模型或常驻路由服务。</text>
+<rect x="110" y="758" width="480" height="143" rx="13" fill="#eef6f4"/>
+<text id="t22" x="134" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">任务分流与准入</text>
+<text id="t23" x="134" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">核项目、权限、资产位置与能力</text>
+<text id="t24" x="134" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">明确目标、预算与唯一写者</text>
+<rect x="630" y="758" width="480" height="143" rx="13" fill="#eef6f4"/>
+<text id="t25" x="654" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">项目 Lead · Mac</text>
+<text id="t26" x="654" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Herdr 托管的 Codex / Kimi CLI</text>
+<text id="t27" x="654" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">拆解任务、跟踪依赖、组织复核</text>
+<rect x="1150" y="758" width="510" height="143" rx="13" fill="#eef6f4"/>
+<text id="t28" x="1174" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">任务包与执行关联</text>
+<text id="t29" x="1174" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">固定输入、角色、产物与验收要求</text>
+<text id="t30" x="1174" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">关联 job → intent → 原生执行引用</text>
+<path d="M 594 829 H 623" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M 1114 829 H 1143" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="110" y="922" width="1550" height="53" rx="10" fill="#e4f0ed"/>
+<text id="t31" x="134" y="956" font-size="24" font-weight="550" fill="#166c68" text-anchor="start">下发合同：任务 + 输入版本 + 角色 / 后端 + 权限 / 预算 + 明确目标 + 产物 / 汇报路径</text>
+<rect x="110" y="1005" width="480" height="176" rx="13" fill="#f3f6fa" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t32" x="134" y="1045" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Cloud 原生路由</text>
+<rect x="134" y="1062" width="164" height="32" rx="8" fill="#e6ecf8"/>
+<text id="t33" x="216.0" y="1085" font-size="19" font-weight="600" fill="#365cad" text-anchor="middle">沿原获准入口</text>
+<text id="t34" x="134" y="1127" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Dot → 原生 Cloud 任务</text>
+<text id="t35" x="134" y="1161" font-size="24" font-weight="400" fill="#516475" text-anchor="start">创建 / 续接沿云平台生命周期</text>
+<rect x="630" y="1005" width="480" height="176" rx="13" fill="#fff9ee" stroke="#d8bb84" stroke-width="1.5" stroke-dasharray="7 5"/>
+<text id="t36" x="654" y="1045" font-size="27" font-weight="650" fill="#9b621b" text-anchor="start">Mac 确定性执行接入器</text>
+<rect x="654" y="1062" width="294" height="32" rx="8" fill="#f9ebcf"/>
+<text id="t37" x="801.0" y="1085" font-size="19" font-weight="600" fill="#9b621b" text-anchor="middle">实施中 · 未完成真实验收</text>
+<text id="t38" x="654" y="1127" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Lead → Adapter → Herdr</text>
+<text id="t39" x="654" y="1161" font-size="23" font-weight="400" fill="#516475" text-anchor="start">核验 / 单次投递 / journal / 产物核对</text>
+<rect x="1150" y="1005" width="510" height="176" rx="13" fill="#f3f6fa" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t40" x="1174" y="1045" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Win 原生机器路由</text>
+<rect x="1174" y="1062" width="260" height="32" rx="8" fill="#e6ecf8"/>
+<text id="t41" x="1304.0" y="1085" font-size="19" font-weight="600" fill="#365cad" text-anchor="middle">连接已核 · 业务待验</text>
+<text id="t42" x="1174" y="1127" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Lead → Herdr saved machine</text>
+<text id="t43" x="1174" y="1161" font-size="24" font-weight="400" fill="#516475" text-anchor="start">LAN / SSH → Win collab</text>
+<path d="M 350 1182 V 1253" fill="none" stroke="#365cad" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<path d="M 870 1182 V 1253" fill="none" stroke="#9b621b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<path d="M 1405 1182 V 1253" fill="none" stroke="#365cad" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
+<rect x="80" y="1260" width="1610" height="310" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="80" y="1260" width="7" height="310" rx="3" fill="#365cad"/>
+<text id="t44" x="110" y="1305" font-size="29" font-weight="650" fill="#365cad" text-anchor="start">03  WORKER 层  /  按任务组合的执行实例</text>
+<rect x="110" y="1340" width="480" height="168" rx="13" fill="#f5f8fa"/>
+<text id="t45" x="134" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Cloud Worker</text>
+<text id="t46" x="134" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Codex Cloud · 托管任务</text>
+<text id="t47" x="134" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">编码 / 测试 / 文档 / 独立复核</text>
+<text id="t48" x="134" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">工具、账号与资源权限按任务核验</text>
+<rect x="630" y="1340" width="480" height="168" rx="13" fill="#f5f8fa"/>
+<text id="t49" x="654" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Mac Worker</text>
+<text id="t50" x="654" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Codex / Kimi · 既有 Herdr Agent</text>
+<text id="t51" x="654" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">本机实现 / 研究 / 复核</text>
+<text id="t52" x="654" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">首版 Adapter 仅覆盖这一类目标</text>
+<rect x="1150" y="1340" width="510" height="168" rx="13" fill="#f5f8fa"/>
+<text id="t53" x="1174" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Win Worker</text>
+<text id="t54" x="1174" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">OMP / Hermes / Kimi / 命令工具</text>
+<text id="t55" x="1174" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">CPU / GPU / 媒体 / 桌面相关任务</text>
+<text id="t56" x="1174" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">真实能力、回收与业务产物分别验收</text>
+<text id="t57" x="110" y="1545" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Worker = 宿主 + harness + 明确后端 + 专业角色 + 本次任务合同；角色数不等于进程数。</text>
+<path d="M 875 1571 V 1604" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="80" y="1610" width="1610" height="186" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="80" y="1610" width="7" height="186" rx="3" fill="#244d70"/>
+<text id="t58" x="110" y="1655" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">04  工具、模型与资产层  /  TOOLS · MODELS · ASSETS</text>
+<text id="t59" x="110" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">工具与服务</text>
+<text id="t60" x="110" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">MCP · Shell · Git · 制作工具</text>
+<text id="t61" x="630" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">模型与认证</text>
+<text id="t62" x="630" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">实际供应商 / 模型 / 认证 / 权限</text>
+<text id="t63" x="1150" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">各执行端资产</text>
+<text id="t64" x="1150" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">仓库 · 原件 · 模型 · 产物 / manifest</text>
+<text id="t65" x="110" y="1775" font-size="22" font-weight="400" fill="#516475" text-anchor="start">Win 的部分代理分支依赖 Mac CLI Proxy；大模型、原件和大产物保留在各自保管端。</text>
+<rect x="1740" y="230" width="580" height="489" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="1740" y="230" width="7" height="489" rx="3" fill="#244d70"/>
+<text id="t66" x="1770" y="275" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">共享上下文与事实来源</text>
+<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/issues/1" target="_blank">
+<text id="t67" x="1768" y="322" font-size="25" font-weight="650" fill="#173047" text-anchor="start">正式任务 · Issues / Projects</text>
+<text id="t68" x="1768" y="354" font-size="21" font-weight="400" fill="#516475" text-anchor="start">责任、状态、迭代与验收的正式入口</text>
+</a>
+<path d="M 1768 398 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<text id="t69" x="1768" y="418" font-size="25" font-weight="650" fill="#173047" text-anchor="start">协作空间 · ChatGPT Space</text>
+<text id="t70" x="1768" y="450" font-size="21" font-weight="400" fill="#516475" text-anchor="start">共享资料、交接与精选成果</text>
+<text id="t71" x="1768" y="478" font-size="21" font-weight="400" fill="#516475" text-anchor="start">按实际工具与资源权限访问</text>
+<path d="M 1768 494 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<text id="t72" x="1768" y="514" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Git · 固定版本</text>
+<text id="t73" x="1768" y="546" font-size="21" font-weight="400" fill="#516475" text-anchor="start">源码、项目合同、方法与交付版本</text>
+<text id="t74" x="1768" y="574" font-size="21" font-weight="400" fill="#516475" text-anchor="start">以 commit / 文件摘要定位</text>
+<path d="M 1768 590 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/tree/main/docs/worker-library" target="_blank">
+<text id="t75" x="1768" y="610" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Worker 库 + 专业角色库</text>
+<text id="t76" x="1768" y="642" font-size="21" font-weight="400" fill="#516475" text-anchor="start">离线选型与任务包准备</text>
+<text id="t77" x="1768" y="670" font-size="21" font-weight="400" fill="#516475" text-anchor="start">声明能力需预检；模板不代表可用实例</text>
+</a>
+<path d="M 1739 688 H 1698" fill="none" stroke="#516475" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
+<rect x="1740" y="760" width="580" height="665" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="1740" y="760" width="7" height="665" rx="3" fill="#166c68"/>
+<text id="t78" x="1770" y="805" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">消息与事件交接 · 支撑层</text>
+<text id="t79" x="1770" y="842" font-size="22" font-weight="400" fill="#516475" text-anchor="start">连接总控与 Mac Lead，承载任务与小结果。</text>
+<rect x="1768" y="854" width="524" height="86" rx="13" fill="#eef6f4"/>
+<text id="t80" x="1792" y="894" font-size="24" font-weight="650" fill="#173047" text-anchor="start">获准云端客户端</text>
+<text id="t81" x="1792" y="931" font-size="20" font-weight="400" fill="#516475" text-anchor="start">Dot / 桌面 App；Cloud 为条件接入</text>
+<path d="M 2030 942 V 983" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
+<text id="t82" x="2052" y="969" font-size="19" font-weight="400" fill="#516475" text-anchor="start">OAuth / HTTPS</text>
+<rect x="1768" y="990" width="524" height="115" rx="13" fill="#eef6f4"/>
+<text id="t83" x="1792" y="1030" font-size="25" font-weight="650" fill="#173047" text-anchor="start">VPS · Task Mailbox</text>
+<text id="t84" x="1792" y="1067" font-size="21" font-weight="400" fill="#516475" text-anchor="start">ngrok → Caddy → FastMCP / SQLite</text>
+<text id="t85" x="1792" y="1101" font-size="21" font-weight="400" fill="#516475" text-anchor="start">持久 job / event / 小结果 / 版本 / ACK</text>
+<path d="M 2030 1108 V 1155" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
+<text id="t86" x="2052" y="1137" font-size="19" font-weight="400" fill="#516475" text-anchor="start">主动轮询 / 补传</text>
+<rect x="1768" y="1162" width="524" height="115" rx="13" fill="#eef6f4"/>
+<text id="t87" x="1792" y="1202" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Mac 协调桥 · 已部署</text>
+<text id="t88" x="1792" y="1239" font-size="21" font-weight="400" fill="#516475" text-anchor="start">collector + 本地台账 + Codex hooks</text>
+<text id="t89" x="1792" y="1273" font-size="21" font-weight="400" fill="#516475" text-anchor="start">会话提示 / 显式绑定 / 持久 outbox</text>
+<text id="t90" x="1768" y="1314" font-size="21" font-weight="550" fill="#9b621b" text-anchor="start">→ Lead 显式承接；完整任务经获准入口读取</text>
+<text id="t91" x="1768" y="1349" font-size="21" font-weight="400" fill="#516475" text-anchor="start">收件和 ACK 不代表 Agent 执行或业务验收。</text>
+<path d="M 1768 1370 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+<text id="t92" x="1768" y="1399" font-size="20" font-weight="400" fill="#516475" text-anchor="start">另有 Dot 原生 Mac 任务入口，Herdr 承接待验。</text>
+<rect x="1740" y="1460" width="580" height="336" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="1740" y="1460" width="7" height="336" rx="3" fill="#244d70"/>
+<text id="t93" x="1770" y="1505" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">部署与网络映射</text>
+<text id="t94" x="1768" y="1543" font-size="24" font-weight="650" fill="#173047" text-anchor="start">Mac：协调 + Herdr + CLI Proxy</text>
+<text id="t95" x="1768" y="1576" font-size="22" font-weight="400" fill="#516475" text-anchor="start">持续在线是当前部署前提。</text>
+<text id="t96" x="1768" y="1620" font-size="24" font-weight="650" fill="#173047" text-anchor="start">Mac → Win：LAN / SSH 直连</text>
+<text id="t97" x="1768" y="1653" font-size="21" font-weight="400" fill="#516475" text-anchor="start">Win：执行与本地资产；VPS 不作控制中转。</text>
+<text id="t98" x="1768" y="1697" font-size="24" font-weight="650" fill="#173047" text-anchor="start">VPS：信箱 + Gitee MCP + 网络</text>
+<text id="t99" x="1768" y="1730" font-size="22" font-weight="400" fill="#516475" text-anchor="start">公网 HTTPS；私网 EasyTier ↔ Win。</text>
+<text id="t100" x="1768" y="1771" font-size="21" font-weight="400" fill="#516475" text-anchor="start">Mac 不装 VPN；Cloud 收发信箱无需 VPN。</text>
+<rect x="80" y="1840" width="2240" height="170" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<rect x="80" y="1840" width="7" height="170" rx="3" fill="#166c68"/>
+<text id="t101" x="110" y="1885" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">结果闭环  /  执行状态 → 产物证据 → 负责人验收</text>
+<rect x="110" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
+<text id="t102" x="290.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">Worker 产物与自检</text>
+<path d="M 477 1938 H 506" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="514" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
+<text id="t103" x="694.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">独立复核（按任务）</text>
+<path d="M 881 1938 H 910" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="918" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
+<text id="t104" x="1098.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">Lead 收集与核对</text>
+<path d="M 1285 1938 H 1314" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="1322" y="1914" width="410" height="48" rx="8" fill="#eef6f4"/>
+<text id="t105" x="1527.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">负责人验收 / 写权交还</text>
+<path d="M 1739 1938 H 1768" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
+<rect x="1776" y="1914" width="514" height="48" rx="8" fill="#eef6f4"/>
+<text id="t106" x="2033.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">正式记录更新 → Dot 汇报</text>
+<text id="t107" x="110" y="1993" font-size="21" font-weight="400" fill="#516475" text-anchor="start">贯穿约束：一个执行只有一个控制入口与明确写者；UNKNOWN 沿原引用对账；取消请求、读取确认与验收分别取证。</text>
+<text id="t108" x="80" y="2046" font-size="27" font-weight="650" fill="#173047" text-anchor="start">代码与能力的维护归属</text>
+<text id="t109" x="2320" y="2046" font-size="22" font-weight="400" fill="#516475" text-anchor="end">独立维护 · 固定版本交接 · 无跨仓共享运行目录或自动同步</text>
+<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud" target="_blank">
+<rect x="80" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t110" x="100" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/herdr-4-codexcloud</text>
+<text id="t111" x="100" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">协调契约 · Worker / 角色库 · 执行接入器</text>
+</a>
+<a xlink:href="https://github.com/CF-FE/task-mailbox-mcp" target="_blank">
+<rect x="650" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t112" x="670" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/task-mailbox-mcp</text>
+<text id="t113" x="670" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">VPS 信箱 · Mac 协调桥</text>
+</a>
+<a xlink:href="https://github.com/CF-FE/mymcp-4-codexcloud" target="_blank">
+<rect x="1220" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t114" x="1240" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/mymcp-4-codexcloud</text>
+<text id="t115" x="1240" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">通用协作技能与 MCP 来源</text>
+</a>
+<a xlink:href="https://github.com/ghyghoo8/create-network-sh" target="_blank">
+<rect x="1790" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
+<text id="t116" x="1810" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">ghyghoo8/create-network-sh</text>
+<text id="t117" x="1810" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">历史整合来源；信箱维护已归独立仓</text>
+</a>
+<text id="t118" x="80" y="2208" font-size="21" font-weight="400" fill="#516475" text-anchor="start">来源：本仓架构与迭代指引、Worker 库、执行接入器设计及 Task Mailbox 文档；按 2026-11-03 读取快照整理。</text>
+<text id="t119" x="80" y="2241" font-size="21" font-weight="400" fill="#516475" text-anchor="start">范围：总览图呈现职责和设计路径；Adapter 实施中，Cloud 信箱接入、Herdr 业务闭环及长期运行仍需分别验收。</text>
+</svg>
