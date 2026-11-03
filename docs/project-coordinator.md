@@ -242,6 +242,10 @@ Watchdog 负责发现异常，例如“负责人到期未回”。本机 `tick` 
 
 本次证据覆盖已登录原对话、桌面自动通知和原信箱的真实往返，公子全程无需转发。页面未单列平台原生工具卡，协调核心保留 `RESULT_AVAILABLE`，另以本件的直接会话验收记录存证。脱离登录浏览器的事件唤醒已有隔离实现，服务端分支默认关闭，尚未部署或在原云端Dot创建真实订阅。[服务端事件合同与验证](https://github.com/CF-FE/task-mailbox-mcp/blob/c95510fddbe42f7ebe61ac57f283a0b56ef1dee5/docs/events.md)
 
+**个人 Pro 的信箱触发方式（2026-11-03 账户实测）。** 原云端Dot只读查询 `automations.list_event_sources`，本账号当时只列出 GitHub；`discover_webhook_schema` 返回 GitHub 的 pull request 规格，其说明列出 Gmail、Slack、GitHub。原会话没有发现另一套自建插件事件目录。Task Mailbox 是已连接的个人私有插件，现场生产服务此时还未声明 MCP Events。由此只能确认当前没有可选择的 Task Mailbox 事件，无法判定套餐是否永久排除这项能力。符合条件的 Pro 可使用受支持应用的事件触发；自建 MCP 帮助对 Pro 明确列出读取和检索权限，未说明自建事件订阅的资格。[事件任务套餐范围](https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt) · [自建 MCP 权限](https://help.openai.com/en/articles/12584461-connecting-custom-mcp-servers-in-chatgpt) · [插件 MCP Events](https://developers.openai.com/plugins/build/mcp-events)
+
+原云端Dot已有工作时段和休息时段两条信箱定时任务，均显示“监控中”。保存的说明要求检查上次以来的 Task Mailbox 结果、核对来源和状态，有重要更新才通知。工作时段任务使用中国标准时间，设置为“每次运行都使用同一个聊天”。定时发现、精确版本读取及同件已读确认应分别取证。本次资格检查没有部署事件服务、创建订阅或发出新的凡人查询。
+
 ### 已实现的接口
 
 | 位置 | 当前能力与调用端 |
