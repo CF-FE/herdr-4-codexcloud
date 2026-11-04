@@ -1,6 +1,6 @@
 # herdr-4-codexcloud
 
-面向 Dot、Mac 项目 Lead 与机器／Cloud Worker 的协作工具与文档。提供 Worker／角色库、组织与 Projects 技能，以及由 Lead 显式调用的 Herdr 执行适配器。
+Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协调层和 Worker 执行层。云端Dot交办和汇报，项目负责人或另行指定的验收者决定成果是否放行。[全局架构图](docs/architecture.md#整套协作分工) · [协作规范](docs/coordination-policy.md#1-默认分工与取舍)
 
 ## 使用入口
 
