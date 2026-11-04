@@ -583,6 +583,16 @@ class NativeGoalChannelTests(unittest.TestCase):
         changed=deepcopy(self.intent);changed['budget']['audio_generations']=1
         self.assert_code('NATIVE_GOAL_BUDGET_MISMATCH',lambda:self.channel.preflight(changed))
 
+    def test_designation_is_conveyed_without_changing_frozen_legacy_prompt(self):
+        legacy = self.channel._prompt(self.intent)
+        self.assertEqual(hashlib.sha256(legacy.encode()).hexdigest(),
+                         'b0b0611306b2ddb8fff7796effc064f683435fb4098907a700aa53309bb63513')
+        intent = deepcopy(self.intent)
+        intent['goal']['acceptor_ref'] = 'qa:designated'
+        prompt = self.channel._prompt(intent)
+        self.assertIn('验收决定由指定者留在原项目任务', prompt)
+        self.assertEqual(json.loads(prompt.split('FROZEN_INTENT\n')[1])['goal']['acceptor_ref'], 'qa:designated')
+
     def test_private_policy_and_receipt_schema_are_explicit(self):
         p=self.root/'goal-channel.json';p.write_bytes(canonical(self.policy));p.chmod(0o600)
         self.assertEqual(load_goal_channel(p).peer,self.channel.peer)

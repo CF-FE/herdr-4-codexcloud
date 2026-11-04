@@ -28,6 +28,7 @@ MAX_MESSAGE = 256 * 1024
 DEFAULT_BUDGET = {"contact_attempts": 1, "production_writes": 0, "audio_generations": 0}
 GOAL_BUDGET = {"dispatch_attempts": 1, "production_writes": 0, "audio_generations": 0}
 GOAL_ACTIONS = {"coordinate_existing_owner", "verify_existing_evidence", "plan_independent_review", "report_progress"}
+CLOUD_DOT_ALIASES = {"dot", "g8", "clouddot", "云端dot", "clouddotorganizationlead", "g8coordinator"}
 UNRESOLVED = ("INTENT", "UNKNOWN", "SUBMITTED", "OWNER_READ")
 CONTACT_REASONS = {"CHANNEL_UNAVAILABLE", "OWNER_OFFLINE", "IDENTITY_MISMATCH", "STALE_GENERATION",
                    "POLICY_DENIED", "SEND_FAILED", "NATIVE_SUBMISSION", "RECEIPT_MISMATCH",
@@ -101,10 +102,20 @@ def canonical_ref(value):
     return value == value.strip() and value.isprintable()
 
 
+def _acceptor_key(ref):
+    # Compare known participant aliases only. Never canonicalize the stored ref or treat it as an identity grant.
+    return re.sub(r"[\s_-]+", "", ref.casefold())
+
+
 def validate_goal(goal, task_ref, deadline):
     """A bounded existing-owner assignment; neither a new owner nor a tool grant."""
     fields(goal, "objective work_key acceptance_criteria evidence_refs related_request_ids scope_refs "
-                 "allowed_actions next_check_at review_requirement")
+                 "allowed_actions next_check_at review_requirement", "acceptor_ref")
+    if "acceptor_ref" in goal:
+        ref = goal["acceptor_ref"]
+        require(isinstance(ref, str) and 0 < len(ref) <= 2048 and canonical_ref(ref)
+                and _acceptor_key(ref) not in {"", "unknown", "tbd", "unassigned", "n/a", "未指定", "待定", "待确认"},
+                "INVALID_ACCEPTOR_REF")
     text(goal["objective"], 32768)
     for name in ("acceptance_criteria", "evidence_refs", "scope_refs", "allowed_actions"):
         strings(goal[name], required=True)
@@ -355,9 +366,22 @@ class Coordinator:
         if r["kind"] == "DELEGATE_GOAL":
             goal = db.execute("SELECT work_key,state,accepted_seq,last_seq FROM goals WHERE project_id=? AND request_id=?",
                               (project_id, request_id)).fetchone()
+            ref = body["goal"].get("acceptor_ref")
+            binding = "DESIGNATED"
+            if ref is None:
+                binding = "PROJECT_OWNER_AT_HANDOFF"
+                assignment = db.execute("SELECT json_extract(proof,'$.owner_principal') AS owner FROM assignments"
+                                        " WHERE project_id=? AND generation=?",
+                                        (project_id, body["expected_generation"])).fetchone()
+                ref = assignment["owner"] if assignment else None
+            result["business_acceptance"] = {"binding": binding, "acceptor_ref": ref, "task_ref": body["task_ref"],
+                                             "decision_state": "NOT_RECORDED_HERE"}
             result["goal"] = dict(goal)
+            result["goal"].update(owner_accepted=goal["accepted_seq"] is not None,
+                                  owner_reported_completion=goal["state"] == "COMPLETED")
             result.update(kind="DELEGATE_GOAL", goal_state=goal["state"], last_seq=goal["last_seq"],
-                          work_key=goal["work_key"], accepted=goal["accepted_seq"] is not None)
+                          work_key=goal["work_key"], accepted=goal["accepted_seq"] is not None,
+                          unblock_scope="CURRENT_EXECUTION")
         return result
 
     @staticmethod
@@ -371,6 +395,35 @@ class Coordinator:
     def verify_bridge_origin(self, project_id, request_id, origin):
         with self._db(False) as db:
             self._require_bridge_origin(db, project_id, request_id, origin)
+
+    @staticmethod
+    def _goal_control_row(db, project_id, request_id):
+        return db.execute("SELECT seq,body FROM events WHERE project_id=? AND request_id=? AND kind='GOAL_SOURCE_CONTROL'"
+                          " ORDER BY seq DESC LIMIT 1", (project_id, request_id)).fetchone()
+
+    def goal_bridge_control(self, project_id, request_id, *, decision=None, expected_revision=None):
+        """Host-only, original admission and last observed control decision; never grants a send."""
+        with self._db(decision is not None) as db:
+            r = self._request(db, project_id, request_id)
+            require(r["kind"] == "DELEGATE_GOAL", "OPERATION_NOT_ALLOWED")
+            event = db.execute("SELECT body FROM events WHERE project_id=? AND request_id=? AND kind='REQUEST_ACCEPTED'"
+                               " ORDER BY seq LIMIT 1", (project_id, request_id)).fetchone()
+            accepted = json.loads(event["body"]) if event else {}
+            require(accepted.get("bridge_origin") and accepted.get("input_hash") == r["input_hash"] ==
+                    canonical_hash(json.loads(r["body"])), "ORIGIN_BINDING_UNATTESTED")
+            prior = self._goal_control_row(db, project_id, request_id)
+            revision, known = (prior["seq"], json.loads(prior["body"])["decision"]) if prior else (0, None)
+            if decision is not None:
+                fields(decision, "route_hash denied")
+                require((decision["denied"] is None or re.fullmatch(r"[A-Z][A-Z0-9_]{0,63}", decision["denied"]))
+                        and re.fullmatch(r"[0-9a-f]{64}", decision["route_hash"]), "INVALID_SOURCE_CONTROL")
+                if known != decision:
+                    require(expected_revision == revision, "SOURCE_CONTROL_CHANGED")
+                    self._event(db, project_id, request_id, "GOAL_SOURCE_CONTROL", self.coordinator_id,
+                                {"previous_revision": revision, "decision": decision})
+                    revision = self._goal_control_row(db, project_id, request_id)["seq"]
+                    known = decision
+            return {"origin": accepted["bridge_origin"], "principal": r["principal"], "revision": revision, "known": known}
 
     def submit(self, principal, request, *, bridge_origin=None):
         common = "project_id request_id job_id task_ref idempotency_key kind expected_generation deadline " \
@@ -421,6 +474,9 @@ class Coordinator:
                 require(project["owner_principal"] is not None and project["assignment_state"] == "BOUND",
                         "OWNER_UNVERIFIED")
                 goal = request["goal"]
+                acceptor = goal.get("acceptor_ref", project["owner_principal"])
+                require(_acceptor_key(acceptor) not in CLOUD_DOT_ALIASES and acceptor != principal and
+                        (bridge_origin is None or acceptor != bridge_origin["subject"]), "INITIATOR_CANNOT_ACCEPT")
                 original = db.execute("SELECT request_id,work_key FROM goals WHERE project_id=? AND work_key=?",
                                       (p, goal["work_key"])).fetchone()
                 if original:
@@ -678,7 +734,8 @@ class Coordinator:
                 self._wait(db, project_id, request_id, wait)
             return {"accepted": True, "late": False, "delivery": self._save_result(db, project_id, request_id, result)}
 
-    def goal_update(self, principal, project_id, request_id, action_id, generation, endpoint, evidence_ref, report):
+    def goal_update(self, principal, project_id, request_id, action_id, generation, endpoint, evidence_ref, report,
+                    *, bridge_control_revision=None):
         """Apply an authenticated owner's business observation, separately from transport delivery.
 
         Evidence contracts are checked here; listening quality itself is attested by the
@@ -698,6 +755,10 @@ class Coordinator:
         with self._db() as db:
             request = self._request(db, project_id, request_id)
             require(request["kind"] == "DELEGATE_GOAL", "OPERATION_NOT_ALLOWED")
+            if bridge_control_revision is not None:
+                mark = self._goal_control_row(db, project_id, request_id)
+                require(mark and mark["seq"] == bridge_control_revision and
+                        json.loads(mark["body"])["decision"]["denied"] is None, "SOURCE_CONTROL_CHANGED")
             contact, current = self._verified_contact(db, principal, project_id, request_id, action_id, generation, endpoint)
             body = json.loads(request["body"])
             goal = body["goal"]

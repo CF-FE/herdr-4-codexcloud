@@ -10,7 +10,7 @@ import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from project_coordinator import Coordinator, CoordinatorError, GOAL_BUDGET, canonical_hash
+from project_coordinator import Coordinator, CoordinatorError, GOAL_BUDGET, canonical, canonical_hash
 
 
 class GoalTests(unittest.TestCase):
@@ -106,6 +106,59 @@ class GoalTests(unittest.TestCase):
         self.assertFalse(self.c.inspect("alpha", "goal-1")["cloud_dot_read"])
         self.denied("GOAL_TERMINAL", self.update, self.report(4, "IN_PROGRESS"))
         self.assertEqual(self.update(self.report(3, "COMPLETED"))["delivery"], final)
+
+    def test_designated_acceptor_stays_on_project_record_after_read_and_completion(self):
+        self.original = self.request()
+        self.original["goal"]["acceptor_ref"] = "quality:李工"
+        accepted = self.c.submit("cloud:alpha", self.original)
+        binding = {"binding": "DESIGNATED", "acceptor_ref": "quality:李工",
+                   "task_ref": self.original["task_ref"], "decision_state": "NOT_RECORDED_HERE"}
+        self.assertEqual(accepted["business_acceptance"], binding)
+        self.assertFalse(accepted["goal"]["owner_accepted"])
+        self.intent = self.c.claim_contact("alpha", "goal-1", 1)
+        self.assertEqual(self.intent["goal"]["acceptor_ref"], "quality:李工")
+        self.update()
+        status = self.c.inspect("alpha", "goal-1")
+        self.assertTrue(status["goal"]["owner_accepted"])
+        self.assertFalse(status["goal"]["owner_reported_completion"])
+        final = self.update(self.report(2, "COMPLETED"))["delivery"]
+        status = self.c.ack("cloud:alpha", "alpha", "goal-1", final["version"], final["result_hash"], "read:v2")
+        self.assertTrue(status["cloud_dot_read"] and status["unblocked"])
+        self.assertTrue(status["goal"]["owner_reported_completion"])
+        self.assertEqual(status["unblock_scope"], "CURRENT_EXECUTION")
+        self.assertEqual(status["business_acceptance"], binding)
+        self.assertNotIn("business_acceptance", final["result"])  # Existing signed wire contract.
+        self.assertEqual(self.reopen().delivery("alpha", "goal-1", final["version"]), final)
+        changed = deepcopy(self.original)
+        changed["goal"]["acceptor_ref"] = "quality:other"
+        self.denied("IDEMPOTENCY_CONFLICT", self.c.submit, "cloud:alpha", changed)
+
+    def test_legacy_default_follows_the_original_appointment_after_owner_changes(self):
+        self.start()
+        before = self.c.inspect("alpha", "goal-1")["business_acceptance"]
+        self.assertEqual((before["binding"], before["acceptor_ref"]), ("PROJECT_OWNER_AT_HANDOFF", "owner:alice"))
+        self.update()
+        self.update(self.report(2, "COMPLETED"))
+        self.c.manage("activate_owner", self.binding("bob", 1))
+        self.assertEqual(self.reopen().inspect("alpha", "goal-1")["business_acceptance"], before)
+        with sqlite3.connect(self.c.path) as db:
+            body, digest = db.execute("SELECT body,input_hash FROM requests WHERE request_id='goal-1'").fetchone()
+        self.assertEqual(body, canonical(self.original).decode())
+        self.assertNotIn("acceptor_ref", self.original["goal"])
+        self.assertEqual(digest, canonical_hash(self.original))
+
+    def test_acceptor_must_be_real_reference_and_distinct_from_initiator(self):
+        request = self.request()
+        for ref in (None, [], "", " ", " qa:alice", "qa:alice\tref", "待定", "UNKNOWN", "x" * 2049):
+            request["goal"]["acceptor_ref"] = ref
+            self.denied("INVALID_ACCEPTOR_REF", self.c.submit, "cloud:alpha", request)
+        for ref in ("cloud:alpha", "Cloud-Dot", "云端 Dot", "G8", "cloud_dot_organization_lead", "g8_coordinator"):
+            request["goal"]["acceptor_ref"] = ref
+            self.denied("INITIATOR_CANNOT_ACCEPT", self.c.submit, "cloud:alpha", request)
+        origin = {"channel":"test", "subject":"native:original", "origin_ref":"proof:origin", "task_evidence_ref":"proof:task"}
+        request["evidence_refs"] += [origin["origin_ref"], origin["task_evidence_ref"]]
+        request["goal"]["acceptor_ref"] = origin["subject"]
+        self.denied("INITIATOR_CANNOT_ACCEPT", lambda: self.c.submit("cloud:alpha", request, bridge_origin=origin))
 
     def test_work_reservation_is_cross_request_and_rejects_partial_overlap(self):
         self.start()
