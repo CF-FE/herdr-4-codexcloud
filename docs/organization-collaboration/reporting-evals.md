@@ -2,7 +2,7 @@
 
 2026-11-01 从固定源需求页的五个情境派生，保留输入与行为判据，去掉源 PR 的候选时态和版本沿革。来源为 [CF-FE/mymcp-4-codexcloud@8481136](https://github.com/CF-FE/mymcp-4-codexcloud/blob/8481136f3a24289978ba207317c8b9b8397318e7/docs/organization-collaboration/reporting-contract-requirements.md)，逐文件摘要与派生关系见[增量来源](../copy-updates.json)。
 
-这是**文档判据，非已执行的行为盲测或运行验收**。规范唯一正文仍为本仓组织协议 1.6.0 的[可达汇报约定](../../skill/organization-collaboration/references/context-and-reporting.md#派发时约定可达汇报)；本轮该参考的汇报语义未变，本页不另定岗位、消息通道、权限或调度规则。
+这是**文档判据，非已执行的行为盲测或运行验收**。规范唯一正文仍为本仓组织协议 1.6.0 的[可达汇报约定](../../skill/organization-collaboration/references/context-and-reporting.md#派发时约定可达汇报)；其[共同汇报规则](../../skill/organization-collaboration/references/context-and-reporting.md#回报与证据)另明确各层全角色的主动汇报、接收确认和升级义务。本页不另定岗位、消息通道、权限或调度规则。
 
 ## 情境与判据
 
