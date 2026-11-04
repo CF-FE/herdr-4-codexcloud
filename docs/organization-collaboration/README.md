@@ -7,7 +7,7 @@
 | [55 题输入](eval-inputs.json) | 从固定源原样复制；匿名 E／P／A 场景，仅为模型决策走查输入 |
 | [评阅判据](eval-rubric.md) | 原样复制；唯一相对依赖为同目录输入；含答案，不能提前交给前向评测者 |
 | [可达汇报 R01–R05](reporting-evals.md) | 从源需求页改编；输入与判据同页，只做文档审查资料 |
-| [组织技能](../../skill/organization-collaboration/SKILL.md) | 本仓 1.5.2 规范入口；上述资料不另外制定岗位、权限或运行规则 |
+| [组织技能](../../skill/organization-collaboration/SKILL.md) | 本仓 1.6.0 规范入口；上述资料不另外制定岗位、权限或运行规则 |
 
 ## 来源与评测边界
 

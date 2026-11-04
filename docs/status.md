@@ -1,20 +1,20 @@
 # 本仓当前状态
 
-证据截至 **2026-11-03（Asia/Shanghai）**。本页维护 Herdr 项目的当前采用摘要，具体任务以原 Issue／Project 为准，接口与逐项验收以所属规范为准。版本、工具计数与运行健康均为对应时点的观测，不是实时监控。此前逐轮记录已冻结到[状态沿革](history/status-through-2026-11-03.md)，不再与本页并列维护现状。
+既有宿主运行证据截至 **2026-11-03（Asia/Shanghai）**；**2026-11-04** 的协作规范修订与本次 Cloud 工作区离线检查另列，不延长旧运行回执的有效范围。本页维护 Herdr 项目的当前采用摘要，具体任务以原 Issue／Project 为准，接口与逐项验收以所属规范为准。版本、工具计数与运行健康均为对应时点的观测，不是实时监控。此前逐轮记录已冻结到[状态沿革](history/status-through-2026-11-03.md)，不再与本页并列维护现状。
 
 ## 当前结论
 
 | 对象 | 已取得的证据 | 尚不包含 |
 | --- | --- | --- |
 | Lead 显式 Mac 执行适配器 | 源码已发布、独立安装；已有 Mac Codex Agent 的一次合成执行、产物核验、结果回传及独立工程验收通过；[Herdr #1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1) Closed/completed，原 Project 条目 Done | 自动收件派发、Win／Cloud 执行扩展、任意业务任务、长期稳定性 |
-| Task Mailbox／Mac 协调桥 | 专用桥迁移与三项修复已安装；原任务持久收发、精确结果读取／ACK、Mac 收取 ACK 已验 | Dot 发起新任务、Mac 发起反向新任务、各 CLI／Cloud 独立接入及长期可用性 |
+| Task Mailbox／Mac 协调桥 | 专用桥迁移与三项修复已安装；原任务持久收发、精确结果读取／ACK、Mac 收取 ACK 已验；Dot 单件计划首发见下方协调员回执 | 通用业务新任务派发、Mac 发起反向新任务、各 CLI／Cloud 独立接入及长期可用性 |
 | Worker／角色库 | 主干提供 Worker 库 1.0.0、角色库 1.0.1，含 7 个 Worker、9 个后端、13 个角色。已安装的显式执行适配器按自己的固定目录制稿和校验 | 所有模板都已运行、角色已任命、全库已部署到 Win／Cloud |
 | Mac → Win Herdr | TUI 0.9.5 原生 saved-machine／LAN SSH 的保存连接、reachable 及定向 Agent 清单回读通过 | Win Herdr 内模型派发、业务产物回收与生产写权切换 |
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
-| 本仓技能 | 组织协作 1.5.2、Projects 1.1.0 源码可按路径读取，来源闭包已核 | 所有目标宿主原生安装、自动发现和工具权限 |
+| 本仓技能与协作规范 | 组织协作源码 1.6.0（本仓修订）、Projects 1.1.0；[协作约定](coordination-policy.md)明确 G8 上游定位、协调员广泛调度、小迭代直派与 Cloud 路由目标合同 | 目标宿主安装／加载、新关系的实际采用；协调员触发 Cloud 的运行链路尚未实现／验证 |
 | 云端Dot与 Mac 项目协调员 | [凡人负责人答复的定时读回](project-coordinator.md#fanren-scheduled-read)通过。另用一条只读连通性任务验收原计划首发、Mac 协调员自动回传、Dot 延时读回和已读确认，单件权限已撤回。[首次投递记录](project-coordinator.md#scheduled-first-submit) | 自建事件唤醒及长期稳定性待验。听检接手人及首份回执时间仍待凡人负责人核实 |
-| Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main` | Cloud Worker 实际运行、工具权限及成果回传待验 |
+| Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main`；11 月 4 日本次 Cloud 工作区已进行仓库文档编辑与[离线检查](#本地检查) | 协调员触发 Cloud、Cloud 信箱接入、指定接收者的成果读回及生产业务；本次工具权限不推广到其他任务 |
 
 运行前提保持 **Mac 持续在线**：项目 Lead 和 CLI Proxy 在 Mac，Win 的代理入口可依赖它；不建设 Mac 离线接管。当前采用 Herdr TUI，core／`hc` 和 Herdr App 属于历史对照。职责与路径见[架构](architecture.md)，实际操作前沿[试点绑定](pilot.md#启动前绑定)核当前目标与授权。
 
@@ -64,6 +64,7 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 | --- | --- |
 | 当前采用摘要／后续缺口 | 本页；具体任务仍在原 Issue／Project |
 | 职责、组件、源码与资产归属 | [架构](architecture.md) |
+| G8 上游定位、协调员调度范围、小迭代直派与 Cloud 路由边界 | [协作约定](coordination-policy.md)；通用岗位语义在组织技能维护 |
 | 协调员、负责人、Worker 的生效、交接、恢复与退出 | [生命周期设计依据](project-coordinator.md#agent-lifecycle)，各运行端的 [hooks 与证据边界](project-coordinator.md#lifecycle-hooks) |
 | 网络、SSH、服务恢复 | [网络指引](networking-plan.md)；VPS 特有事项见[专项指引](vps-control-pilot.md) |
 | 多项目合同与分阶段路线 | [迭代指引](collaboration-iteration-guide.md) |
@@ -79,10 +80,12 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 
 1. **传输稳定性**：沿服务仓原任务核长期运行、反向新任务与原异常原因，保留 UNKNOWN。
 2. **Dot 原生入口**：已有局部用户回报；具体工具发现、目标绑定、定向执行和回读仍按[专项评估](dot-mac-herdr-evaluation.md)取证，不由网络或桌面试点代证。
-3. **Win／Cloud 扩展**。Cloud 环境已发布，下一项是核验具体 Cloud 任务的实际工具、权限与回传。Win 的 Herdr 定向派发及业务产物仍待验。
+3. **Win／Cloud 扩展**。Cloud 环境已发布，具体 Cloud 任务的实际工具、权限与回传分别取证；协调员指挥 Cloud 路由仍是[目标合同](coordination-policy.md#4-协调员指挥-cloud-路由)，不由 G8 的独立直派样本或信箱 ACK 代验。Win 的 Herdr 定向派发及业务产物仍待验。
 4. **多项目与生产**：真实项目产物、并行容量、生产业务验收及新旧写控制切换未验；选择下一步沿[迭代路线](collaboration-iteration-guide.md#4-分阶段迭代)，本列表不启动任务。
 5. **目标工具与恢复**：Worker 自身 Projects／Space 工具、权限、资源读取，技能原生发现，主机重启、未来版本兼容及所依赖的网络拒绝用例分别待核。只限制依赖这些条件的动作，不重做已经通过的独立切片。
 
 ## 本地检查
 
-检查命令见 [README](../README.md#本地检查)。2026-11-03 本次文档整理的结构检查、Worker 库检查和 61 项测试通过，仓内链接／锚点及来源摘要核对通过。冻结历史经逆向校对，与整理前原件字节一致；源码、复制技能、来源清单与角色定义未变。以上是文档与离线证据，不是新的模型调用、安装、入网或故障测试。
+检查命令见 [README](../README.md#本地检查)。2026-11-03 文档整理时，结构检查、Worker 库检查和 61 项测试通过，仓内链接／锚点及来源摘要核对通过；冻结历史与整理前原件字节一致，当轮源码、复制技能、来源清单与角色定义未变。
+
+2026-11-04 协作规范修订在本次 Cloud 工作区通过结构检查、Worker 库检查和现有 100 项标准库测试。此次修改文档与组织技能，运行源码、历史导入清单及 Worker／角色库未变；这是仓库级文档与离线验证样本，不证明 Mac 协调员能触发 Cloud、信箱自动派发、目标宿主部署或生产业务通过。
