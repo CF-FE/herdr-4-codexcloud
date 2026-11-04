@@ -212,8 +212,11 @@ def goal_wait(core, project, request_id, reason):
     wait = dict(status['waiting'])
     wait.pop('follow_up_owner', None)
     wait.pop('contact_reason', None)
+    condition = ('Wait for the current owner turn to finish, then check the original request again'
+                 if reason == 'NATIVE_OWNER_BUSY' and not status['action_id']
+                 else 'Resolve the original native goal channel and reconcile any existing action')
     wait.update(project_id=project, request_id=request_id, action_owner=core.coordinator_id,
-                reason=reason, next_condition='Coordinator must resolve the original native goal channel; do not redispatch',
+                reason=reason, next_condition=condition,
                 evidence_ref='local:goal-channel:' + reason)
     core.manage('set_wait', wait)
     core.manage('report_wait', {'project_id': project, 'request_id': request_id,
@@ -275,7 +278,6 @@ def dispatch(args):
             try:
                 channel = load_goal_channel(config['goal_channel_config'])
                 context = core.goal_context(project, request_id)
-                channel.preflight(context)
                 owner_grant = Grant(channel.peer, project, context['owner_principal'], 'native-goal-owner',
                                     frozenset({'goal_update'}))
                 transport = CoordinatorTransport(core, grants=[*grants, owner_grant], recipient=config['recipient'],
@@ -323,12 +325,14 @@ def main(argv=None):
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 2 if result.get('state') == 'UNKNOWN' else 0
     except (TransportError, CoordinatorError) as error:
-        code = error.code
+        detail = {'code': error.code}
+        if getattr(error, 'conflicts', None):
+            detail['conflicts'] = error.conflicts
     except ConnectionError:
-        code = 'BRIDGE_UNAVAILABLE'
+        detail = {'code': 'BRIDGE_UNAVAILABLE'}
     except (OSError, ValueError, sqlite3.Error):
-        code = 'LOCAL_BRIDGE_IO_ERROR'
-    print(json.dumps({'error': {'code': code}}), file=sys.stderr)
+        detail = {'code': 'LOCAL_BRIDGE_IO_ERROR'}
+    print(json.dumps({'error': detail}), file=sys.stderr)
     return 2
 
 

@@ -83,6 +83,7 @@ asyncio.run(main())
 '''
 
 CLIENT = r'''
+from contextlib import nullcontext
 import json, os, sqlite3, sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -112,7 +113,10 @@ class NativeFixture:
         self.session = object()
     def authenticated_peer(self, session):
         return owner if session is self.session else None
-    def submit_goal(self, intent, *, verify_current):
+    def prepare_goal(self, binding):
+        return nullcontext(binding['request_id'])
+    def submit_goal(self, intent, *, verify_current, preparation):
+        assert preparation == intent['request_id']
         verify_current()
         self.calls += 1
         assert intent['action_id'] not in self.effects

@@ -1,6 +1,7 @@
 """Full goal transport path with a real temporary ledger and synthetic native ports."""
 
 from copy import deepcopy
+from contextlib import nullcontext
 from dataclasses import replace
 import unittest
 
@@ -10,7 +11,11 @@ from project_coordinator import Coordinator, CoordinatorError, GOAL_BUDGET, cano
 
 
 class GoalPorts(fixtures.FixturePorts):
-    def submit_goal(self, intent, *, verify_current):
+    def prepare_goal(self, binding):
+        return nullcontext(binding['request_id'])
+
+    def submit_goal(self, intent, *, verify_current, preparation):
+        assert preparation == intent['request_id']
         self.contact_calls.append(deepcopy(intent))
         assert intent['kind'] == 'DELEGATE_GOAL'
         assert intent['budget'] == GOAL_BUDGET
@@ -153,6 +158,18 @@ class GoalTransportTests(unittest.TestCase):
                 result = self.adapter.dispatch_goal('alpha', 'req-alpha', 1)
                 self.assertEqual(result['outcome'], 'NOT_SENT')
                 self.assertEqual(self.port.native_effects, [])
+
+    def test_busy_before_dispatch_preserves_the_one_attempt(self):
+        self.adapter.deliver('job-alpha')
+        available = self.port.prepare_goal
+        def busy(_):
+            raise TransportError('NATIVE_OWNER_BUSY')
+        self.port.prepare_goal = busy
+        self.assert_transport_error('NATIVE_OWNER_BUSY', lambda: self.adapter.dispatch_goal('alpha', 'req-alpha', 1))
+        self.assertIsNone(self.core.inspect('alpha', 'req-alpha')['action_id'])
+        self.port.prepare_goal = available
+        self.assertEqual(self.adapter.dispatch_goal('alpha', 'req-alpha', 1)['outcome'], 'SUBMITTED')
+        self.assertEqual(len(self.port.native_effects), 1)
 
     def test_unknown_native_outcome_recovers_same_action_without_a_second_dispatch(self):
         self.port.lose_contact_ack = True

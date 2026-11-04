@@ -114,11 +114,71 @@ class GoalTests(unittest.TestCase):
         duplicate["goal"]["scope_refs"].reverse()
         self.denied("WORK_ALREADY_DELEGATED", self.c.submit, "cloud:alpha", duplicate)
         overlap = self.request("goal-3", scopes=["batch:v1:segment-02", "batch:v1:segment-03"])
-        self.denied("WORK_SCOPE_OVERLAP", self.c.submit, "cloud:alpha", overlap)
-        existing = self.c.goal_for_work("cloud:alpha", "alpha", self.original["goal"]["work_key"])
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.c.submit("cloud:alpha", overlap)
+        self.assertEqual(rejected.exception.code, "WORK_SCOPE_OVERLAP")
+        conflicts = rejected.exception.conflicts
+        self.assertEqual(conflicts, [{"request_id": "goal-1", "work_key": self.original["goal"]["work_key"]}])
+        existing = self.c.goal_for_work("cloud:alpha", "alpha", conflicts[0]["work_key"])
         self.assertEqual(existing["request_id"], "goal-1")
         self.assertEqual(existing["action_id"], self.intent["action_id"])
         self.denied("ACCESS_DENIED", self.c.goal_for_work, "cloud:other", "alpha", self.original["goal"]["work_key"])
+
+    def test_asset_alias_cannot_bypass_reservation_or_expose_it_to_another_principal(self):
+        self.start()
+        for value in ("batch:v1:segment-01 ", "\tbatch:v1:segment-01", "batch:v1:\x01segment-01"):
+            self.denied("NONCANONICAL_SCOPE_REF", self.c.submit, "cloud:alpha", self.request("other", scopes=[value]))
+        with self.assertRaises(CoordinatorError) as denied:
+            self.c.submit("untrusted", self.request("other"))
+        self.assertEqual(denied.exception.code, "ACCESS_DENIED")
+        self.assertFalse(denied.exception.conflicts)
+
+    def test_recovery_replays_timely_acceptance_even_after_its_checkpoint(self):
+        self.start()
+        accepted = self.report()
+        completed = self.report(2, "COMPLETED")
+        self.now += timedelta(hours=4)
+        recovered = self.reopen()
+        self.assertTrue(self.update(accepted, coordinator=recovered)["accepted"])
+        self.assertEqual(recovered.manage("tick", {"project_id": "alpha"})["items"][0]["phase"], "CHECKPOINT")
+        self.assertTrue(self.update(completed, coordinator=recovered)["accepted"])
+        self.assertFalse(recovered.claim_contact("alpha", "goal-1", 1)["send"])
+        self.assertEqual(recovered.inspect("alpha", "goal-1")["goal_state"], "COMPLETED")
+
+    def test_late_reports_have_separate_durable_sequence_and_idempotent_receipts(self):
+        self.start()
+        self.update()
+        self.c.cancel("cloud:alpha", "alpha", "goal-1", "cancel:original")
+        late_progress, late_final = self.report(2, "IN_PROGRESS"), self.report(3, "COMPLETED")
+        self.denied("GOAL_SEQUENCE_GAP", self.update, late_final)
+        for report in (late_progress, late_final, late_progress, late_final):
+            self.assertEqual(self.update(report, coordinator=self.reopen()), {"accepted": False, "late": True})
+        self.denied("GOAL_UPDATE_CONFLICT", self.update, dict(late_progress, summary="different observation"))
+        state = self.c.inspect("alpha", "goal-1")
+        self.assertEqual((state["goal_state"], state["last_seq"], state["result_version"]), ("ACCEPTED", 1, 1))
+        events = self.c.manage("events", {"project_id": "alpha"})["events"]
+        self.assertEqual(sum(e["kind"] == "LATE_GOAL_OBSERVATION" for e in events), 2)
+
+    def test_unbound_project_does_not_reserve_the_goal_assets(self):
+        ledger = Coordinator(self.state.parent / "unbound", clock=lambda: self.now)
+        ledger.manage("register_project", {"project_id": "alpha", "repository": "CF-FE/alpha",
+                      "project_ref": "project:alpha", "cloud_dot_principal": "cloud:alpha",
+                      "report_route": "mailbox:original"})
+        original = self.request()
+        original["expected_generation"] = 0
+        self.denied("OWNER_UNVERIFIED", ledger.submit, "cloud:alpha", original)
+        ledger.manage("activate_owner", self.binding())
+        self.assertEqual(ledger.submit("cloud:alpha", self.request())["goal_state"], "ADMITTED")
+
+    def test_new_owner_does_not_inherit_a_goal_before_contact(self):
+        original = self.request()
+        self.c.submit("cloud:alpha", original)
+        self.c.manage("activate_owner", self.binding("bob", 1))
+        self.denied("GOAL_ORIGINAL_GENERATION_MISMATCH", self.c.manage, "retarget",
+                    {"project_id": "alpha", "request_id": "goal-1", "expected_generation": 2,
+                     "authorization_ref": "local:retarget"})
+        self.denied("STALE_GENERATION", self.c.claim_contact, "alpha", "goal-1", 2)
+        self.assertIsNone(self.c.inspect("alpha", "goal-1")["action_id"])
 
     def test_concurrent_duplicate_submit_has_one_durable_reservation(self):
         coordinators = [self.reopen(), self.reopen()]
@@ -173,12 +233,13 @@ class GoalTests(unittest.TestCase):
         self.start()
         self.c.cancel("cloud:alpha", "alpha", "goal-1", "cancel:original")
         self.denied("CANCEL_REQUESTED", self.c.check_contact, "alpha", "goal-1", self.intent["action_id"], 1)
-        self.assertEqual(self.update(), {"accepted": False, "late": True})
+        observation = self.report()
+        self.assertEqual(self.update(observation), {"accepted": False, "late": True})
         self.assertEqual(self.c.inspect("alpha", "goal-1")["goal_state"], "ADMITTED")
         self.assertFalse(self.c.inspect("alpha", "goal-1")["stopped"])
         self.now += timedelta(days=2)
         self.assertEqual(self.c.submit("cloud:alpha", self.original)["request_id"], "goal-1")
-        self.assertEqual(self.update(), {"accepted": False, "late": True})
+        self.assertEqual(self.update(observation), {"accepted": False, "late": True})
         events = self.c.manage("events", {"project_id": "alpha"})["events"]
         self.assertIn("LATE_GOAL_OBSERVATION", [event["kind"] for event in events])
 
@@ -188,8 +249,10 @@ class GoalTests(unittest.TestCase):
         self.denied("OUTSTANDING_CONTACT", self.c.manage, "activate_owner", self.binding("bob", 1))
         self.c.manage("record_stop", {"project_id": "alpha", "request_id": "goal-1",
                       "action_id": self.intent["action_id"], "evidence_ref": "native:old-action-stopped"})
+        late_progress = self.report(2, "IN_PROGRESS")
+        self.assertEqual(self.update(late_progress), {"accepted": False, "late": True})
         self.c.manage("activate_owner", self.binding("bob", 1))
-        self.assertEqual(self.update(self.report(2, "IN_PROGRESS")), {"accepted": False, "late": True})
+        self.assertEqual(self.update(late_progress), {"accepted": False, "late": True})
         self.assertEqual(self.c.inspect("alpha", "goal-1")["last_seq"], 1)
         self.denied("STALE_GENERATION", self.c.claim_contact, "alpha", "goal-1", 2)
 
@@ -206,6 +269,10 @@ class GoalTests(unittest.TestCase):
             self.denied("INDEPENDENT_REVIEW_REQUIRED", self.update, invalid)
         same_author = deepcopy(final)
         same_author["independent_review"]["reviewer"] = same_author["independent_review"]["producer"]
+        self.denied("INDEPENDENT_REVIEW_REQUIRED", self.update, same_author)
+        same_author["independent_review"]["reviewer"] += " "
+        self.denied("INDEPENDENT_REVIEW_REQUIRED", self.update, same_author)
+        same_author["independent_review"]["reviewer"] = "reviewer:\u200breported"
         self.denied("INDEPENDENT_REVIEW_REQUIRED", self.update, same_author)
         partial = deepcopy(final)
         partial["independent_review"]["scope_refs"] = partial["independent_review"]["scope_refs"][:1]

@@ -7,9 +7,10 @@ shared account's whoami, or a caller-supplied principal. This module does not
 install a port, acquire OAuth credentials, poll the mailbox, or open a ledger.
 """
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 import re
-from typing import Callable, Protocol
+from typing import Callable, ContextManager, Protocol
 
 if __package__:
     from .project_coordinator import canonical_hash
@@ -101,7 +102,11 @@ class OwnerObservation:
 
 
 class OwnerChannel(Protocol):
-    def submit_goal(self, intent: dict, *, verify_current: Callable[[], dict]) -> dict:
+    def prepare_goal(self, binding: dict) -> ContextManager[object]:
+        """Check availability and authority without creating a native action."""
+        ...
+
+    def submit_goal(self, intent: dict, *, verify_current: Callable[[], dict], preparation: object) -> dict:
         """A separately authorized native GOAL endpoint, never the query adapter.
 
         Enforce the frozen goal's allowed actions, read scope and zero production /
@@ -430,7 +435,8 @@ class CoordinatorTransport:
         No automatic owner creation, credential provisioning, worker start or
         production permission is inferred from accepting a goal into the ledger.
         """
-        require(self.owners is not None and callable(getattr(self.owners, 'submit_goal', None)),
+        require(self.owners is not None and callable(getattr(self.owners, 'submit_goal', None))
+                and callable(getattr(self.owners, 'prepare_goal', None)),
                 'GOAL_CHANNEL_UNBOUND')
         state = self.core.inspect(project_id, request_id)
         require(state.get('kind') == 'DELEGATE_GOAL', 'NOT_A_GOAL')
@@ -439,44 +445,55 @@ class CoordinatorTransport:
             original, payload = self._original(state['job_id'])
             require(original.payload_hash == state['payload_hash'], 'ORIGINAL_JOB_MISMATCH')
             self._verify_route(original, payload, project_id, admitted_request=request_id)
-            self._grant(original.origin, project_id, 'submit_goal')
+            grant = self._grant(original.origin, project_id, 'submit_goal')
+            if original.record.get('cancel_requested') is True:
+                self.core.cancel(grant.principal, project_id, request_id,
+                                 f'bridge:cancel:{original.job_id}:{original.payload_hash}')
             require(original.record.get('cancel_requested') is False, 'JOB_CANCELLED_OR_UNVERIFIED')
 
         source_gate()
-        intent = self.core.claim_contact(project_id, request_id, expected_generation)
-        ids = {key: intent[key] for key in CONTACT_KEYS}
-        if not intent['send']:
-            return {**ids, 'native_attempted': False, 'outcome': 'RECONCILE_ORIGINAL'}
-        command = {**ids, 'kind': 'DELEGATE_GOAL', **{k: intent[k] for k in
-                   ('job_id', 'payload_hash', 'task_ref', 'authorization_ref', 'budget', 'goal', 'deadline')}}
-        checked = False
-
-        def verify_current():
-            nonlocal checked
+        # A busy owner has not received anything. Never spend the one durable
+        # send intent just to learn the endpoint is unavailable.
+        prepare = nullcontext(None)
+        if not state['action_id']:
+            binding = self.core.goal_context(project_id, request_id)
+            require(binding['generation'] == expected_generation, 'STALE_GENERATION')
+            prepare = self.owners.prepare_goal(binding)
+        with prepare as preparation:
+            intent = self.core.claim_contact(project_id, request_id, expected_generation)
+            ids = {key: intent[key] for key in CONTACT_KEYS}
+            if not intent['send']:
+                return {**ids, 'native_attempted': False, 'outcome': 'RECONCILE_ORIGINAL'}
+            command = {**ids, 'kind': 'DELEGATE_GOAL', **{k: intent[k] for k in
+                       ('job_id', 'payload_hash', 'task_ref', 'authorization_ref', 'budget', 'goal', 'deadline')}}
             checked = False
-            source_gate()
-            permit = self.core.check_contact(project_id, request_id, intent['action_id'], expected_generation)
-            checked = True
-            return permit
 
-        try:
-            receipt = self.owners.submit_goal(command, verify_current=verify_current)
-            require(isinstance(receipt, dict) and type(receipt.get('generation')) is int
-                    and all(receipt.get(k) == v for k, v in ids.items())
-                    and receipt.get('kind') == 'DELEGATE_GOAL'
-                    and isinstance(receipt.get('outcome'), str) and receipt['outcome'] in CONTACT_REASONS
-                    and isinstance(receipt.get('reason'), str) and receipt['reason'] in CONTACT_REASONS[receipt['outcome']]
-                    and (receipt['outcome'] != 'SUBMITTED' or checked)
-                    and isinstance(receipt.get('evidence_ref'), str) and receipt['evidence_ref'].strip()
-                    and len(receipt['evidence_ref']) <= 2048 and '\x00' not in receipt['evidence_ref'],
-                    'NATIVE_RECEIPT_MISMATCH')
-            outcome, reason, evidence = receipt['outcome'], receipt['reason'], receipt['evidence_ref']
-        except Exception as error:
-            outcome = 'UNKNOWN'
-            reason = 'RECEIPT_MISMATCH' if isinstance(error, TransportError) else 'ACK_UNCONFIRMED'
-            evidence = f'local:{reason}:{intent["action_id"]}'
-        self.core.record_contact(project_id, request_id, intent['action_id'], outcome, evidence, reason=reason)
-        return {**ids, 'native_attempted': True, 'outcome': outcome, 'reason': reason, 'evidence_ref': evidence}
+            def verify_current():
+                nonlocal checked
+                checked = False
+                source_gate()
+                permit = self.core.check_contact(project_id, request_id, intent['action_id'], expected_generation)
+                checked = True
+                return permit
+
+            try:
+                receipt = self.owners.submit_goal(command, verify_current=verify_current, preparation=preparation)
+                require(isinstance(receipt, dict) and type(receipt.get('generation')) is int
+                        and all(receipt.get(k) == v for k, v in ids.items())
+                        and receipt.get('kind') == 'DELEGATE_GOAL'
+                        and isinstance(receipt.get('outcome'), str) and receipt['outcome'] in CONTACT_REASONS
+                        and isinstance(receipt.get('reason'), str) and receipt['reason'] in CONTACT_REASONS[receipt['outcome']]
+                        and (receipt['outcome'] != 'SUBMITTED' or checked)
+                        and isinstance(receipt.get('evidence_ref'), str) and receipt['evidence_ref'].strip()
+                        and len(receipt['evidence_ref']) <= 2048 and '\x00' not in receipt['evidence_ref'],
+                        'NATIVE_RECEIPT_MISMATCH')
+                outcome, reason, evidence = receipt['outcome'], receipt['reason'], receipt['evidence_ref']
+            except Exception as error:
+                outcome = 'UNKNOWN'
+                reason = 'RECEIPT_MISMATCH' if isinstance(error, TransportError) else 'ACK_UNCONFIRMED'
+                evidence = f'local:{reason}:{intent["action_id"]}'
+            self.core.record_contact(project_id, request_id, intent['action_id'], outcome, evidence, reason=reason)
+            return {**ids, 'native_attempted': True, 'outcome': outcome, 'reason': reason, 'evidence_ref': evidence}
 
     def _owner_observation(self, session, project_id, request_id, handle, action):
         grant = self._caller(session, project_id, action)

@@ -29,7 +29,7 @@ else:
 
 
 MAX_NATIVE = 8 * 1024 * 1024
-POLICY_KEYS = {'v', 'binary', 'binary_sha256', 'cli_version', 'profile', 'cwd', 'state_dir',
+POLICY_KEYS = {'v', 'binary', 'binary_sha256', 'cli_version', 'profile', 'codex_home', 'cwd', 'state_dir',
                'project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
                'generation', 'authorization_ref', 'work_key', 'scope_refs', 'allowed_actions',
                'capability_evidence_ref', 'capability_manifest', 'capability_manifest_sha256', 'expires_at'}
@@ -38,7 +38,7 @@ BINDING_KEYS = ('project_id', 'request_id', 'job_id', 'payload_hash', 'owner_pri
 INTENT_KEYS = (*CONTACT_KEYS, 'kind', 'job_id', 'payload_hash', 'task_ref', 'authorization_ref',
                'budget', 'goal', 'deadline')
 DISABLED_FEATURES = frozenset({'apps', 'plugins', 'hooks', 'shell_tool', 'multi_agent', 'multi_agent_v2',
-                              'code_mode', 'code_mode_host', 'unified_exec', 'view_image',
+                              'code_mode', 'code_mode_host', 'goals', 'view_image',
                               'image_generation', 'browser_use', 'browser_use_external',
                               'browser_use_full_cdp_access', 'in_app_browser', 'computer_use',
                               'skill_mcp_dependency_install', 'tool_suggest'})
@@ -91,7 +91,10 @@ def load_goal_channel(path):
     """Load an already approved private single-job binding; no defaults grant execution."""
     path = _private(path)
     require(path.stat().st_size <= 65536, 'NATIVE_POLICY_TOO_LARGE')
-    return CodexGoalChannel(_json(path.read_bytes()))
+    raw = path.read_bytes()
+    channel = CodexGoalChannel(_json(raw))
+    channel._policy_file = (path, hashlib.sha256(raw).digest())
+    return channel
 
 
 class CodexGoalChannel:
@@ -117,6 +120,13 @@ class CodexGoalChannel:
         self.policy = dict(policy)
         self.cwd = _private(policy['cwd'], True)
         self.state = _private(policy['state_dir'], True)
+        self.home = _private(policy['codex_home'], True)
+        # Every probe and native operation sees the same reviewed home, without
+        # inherited provider, profile, feature or arbitrary PATH overrides.
+        self.env = {'CODEX_HOME': str(self.home), 'HOME': str(Path.home()),
+                    'PATH': os.defpath, 'LANG': 'en_US.UTF-8'}
+        self._prepared = None
+        self._policy_file = None
         self.binary = Path(policy['binary'])
         self._observations = {}
         self.peer = Peer('mac-codex-cli', self.thread_id)
@@ -136,7 +146,7 @@ class CodexGoalChannel:
         goal = intent.get('goal')
         require(isinstance(goal, dict) and goal.get('work_key') == self.policy['work_key'] and
                 set(goal.get('scope_refs', [])) == set(self.policy['scope_refs']) and
-                set(goal.get('allowed_actions', [])) <= set(self.policy['allowed_actions']),
+                set(goal.get('allowed_actions', [])) == set(self.policy['allowed_actions']),
                 'NATIVE_GOAL_SCOPE_MISMATCH')
         return goal
 
@@ -147,7 +157,7 @@ class CodexGoalChannel:
 
     def _probe(self, argv, timeout):
         try:
-            result = subprocess.run(argv, capture_output=True, timeout=timeout, cwd=self.cwd, check=False)
+            result = subprocess.run(argv, capture_output=True, timeout=timeout, cwd=self.cwd, env=self.env, check=False)
         except subprocess.TimeoutExpired as error:
             raise TransportError('NATIVE_CAPABILITY_PROBE_TIMEOUT') from error
         except OSError as error:
@@ -155,27 +165,64 @@ class CodexGoalChannel:
         require(len(result.stdout) <= MAX_NATIVE, 'NATIVE_RESPONSE_TOO_LARGE')
         return result
 
-    def preflight(self, binding=None):
-        if binding is not None:
-            self._binding(binding)
+    def _binary_stamp(self):
         require(self.binary.is_absolute() and self.binary.resolve() == self.binary and self.binary.is_file(),
                 'NATIVE_BINARY_CHANGED')
-        require(hashlib.sha256(self.binary.read_bytes()).hexdigest() == self.policy['binary_sha256'],
-                'NATIVE_BINARY_CHANGED')
-        try:
-            expiry = datetime.fromisoformat(self.policy['expires_at'].replace('Z', '+00:00'))
-        except ValueError as error:
-            raise TransportError('INVALID_NATIVE_EXPIRY') from error
-        require(expiry.tzinfo is not None and expiry > datetime.now(timezone.utc), 'NATIVE_ADMISSION_EXPIRED')
-        result = self._probe([str(self.binary), '--version'], 10)
-        require(result.returncode == 0 and result.stdout.decode().strip() == self.policy['cli_version'],
-                'NATIVE_VERSION_CHANGED')
-        self._capabilities()
-        return {'state': 'HOST_ADMISSION_BOUND', 'capability_verification': 'HOST_ATTESTED',
-                'capability_evidence_ref': self.policy['capability_evidence_ref'],
-                'profile': self.policy['profile'], 'new_permissions': False}
+        st = self.binary.stat()
+        return st.st_dev, st.st_ino, st.st_size, st.st_ctime_ns
 
-    def _capabilities(self):
+    def _verify_binary(self):
+        stamp = self._binary_stamp()
+        digest = hashlib.sha256()
+        with self.binary.open('rb') as stream:
+            for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+                digest.update(chunk)
+        require(digest.hexdigest() == self.policy['binary_sha256'] and self._binary_stamp() == stamp,
+                'NATIVE_BINARY_CHANGED')
+        return stamp
+
+    @staticmethod
+    def _expiry(value, code):
+        expiry = datetime.fromisoformat(value.replace('Z', '+00:00'))
+        require(expiry.tzinfo is not None and expiry > datetime.now(timezone.utc), code)
+
+    @contextmanager
+    def _admission(self, binding):
+        if binding is not None:
+            self._binding(binding)
+        stamp = self._verify_binary()
+        self._expiry(self.policy['expires_at'], 'NATIVE_ADMISSION_EXPIRED')
+        version = self._probe([str(self.binary), '--version'], 10)
+        require(version.returncode == 0 and version.stdout.decode().strip() == self.policy['cli_version'],
+                'NATIVE_VERSION_CHANGED')
+        cap = self._read_capabilities()
+        with self._reader() as (call, wait_turn):
+            self._verify_config(call, cap)
+            yield call, wait_turn, cap, stamp
+
+    def preflight(self, binding=None):
+        """No thread or model is opened by this configuration-only diagnostic."""
+        with self._admission(binding):
+            return {'state': 'HOST_ADMISSION_BOUND', 'capability_verification': 'HOST_ATTESTED',
+                    'capability_evidence_ref': self.policy['capability_evidence_ref'],
+                    'profile': self.policy['profile'], 'new_permissions': False}
+
+    @contextmanager
+    def prepare_goal(self, binding):
+        """Hold the verified native reader across the caller's durable claim."""
+        with self._admission(binding) as prepared:
+            thread = self._thread(prepared[0])
+            require(thread.get('status', {}).get('type') not in ('active', 'systemError') and
+                    not any(t.get('status') == 'inProgress' for t in thread.get('turns', [])), 'NATIVE_OWNER_BUSY')
+            require(self._prepared is None, 'NATIVE_PREPARATION_IN_USE')
+            token = object()
+            self._prepared = (token, prepared, canonical_hash({k: binding[k] for k in INTENT_KEYS if k != 'action_id'}))
+            try:
+                yield token
+            finally:
+                self._prepared = None
+
+    def _read_capabilities(self):
         """Verify the host-reviewed closure and the actual enabled tool projection.
 
         No credential or full native configuration is printed or returned. The
@@ -197,17 +244,9 @@ class CodexGoalChannel:
                 cap['enforces_scope'] is True and type(cap['production_writes']) is int and cap['production_writes'] == 0 and
                 type(cap['audio_generations']) is int and cap['audio_generations'] == 0,
                 'NATIVE_CAPABILITY_BINDING_MISMATCH')
-        expiry = datetime.fromisoformat(cap['expires_at'].replace('Z', '+00:00'))
-        require(expiry.tzinfo is not None and expiry > datetime.now(timezone.utc), 'NATIVE_CAPABILITY_EXPIRED')
+        self._expiry(cap['expires_at'], 'NATIVE_CAPABILITY_EXPIRED')
         require(isinstance(cap['config_files'], list) and cap['config_files'], 'NATIVE_CONFIG_CLOSURE_REQUIRED')
-        seen = set()
-        for record in cap['config_files']:
-            require(isinstance(record, dict) and set(record) == {'path', 'sha256'}, 'NATIVE_CONFIG_CLOSURE_REQUIRED')
-            source = Path(record['path'])
-            require(source.is_absolute() and source.resolve() == source and source.is_file() and
-                    str(source) not in seen, 'NATIVE_CONFIG_CLOSURE_REQUIRED')
-            seen.add(str(source))
-            require(hashlib.sha256(source.read_bytes()).hexdigest() == record['sha256'], 'NATIVE_PROFILE_CHANGED')
+        self._check_files(cap)
         expected = cap['mcp_tools']
         require(isinstance(expected, dict) and expected and all(isinstance(k, str) and
                 re.fullmatch('[A-Za-z0-9_-]+', k) and isinstance(v, list) and v and
@@ -220,8 +259,11 @@ class CodexGoalChannel:
                 {x for v in action_tools.values() for x in v} == tools, 'NATIVE_GOAL_TOOLS_REQUIRED')
         require(isinstance(cap['disabled_features'], list) and set(cap['disabled_features']) >= DISABLED_FEATURES,
                 'NATIVE_TOOL_BOUNDARY_REQUIRED')
-        with self._reader() as call:
-            effective = call('config/read', {'cwd': str(self.cwd), 'includeLayers': True})
+        return cap
+
+    def _verify_config(self, call, cap):
+        expected = cap['mcp_tools']
+        effective = call('config/read', {'cwd': str(self.cwd), 'includeLayers': True})
         require(isinstance(effective.get('config'), dict) and isinstance(effective.get('layers'), list),
                 'NATIVE_EFFECTIVE_CONFIG_UNVERIFIED')
         # Never return or log the full configuration. Its digest plus native layer
@@ -234,8 +276,15 @@ class CodexGoalChannel:
                     isinstance(layer.get('version'), str), 'NATIVE_CONFIG_CLOSURE_REQUIRED')
             layers.append({k: layer[k] for k in ('name', 'version')})
         require(canonical_hash(layers) == cap['config_layers_sha256'], 'NATIVE_CONFIG_LAYERS_CHANGED')
-        require(effective['config'].get('sandbox_mode') == 'read-only' and
-                effective['config'].get('web_search') == 'disabled', 'NATIVE_TOOL_BOUNDARY_REQUIRED')
+        require(any(l['name'].get('type') == 'user' and
+                    l['name'].get('file') == str(self.home / 'config.toml') for l in layers),
+                'NATIVE_CONFIG_CLOSURE_REQUIRED')
+        config = effective['config']
+        require(config.get('sandbox_mode') == 'read-only' and config.get('web_search') == 'disabled'
+                and config.get('approval_policy') == 'on-request', 'NATIVE_TOOL_BOUNDARY_REQUIRED')
+        require(all(config.get('features', {}).get(f) is False for f in cap['disabled_features']),
+                'NATIVE_TOOL_BOUNDARY_CHANGED')
+        self._verify_features(call, cap, {})
         listed = self._probe([*self._args(), 'mcp', 'list', '--json'], 15)
         require(listed.returncode == 0, 'NATIVE_CAPABILITY_PROBE_FAILED')
         servers = _json(listed.stdout)
@@ -245,21 +294,54 @@ class CodexGoalChannel:
             require(isinstance(server, dict) and isinstance(server.get('name'), str) and
                     type(server.get('enabled')) is bool, 'NATIVE_CAPABILITY_PROBE_FAILED')
             if server['enabled']:
-                names = server.get('enabled_tools')
+                name = server['name']
+                require(name in expected and name not in actual, 'NATIVE_TOOLSET_CHANGED')
+                detail = self._probe([*self._args(), 'mcp', 'get', name, '--json'], 15)
+                require(detail.returncode == 0, 'NATIVE_CAPABILITY_PROBE_FAILED')
+                details = _json(detail.stdout)
+                require(details.get('name') == name and details.get('enabled') is True and
+                        not details.get('disabled_tools'), 'NATIVE_TOOL_ALLOWLIST_UNVERIFIED')
+                names = details.get('enabled_tools')
                 require(isinstance(names, list) and names and all(isinstance(n, str) for n in names) and
-                        len(names) == len(set(names)) and server['name'] not in actual,
-                        'NATIVE_TOOL_ALLOWLIST_UNVERIFIED')
-                actual[server['name']] = sorted(names)
+                        len(names) == len(set(names)), 'NATIVE_TOOL_ALLOWLIST_UNVERIFIED')
+                actual[name] = sorted(names)
         require(actual == {k: sorted(v) for k, v in expected.items()}, 'NATIVE_TOOLSET_CHANGED')
-        result = self._probe([*self._args(), 'features', 'list'], 15)
-        require(result.returncode == 0, 'NATIVE_CAPABILITY_PROBE_FAILED')
-        flags = {line.split()[0]: line.split()[-1] for line in result.stdout.decode().splitlines() if line.split()}
-        require(all(flags.get(f) == 'false' for f in cap['disabled_features']), 'NATIVE_TOOL_BOUNDARY_CHANGED')
+
+    @staticmethod
+    def _verify_features(call, cap, target):
+        # shell_tool controls registration of command tools. unified_exec is
+        # the backend selector; on this CLI it stays true unless managed policy
+        # disables it. An explicit additional host requirement is still enforced.
+        listing = call('experimentalFeature/list', {**target, 'limit': 1000})
+        require(isinstance(listing.get('data'), list) and listing.get('nextCursor') is None,
+                'NATIVE_TOOL_BOUNDARY_UNVERIFIED')
+        flags = {item['name']: item['enabled'] for item in listing['data']}
+        require(all(flags.get(name) is False for name in cap['disabled_features']),
+                'NATIVE_TOOL_BOUNDARY_CHANGED')
+
+    def _check_files(self, cap):
+        if self._policy_file:
+            path, digest = self._policy_file
+            require(hashlib.sha256(_private(path).read_bytes()).digest() == digest, 'NATIVE_GOAL_POLICY_CHANGED')
+        hashes = {}
+        for record in cap['config_files']:
+            require(isinstance(record, dict) and set(record) == {'path', 'sha256'}, 'NATIVE_CONFIG_CLOSURE_REQUIRED')
+            path = Path(record['path'])
+            require(path.is_absolute() and path.resolve() == path and path.is_file() and path not in hashes,
+                    'NATIVE_CONFIG_CLOSURE_REQUIRED')
+            hashes[path] = hashlib.sha256(path.read_bytes()).hexdigest()
+            require(hashes[path] == record['sha256'], 'NATIVE_PROFILE_CHANGED')
+        # This CLI supports --profile for 'mcp' but not 'app-server'. Accept
+        # only a reviewed dedicated home whose base and named layer are identical.
+        base = self.home / 'config.toml'
+        profile = self.home / (self.policy['profile'] + '.config.toml')
+        require(base in hashes and profile in hashes and hashes[base] == hashes[profile],
+                'NATIVE_PROFILE_NOT_EQUIVALENT')
 
     @contextmanager
     def _reader(self):
         try:
-            app = subprocess.Popen([*self._args(), 'app-server', '--stdio'], cwd=self.cwd,
+            app = subprocess.Popen([str(self.binary), 'app-server', '--stdio'], cwd=self.cwd, env=self.env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except OSError as error:
             raise TransportError('NATIVE_READER_UNAVAILABLE') from error
@@ -267,38 +349,57 @@ class CodexGoalChannel:
         counter = 0
         with selectors.DefaultSelector() as selector:
             selector.register(app.stdout, selectors.EVENT_READ)
+            finished = {}
+
+            def receive(deadline):
+                nonlocal buf
+                while b'\n' not in buf:
+                    remaining = deadline - time.monotonic()
+                    require(remaining > 0 and selector.select(remaining), 'NATIVE_READ_TIMEOUT')
+                    part = os.read(app.stdout.fileno(), 65536)
+                    require(bool(part), 'NATIVE_READER_EXITED')
+                    buf.extend(part)
+                    require(len(buf) <= MAX_NATIVE, 'NATIVE_RESPONSE_TOO_LARGE')
+                line, _, tail = buf.partition(b'\n')
+                buf = bytearray(tail)
+                answer = _json(line)
+                require(isinstance(answer, dict), 'NATIVE_INVALID_JSON')
+                require('method' not in answer or 'id' not in answer, 'NATIVE_APPROVAL_REQUIRED')
+                if answer.get('method') == 'turn/completed':
+                    params = answer.get('params', {})
+                    if params.get('threadId') == self.thread_id:
+                        turn = params['turn']
+                        finished[turn['id']] = turn['status']
+                return answer
+
             def call(method, params, notification=False):
-                nonlocal counter, buf
+                nonlocal counter
                 counter += 1
                 request = {'method': method, 'params': params}
                 if not notification:
                     request['id'] = counter
-                app.stdin.write(canonical(request) + b'\n')
+                app.stdin.write(canonical(request, max_bytes=MAX_NATIVE) + b'\n')
                 app.stdin.flush()
-                if notification:
-                    return None
-                deadline = time.monotonic() + 20
-                while time.monotonic() < deadline:
-                    if b'\n' not in buf:
-                        require(bool(selector.select(max(.01, deadline - time.monotonic()))), 'NATIVE_READ_TIMEOUT')
-                        part = os.read(app.stdout.fileno(), 65536)
-                        require(bool(part), 'NATIVE_READER_EXITED')
-                        buf.extend(part)
-                        require(len(buf) <= MAX_NATIVE, 'NATIVE_RESPONSE_TOO_LARGE')
-                        continue
-                    line, _, tail = buf.partition(b'\n')
-                    buf = bytearray(tail)
-                    answer = _json(line)
-                    # Native permission requests are never approved by this adapter.
-                    require('method' not in answer or 'id' not in answer, 'NATIVE_APPROVAL_REQUIRED')
-                    if answer.get('id') == counter:
-                        require(isinstance(answer.get('result'), dict), 'NATIVE_READ_REFUSED')
-                        return answer['result']
-                raise TransportError('NATIVE_READ_TIMEOUT')
+                if not notification:
+                    deadline = time.monotonic() + 20
+                    while time.monotonic() < deadline:
+                        answer = receive(deadline)
+                        if answer.get('id') == counter:
+                            require(isinstance(answer.get('result'), dict), 'NATIVE_READ_REFUSED')
+                            return answer['result']
+                    raise TransportError('NATIVE_READ_TIMEOUT')
+
+            def wait_turn(turn_id):
+                deadline = time.monotonic() + 300
+                while turn_id not in finished:
+                    require(time.monotonic() < deadline, 'NATIVE_SUBMISSION_UNCONFIRMED')
+                    receive(deadline)
+                require(finished[turn_id] == 'completed', 'NATIVE_SUBMISSION_UNCONFIRMED')
+
             try:
                 call('initialize', {'clientInfo': {'name': 'coordinator_goal_reader', 'version': '1'}})
                 call('initialized', {}, True)
-                yield call
+                yield call, wait_turn
             finally:
                 app.terminate()
                 try:
@@ -311,9 +412,16 @@ class CodexGoalChannel:
                 if app.stdout:
                     app.stdout.close()
 
-    def _thread(self):
-        with self._reader() as call:
-            thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': True}).get('thread')
+    def _thread(self, call=None):
+        if call is None:
+            self._verify_binary()
+            manifest = _private(self.policy['capability_manifest']).read_bytes()
+            require(hashlib.sha256(manifest).hexdigest() == self.policy['capability_manifest_sha256'],
+                    'NATIVE_CAPABILITY_MANIFEST_CHANGED')
+            self._check_files(_json(manifest))
+            with self._reader() as (reader, _):
+                return self._thread(reader)
+        thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': True}).get('thread')
         require(isinstance(thread, dict) and thread.get('id') == self.thread_id and
                 Path(thread.get('cwd', '')).resolve() == self.cwd, 'NATIVE_THREAD_MISMATCH')
         return thread
@@ -324,26 +432,29 @@ class CodexGoalChannel:
 
     @classmethod
     def _schema(cls, intent):
-        text = {'type': 'string', 'minLength': 1}
+        text = {'type': 'string'}
         refs = {'type': 'array', 'minItems': 1, 'items': text}
         common = {'seq': {'type': 'integer', 'minimum': 1}, 'summary': text, 'observed_at': text,
                   'evidence_refs': refs, 'next_owner': text}
-        continuing = {**common, 'phase': {'enum': ['ACCEPTED', 'IN_PROGRESS', 'BLOCKED']}, 'next_check_at': text}
-        completed = {**common, 'phase': {'const': 'COMPLETED'}, 'terminal_condition': text,
+        continuing = {**common, 'phase': {'type': 'string', 'enum': ['ACCEPTED', 'IN_PROGRESS', 'BLOCKED']}, 'next_check_at': text}
+        completed = {**common, 'phase': {'type': 'string', 'enum': ['COMPLETED']}, 'terminal_condition': text,
                      'criteria_evidence': {'type': 'array', 'minItems': 1, 'items': {
-                         'type': 'object', 'properties': {'criterion': {'enum': intent['goal']['acceptance_criteria']},
+                         'type': 'object', 'properties': {'criterion': {'type': 'string', 'enum': intent['goal']['acceptance_criteria']},
                                                        'evidence_refs': refs},
                          'required': ['criterion', 'evidence_refs'], 'additionalProperties': False}}}
         if intent['goal']['review_requirement'] == 'independent_listening':
-            review = {'state': {'const': 'VERIFIED'}, 'reviewer': text, 'producer': text,
+            review = {'state': {'type': 'string', 'enum': ['VERIFIED']}, 'reviewer': text, 'producer': text,
                       'scope_refs': refs, 'evidence_refs': refs,
-                      'method': {'enum': ['human_listening', 'audio_perception']}}
+                      'method': {'type': 'string', 'enum': ['human_listening', 'audio_perception']}}
             completed['independent_review'] = {'type': 'object', 'properties': review,
                                                'required': list(review), 'additionalProperties': False}
         alternatives = [{'type': 'object', 'properties': p, 'required': list(p), 'additionalProperties': False}
                         for p in (continuing, completed)]
-        return {'type': 'object', 'properties': {'receipt': {'const': cls._receipt(intent)},
-                'updates': {'type': 'array', 'minItems': 1, 'maxItems': 64, 'items': {'oneOf': alternatives}}},
+        receipt = {key: {'type': 'integer' if type(value) is int else 'string', 'enum': [value]}
+                   for key, value in cls._receipt(intent).items()}
+        return {'type': 'object', 'properties': {'receipt': {
+                    'type': 'object', 'properties': receipt, 'required': list(receipt), 'additionalProperties': False},
+                'updates': {'type': 'array', 'minItems': 1, 'maxItems': 64, 'items': {'anyOf': alternatives}}},
                 'required': ['receipt', 'updates'], 'additionalProperties': False}
 
     @classmethod
@@ -359,9 +470,9 @@ class CodexGoalChannel:
                 'REPORT_SCHEMA\n' + canonical(cls._schema(intent)).decode() + '\nFROZEN_INTENT\n'
                 + canonical(intent).decode())
 
-    def submit_goal(self, intent, *, verify_current):
+    def submit_goal(self, intent, *, verify_current, preparation=None):
         intent = self._intent(intent)
-        self.preflight(intent)
+        self._binding(intent)
         action = intent.get('action_id')
         require(isinstance(action, str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}', action),
                 'INVALID_NATIVE_ACTION')
@@ -371,38 +482,75 @@ class CodexGoalChannel:
             require((slot / 'intent.json').read_bytes() == canonical(intent), 'NATIVE_ACTION_CONFLICT')
             return {**ids, 'kind': 'DELEGATE_GOAL', 'outcome': 'UNKNOWN', 'reason': 'ACK_UNCONFIRMED',
                     'evidence_ref': 'native-goal-reconcile:' + action}
-        thread = self._thread()
-        require(not any(t.get('status') in ('inProgress', 'in_progress', 'running')
-                        for t in thread.get('turns', [])), 'NATIVE_OWNER_BUSY')
-        verify_current()
-        slot.mkdir(mode=0o700)  # Durable single-use reservation, never cleared on failure.
-        _new(slot / 'intent.json', canonical(intent))
+        if preparation is None:
+            with self.prepare_goal(intent) as ready:
+                return self.submit_goal(intent, verify_current=verify_current, preparation=ready)
+        require(self._prepared is not None and preparation is self._prepared[0], 'NATIVE_PREPARATION_INVALID')
+        require(canonical_hash({k: intent[k] for k in INTENT_KEYS if k != 'action_id'}) == self._prepared[2],
+                'NATIVE_PREPARATION_INVALID')
+        call, wait_turn, cap, stamp = self._prepared[1]
+        self._prepared = None  # Consume the capability before any native action.
         prompt = self._prompt(intent)
-        _new(slot / 'prompt.txt', prompt.encode())
-        _new(slot / 'report-schema.json', canonical(self._schema(intent)))
-        # Recheck the reviewed profile/config closure at the final native boundary.
-        self.preflight(intent)
-        verify_current()
-        argv = [*self._args(), 'exec', 'resume', self.thread_id, '--skip-git-repo-check', '--json',
-                '--output-schema', str(slot / 'report-schema.json'), '-']
-        with (slot / 'events.jsonl').open('xb') as output, (slot / 'stderr.log').open('xb') as err:
-            # CLI status/output are diagnostic only. Independent native history below
-            # is the only evidence used to attest an actual native submission.
-            try:
-                completed = subprocess.run(argv, input=prompt.encode(), cwd=self.cwd,
-                                           stdout=output, stderr=err, timeout=300, check=False)
-            except (OSError, subprocess.TimeoutExpired):
-                raise TransportError('NATIVE_SUBMISSION_UNCONFIRMED')
-        if completed.returncode:
-            raise TransportError('NATIVE_SUBMISSION_UNCONFIRMED')
-        turn = self._matching_turn(intent)
-        proof = {'thread': self.thread_id, 'turn': turn['id'], 'action': action,
+        schema = self._schema(intent)
+        sandbox = {'type': 'readOnly', 'networkAccess': False}
+        try:
+            # Resume does not submit a user message. Verify this loaded thread,
+            # rather than trusting persisted settings from its previous turn.
+            self._check_files(cap)
+            resumed = call('thread/resume', {'threadId': self.thread_id, 'excludeTurns': True})
+            require(resumed.get('thread', {}).get('id') == self.thread_id and resumed.get('cwd') == str(self.cwd)
+                    and resumed.get('sandbox', {}).get('type') == 'readOnly'
+                    and resumed['sandbox'].get('networkAccess', False) is False
+                    and resumed.get('approvalPolicy') == 'on-request', 'NATIVE_RESUMED_POLICY_MISMATCH')
+            self._verify_features(call, cap, {'threadId': self.thread_id})
+            inventory = call('mcpServerStatus/list', {'threadId': self.thread_id, 'limit': 100,
+                                                      'detail': 'toolsAndAuthOnly'})
+            # Bounded single-round discovery. Refuse incomplete or ambiguous
+            # inventories rather than guessing what else the model can call.
+            actual = {}
+            require(isinstance(inventory.get('data'), list) and inventory.get('nextCursor') is None,
+                    'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+            for server in inventory['data']:
+                name = server.get('name')
+                require(name not in actual and isinstance(server.get('tools'), dict)
+                        and not server.get('toolsError'), 'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+                actual[name] = sorted(server['tools'])
+            require(actual == {k: sorted(v) for k, v in cap['mcp_tools'].items()}, 'NATIVE_THREAD_TOOLSET_CHANGED')
+            slot.mkdir(mode=0o700)
+            _new(slot / 'intent.json', canonical(intent))
+            _new(slot / 'prompt.txt', prompt.encode())
+            _new(slot / 'report-schema.json', canonical(schema))
+            require(self._binary_stamp() == stamp, 'NATIVE_BINARY_CHANGED')
+            manifest = _private(self.policy['capability_manifest'])
+            require(hashlib.sha256(manifest.read_bytes()).hexdigest() == self.policy['capability_manifest_sha256'],
+                    'NATIVE_CAPABILITY_MANIFEST_CHANGED')
+            self._check_files(cap)
+            self._expiry(cap['expires_at'], 'NATIVE_CAPABILITY_EXPIRED')
+            self._expiry(self.policy['expires_at'], 'NATIVE_ADMISSION_EXPIRED')
+            verify_current()
+        except (ValueError, OSError, TransportError) as error:
+            code = getattr(error, 'code', 'NATIVE_PREPARATION_FAILED')
+            return {**ids, 'kind': 'DELEGATE_GOAL', 'outcome': 'NOT_SENT', 'reason': 'POLICY_DENIED',
+                    'evidence_ref': 'native-goal-not-started:' + action + ':' + code}
+
+        # The turn/start frame is the sole external submission boundary. An
+        # error from this line onwards cannot establish that no turn occurred.
+        started = call('turn/start', {'threadId': self.thread_id, 'cwd': str(self.cwd),
+                       'sandboxPolicy': sandbox, 'approvalPolicy': 'on-request',
+                       'input': [{'type': 'text', 'text': prompt, 'text_elements': []}], 'outputSchema': schema})
+        turn_id = started.get('turn', {}).get('id')
+        require(isinstance(turn_id, str) and turn_id, 'NATIVE_SUBMISSION_UNCONFIRMED')
+        _new(slot / 'start-receipt.json', canonical({'thread': self.thread_id, 'turn': turn_id}))
+        wait_turn(turn_id)
+        turn = self._matching_history(intent, call)[1]
+        require(turn['id'] == turn_id, 'NATIVE_TURN_AMBIGUOUS')
+        proof = {'thread': self.thread_id, 'turn': turn_id, 'action': action,
                  'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}
         _new(slot / 'submitted-proof.json', canonical(proof))
         return {**ids, 'kind': 'DELEGATE_GOAL', 'outcome': 'SUBMITTED', 'reason': 'NATIVE_SUBMISSION',
                 'evidence_ref': 'native-goal-turn-sha256:' + canonical_hash(proof)}
 
-    def _matching_history(self, intent):
+    def _matching_history(self, intent, call=None):
         intent = self._intent(intent)
         self._binding(intent)
         slot = _private(self.state / intent['action_id'], True)
@@ -410,7 +558,7 @@ class CodexGoalChannel:
         prompt = (slot / 'prompt.txt').read_text()
         require(prompt == self._prompt(intent), 'NATIVE_PROMPT_CHANGED')
         matches = []
-        history = self._thread().get('turns', [])
+        history = self._thread(call).get('turns', [])
         for turn in history:
             users = [i for i in turn.get('items', []) if i.get('type') == 'userMessage' and
                      [v.get('text') for v in i.get('content', []) if v.get('type') == 'text'] == [prompt]]
@@ -418,10 +566,11 @@ class CodexGoalChannel:
                 require(len(users) == 1 and turn.get('itemsView', 'full') == 'full', 'NATIVE_TURN_AMBIGUOUS')
                 matches.append(turn)
         require(len(matches) == 1, 'NATIVE_TURN_NOT_FOUND_OR_AMBIGUOUS')
+        receipt = slot / 'start-receipt.json'
+        if receipt.exists():
+            require(_json(_private(receipt).read_bytes()) == {'thread': self.thread_id, 'turn': matches[0]['id']},
+                    'NATIVE_TURN_AMBIGUOUS')
         return history, matches[0]
-
-    def _matching_turn(self, intent):
-        return self._matching_history(intent)[1]
 
     def reconcile(self, intent):
         """Only read the original native turn. Never resume it or make a new turn."""

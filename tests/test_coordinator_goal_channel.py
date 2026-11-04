@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 import subprocess
@@ -24,41 +25,51 @@ mode=(root/'mode').read_text() if (root/'mode').exists() else ''
 if args==['--version']:
  print('codex-fixture 1');sys.exit()
 if 'mcp' in args:
- print(json.dumps([] if mode=='no-tools' else [{'name':'bounded','enabled':True,'enabled_tools':['coordinate'] if mode!='tool-drift' else ['unapproved']}]))
- sys.exit()
-if 'features' in args:
- for name in json.loads((root/'disabled.json').read_text()):print(name,'stable','true' if mode=='shell-on' and name=='shell_tool' else 'false')
- sys.exit()
-if 'app-server' in args:
- assert args[-2:]==['app-server','--stdio']
- for line in sys.stdin:
-  req=json.loads(line)
-  if req['method']=='initialized':continue
-  if req['method']=='initialize':value={}
-  elif req['method']=='config/read':
-   value=json.loads((root/'effective.json').read_text())
-   if mode=='effective-drift':value['config']['sandbox_mode']='danger-full-access'
-   if mode=='layer-drift':value['layers'].append({'name':{'type':'project','dotCodexFolder':str(root/'new-project')},'version':'new'})
-  elif req['method']=='thread/read':
-   if mode=='approval':
-    print(json.dumps({'id':999,'method':'item/commandExecution/requestApproval','params':{}}),flush=True)
-    continue
-   value={'thread':json.loads((root/'native.json').read_text())}
-  else:value={}
-  print(json.dumps({'id':req['id'],'result':value}),flush=True)
- sys.exit()
-assert 'exec' in args and 'resume' in args
-assert not any(x in args for x in ['--dangerously-bypass-approvals-and-sandbox','--full-auto','-a','-s','-c'])
-prompt=sys.stdin.read();intent=json.loads(prompt.split('FROZEN_INTENT\n',1)[1])
-calls=json.loads((root/'calls.json').read_text());calls.append(args);(root/'calls.json').write_text(json.dumps(calls))
-thread=json.loads((root/'native.json').read_text())
-receipt={k:intent[k] for k in ['project_id','request_id','action_id','generation','owner_principal','endpoint','job_id','payload_hash','kind']}
-if mode=='wrong-receipt':receipt['job_id']='other'
-answer={'receipt':receipt,'updates':[{'seq':1,'phase':'ACCEPTED','summary':'Accepted within the existing scope.','observed_at':'2026-11-04T01:00:00Z','evidence_refs':['fixture:accept'],'next_owner':intent['owner_principal'],'next_check_at':'2099-01-01T01:00:00Z'}]}
-turn={'id':'native-turn-1','status':'completed','items':[{'id':'user-1','type':'userMessage','content':[{'type':'text','text':prompt}]},{'id':'assistant-1','type':'agentMessage','phase':'final_answer','text':json.dumps(answer)}]}
-if mode!='stdout-only':thread['turns'].append(turn);(root/'native.json').write_text(json.dumps(thread))
-print(json.dumps({'type':'turn.completed'}))
-sys.exit(1 if mode=='lost-ack' else 0)
+ assert args[:4]==['--profile','bounded-goal','-C',str(root/'work')]
+ if 'list' in args: value=[] if mode=='no-tools' else [{'name':'bounded','enabled':True}]
+ else:
+  assert args[-4:]==['mcp','get','bounded','--json']
+  value={'name':'bounded','enabled':True,'enabled_tools':['coordinate'] if mode!='tool-drift' else ['unapproved'],'disabled_tools':None}
+ print(json.dumps(value));sys.exit()
+assert args==['app-server','--stdio']
+def emit(value):print(json.dumps(value),flush=True)
+for line in sys.stdin:
+ req=json.loads(line); method=req['method'];params=req['params']
+ if method=='initialized':continue
+ if method=='initialize':value={}
+ elif method=='config/read':
+  value=json.loads((root/'effective.json').read_text())
+  if mode=='effective-drift':value['config']['sandbox_mode']='danger-full-access'
+  if mode=='layer-drift':value['layers'].append({'name':{'type':'project','dotCodexFolder':str(root/'new-project')},'version':'new'})
+ elif method=='experimentalFeature/list':
+  names=json.loads((root/'disabled.json').read_text())
+  value={'nextCursor':None,'data':[{'name':n,'enabled':n=='goals' and mode=='runtime-goals-on'} for n in names]}
+ elif method=='thread/read':
+  if mode=='approval':
+   emit({'id':999,'method':'item/commandExecution/requestApproval','params':{}});continue
+  value={'thread':json.loads((root/'native.json').read_text())}
+ elif method=='thread/resume':
+  thread=json.loads((root/'native.json').read_text());assert params=={'threadId':thread['id'],'excludeTurns':True}
+  value={'thread':thread,'cwd':thread['cwd'],'sandbox':{'type':'dangerFullAccess' if mode=='wide-resume' else 'readOnly'},'approvalPolicy':'on-request'}
+ elif method=='mcpServerStatus/list':
+  assert params['threadId']==json.loads((root/'native.json').read_text())['id']
+  value={'data':[{'name':'bounded','tools':{'extra' if mode=='wide-tools' else 'coordinate':{}}}],'nextCursor':None}
+ elif method=='turn/start':
+  thread=json.loads((root/'native.json').read_text());assert params['threadId']==thread['id']
+  assert params['sandboxPolicy']=={'type':'readOnly','networkAccess':False} and params['approvalPolicy']=='on-request'
+  assert params['outputSchema']['properties']['updates']['items']['anyOf']
+  prompt=params['input'][0]['text'];intent=json.loads(prompt.split('FROZEN_INTENT\n',1)[1])
+  calls=json.loads((root/'calls.json').read_text());calls.append(params);(root/'calls.json').write_text(json.dumps(calls))
+  receipt={k:intent[k] for k in ['project_id','request_id','action_id','generation','owner_principal','endpoint','job_id','payload_hash','kind']}
+  if mode=='wrong-receipt':receipt['job_id']='other'
+  answer={'receipt':receipt,'updates':[{'seq':1,'phase':'ACCEPTED','summary':'Accepted within the existing scope.','observed_at':'2026-11-04T01:00:00Z','evidence_refs':['fixture:accept'],'next_owner':intent['owner_principal'],'next_check_at':'2099-01-01T01:00:00Z'}]}
+  turn={'id':'native-turn-1','status':'completed','items':[{'id':'user-1','type':'userMessage','content':[{'type':'text','text':prompt}]},{'id':'assistant-1','type':'agentMessage','phase':'final_answer','text':json.dumps(answer)}]}
+  if mode!='stdout-only':thread['turns'].append(turn);(root/'native.json').write_text(json.dumps(thread))
+  if mode=='lost-ack':sys.exit(1)
+  emit({'method':'turn/completed','params':{'threadId':thread['id'],'turn':turn}})
+  value={'turn':turn}
+ else:raise AssertionError(method)
+ emit({'id':req['id'],'result':value})
 '''
 
 
@@ -89,23 +100,26 @@ class NativeGoalChannelTests(unittest.TestCase):
                 'job_id':'job','payload_hash':'a'*64,'authorization_ref':'fixture:approved',
                 'task_ref':'https://github.com/CF-FE/fixture/issues/1','kind':'DELEGATE_GOAL',
                 'budget':dict(GOAL_BUDGET),'goal':goal,'deadline':'2099-01-02T00:00:00Z'}
-        self.config_source = self.root / 'reviewed-profile.toml'
+        self.config_source = self.root / 'config.toml'
         self.config_source.write_text('reviewed bounded fixture profile\n')
-        effective={'config':{'sandbox_mode':'read-only','web_search':'disabled','approval_policy':'on-request'},
-                   'layers':[{'name':{'type':'user','file':str(self.config_source),'profile':'bounded-goal'},'version':'fixture-config-1'}]}
+        named=self.root/'bounded-goal.config.toml'
+        named.write_bytes(self.config_source.read_bytes())
+        effective={'config':{'sandbox_mode':'read-only','web_search':'disabled','approval_policy':'on-request','features':dict.fromkeys(DISABLED_FEATURES,False)},
+                   'layers':[{'name':{'type':'user','file':str(self.config_source)},'version':'fixture-config-1'}]}
         (self.root/'effective.json').write_text(json.dumps(effective))
+        self.effective = effective
         self.cap = {'v':1,'profile':'bounded-goal','binary_sha256':hashlib.sha256(self.binary.read_bytes()).hexdigest(),
             **{k:self.intent[k] for k in ('project_id','request_id','job_id','payload_hash','owner_principal','generation')},
             'work_key':goal['work_key'],'scope_refs':scopes,'allowed_actions':goal['allowed_actions'],
             'review_evidence_ref':'fixture:independent-profile-review','expires_at':'2099-01-02T00:00:00Z',
-            'config_files':[{'path':str(self.config_source),'sha256':hashlib.sha256(self.config_source.read_bytes()).hexdigest()}],
+            'config_files':[{'path':str(f),'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in (named,self.config_source)],
             'mcp_tools':{'bounded':['coordinate']},'action_tools':{'coordinate_existing_owner':['bounded/coordinate']},
             'disabled_features':sorted(DISABLED_FEATURES),'enforces_scope':True,'production_writes':0,'audio_generations':0,
             'effective_config_sha256':canonical_hash(effective['config']),'config_layers_sha256':canonical_hash(effective['layers'])}
         self.cap_path = self.root / 'capability.json'
         self.cap_path.write_bytes(canonical(self.cap)); self.cap_path.chmod(0o600)
         self.policy = {'v':1,'binary':str(self.binary),'binary_sha256':self.cap['binary_sha256'],
-            'cli_version':'codex-fixture 1','profile':'bounded-goal','cwd':str(self.cwd),'state_dir':str(self.state),
+            'cli_version':'codex-fixture 1','profile':'bounded-goal','codex_home':str(self.root),'cwd':str(self.cwd),'state_dir':str(self.state),
             **{k:self.intent[k] for k in ('project_id','request_id','job_id','payload_hash','owner_principal','endpoint','generation','authorization_ref')},
             'work_key':goal['work_key'],'scope_refs':scopes,'allowed_actions':goal['allowed_actions'],
             'capability_evidence_ref':self.cap['review_evidence_ref'],'capability_manifest':str(self.cap_path),
@@ -130,12 +144,10 @@ class NativeGoalChannelTests(unittest.TestCase):
         checks=[]
         receipt=self.channel.submit_goal(self.intent,verify_current=lambda:checks.append('checked'))
         self.assertEqual(receipt['outcome'],'SUBMITTED')
-        self.assertEqual(len(checks),2)
+        self.assertEqual(len(checks),1)
         self.assertEqual(len(self.calls()),1)
-        self.assertEqual(self.calls()[0], [
-            '--profile', self.policy['profile'], '-C', str(self.cwd),
-            'exec', 'resume', self.thread_id, '--skip-git-repo-check', '--json',
-            '--output-schema', str(self.state / self.intent['action_id'] / 'report-schema.json'), '-'])
+        self.assertEqual(self.calls()[0]['threadId'], self.thread_id)
+        self.assertEqual(self.calls()[0]['input'][0]['text'], self.channel._prompt(self.intent))
         [(session,handle)]=self.channel.reconcile({**self.intent,'send':False})
         observed=self.channel.verified_observation(session,handle)
         self.assertEqual(observed.kind,'goal_update')
@@ -146,7 +158,7 @@ class NativeGoalChannelTests(unittest.TestCase):
 
     def test_restart_and_lost_ack_never_repeat_native_submission(self):
         self.mode('lost-ack')
-        self.assert_code('NATIVE_SUBMISSION_UNCONFIRMED',lambda:self.channel.submit_goal(self.intent,verify_current=lambda:None))
+        self.assert_code('NATIVE_READER_EXITED',lambda:self.channel.submit_goal(self.intent,verify_current=lambda:None))
         reopened=CodexGoalChannel(self.policy)
         self.mode('')
         self.assertEqual(reopened.submit_goal(self.intent,verify_current=lambda:None)['outcome'],'UNKNOWN')
@@ -204,9 +216,15 @@ class NativeGoalChannelTests(unittest.TestCase):
         self.assert_code('NATIVE_CONFIG_LAYERS_CHANGED',lambda:self.channel.preflight(self.intent))
 
     def test_capability_expiry_and_builtin_escape_reject(self):
-        self.mode('shell-on')
+        self.mode('runtime-goals-on')
         self.assert_code('NATIVE_TOOL_BOUNDARY_CHANGED',lambda:self.channel.preflight(self.intent))
         self.mode('')
+        self.effective['config']['features']['shell_tool']=True
+        (self.root/'effective.json').write_text(json.dumps(self.effective))
+        self.cap['effective_config_sha256']=canonical_hash(self.effective['config'])
+        self.cap_path.write_bytes(canonical(self.cap))
+        self.channel.policy['capability_manifest_sha256']=hashlib.sha256(self.cap_path.read_bytes()).hexdigest()
+        self.assert_code('NATIVE_TOOL_BOUNDARY_CHANGED',lambda:self.channel.preflight(self.intent))
         self.cap['expires_at']='2000-01-01T00:00:00Z'
         self.cap_path.write_bytes(canonical(self.cap))
         policy={**self.policy,'capability_manifest_sha256':hashlib.sha256(self.cap_path.read_bytes()).hexdigest()}
@@ -229,14 +247,81 @@ class NativeGoalChannelTests(unittest.TestCase):
         p=self.root/'goal-channel.json';p.write_bytes(canonical(self.policy));p.chmod(0o600)
         self.assertEqual(load_goal_channel(p).peer,self.channel.peer)
         schema=self.channel._schema(self.intent)
-        self.assertEqual(schema['properties']['receipt']['const']['job_id'],'job')
-        self.assertIn('seq',schema['properties']['updates']['items']['oneOf'][0]['required'])
+        self.assertEqual(schema['properties']['receipt']['properties']['job_id']['enum'],['job'])
+        self.assertIn('seq',schema['properties']['updates']['items']['anyOf'][0]['required'])
         p.chmod(0o644)
         self.assert_code('NATIVE_PRIVATE_PATH_REQUIRED',lambda:load_goal_channel(p))
 
+    def test_rejects_broader_profile_actions_and_inherited_thread_tools(self):
+        extra=deepcopy(self.policy)
+        extra['allowed_actions'].append('verify_existing_evidence')
+        self.assert_code('NATIVE_GOAL_SCOPE_MISMATCH',lambda:CodexGoalChannel(extra).preflight(self.intent))
+        for mode in ('wide-resume', 'wide-tools'):
+            self.mode(mode)
+            self.assertEqual(self.channel.submit_goal(self.intent,verify_current=lambda:None)['outcome'],'NOT_SENT')
+        self.assertEqual(self.calls(),[])
+
+    def test_busy_and_fence_failures_do_not_start_a_turn(self):
+        self.native['status']={'type':'active','activeFlags':[]}
+        self.save_native()
+        self.assert_code('NATIVE_OWNER_BUSY', lambda:self.channel.submit_goal(self.intent,verify_current=lambda:None))
+        self.native['status']={'type':'idle'}
+        self.save_native()
+        def deny():
+            raise TransportError('CONTACT_STALE')
+        with patch.object(self.channel,'_verify_config',wraps=self.channel._verify_config) as verify:
+            with self.channel.prepare_goal(self.intent) as ready:
+                receipt=self.channel.submit_goal(self.intent,verify_current=deny,preparation=ready)
+                self.assertEqual(receipt['outcome'],'NOT_SENT')
+            self.assertEqual(verify.call_count,1)
+        self.assertEqual(self.calls(),[])
+
+    def test_expired_dispatch_permission_still_allows_bound_receipt_read(self):
+        self.channel.submit_goal(self.intent,verify_current=lambda:None)
+        closed=CodexGoalChannel({**self.policy,'expires_at':'2000-01-01T00:00:00Z'})
+        self.assertEqual(len(closed.reconcile(self.intent)),1)
+        self.assertEqual(len(self.calls()),1)
+
+    def test_named_profile_must_match_reviewed_runtime_home(self):
+        f=self.root/'bounded-goal.config.toml'
+        f.write_text('different profile')
+        self.cap['config_files'][0]['sha256']=hashlib.sha256(f.read_bytes()).hexdigest()
+        self.cap_path.write_bytes(canonical(self.cap))
+        self.channel.policy['capability_manifest_sha256']=hashlib.sha256(self.cap_path.read_bytes()).hexdigest()
+        self.assert_code('NATIVE_PROFILE_NOT_EQUIVALENT',lambda:self.channel.preflight(self.intent))
+
+    @unittest.skipUnless(os.environ.get('CODEX_GOAL_SMOKE_BINARY'), 'set CODEX_GOAL_SMOKE_BINARY for real CLI preflight')
+    def test_native_cli_credential_free_preflight_without_a_thread_or_model(self):
+        binary=Path(os.environ['CODEX_GOAL_SMOKE_BINARY']).resolve(strict=True)
+        home=self.root/'isolated-codex'; home.mkdir(mode=0o700)
+        contents=('sandbox_mode="read-only"\nweb_search="disabled"\napproval_policy="on-request"\n'
+                  '[mcp_servers.bounded]\ncommand="/usr/bin/false"\nenabled_tools=["coordinate"]\n[features]\n'
+                  + ''.join(f'{name}=false\n' for name in sorted(DISABLED_FEATURES)))
+        sources=[home/'config.toml',home/'bounded-goal.config.toml']
+        for f in sources:f.write_text(contents)
+        digest=hashlib.sha256()
+        with binary.open('rb') as stream:
+            for chunk in iter(lambda:stream.read(1024*1024), b''):digest.update(chunk)
+        policy={**self.policy,'binary':str(binary),'binary_sha256':digest.hexdigest(),'codex_home':str(home)}
+        with patch.dict(os.environ,{'HOME':str(self.root)}):
+            # Setup reads the actual version and effective projection solely in the disposable home.
+            preview=CodexGoalChannel(policy)
+            policy['cli_version']=preview._probe([str(binary),'--version'],10).stdout.decode().strip()
+            with preview._reader() as (read,_):
+                effective=read('config/read',{'cwd':str(self.cwd),'includeLayers':True})
+            cap={**self.cap,'binary_sha256':digest.hexdigest(),
+                 'config_files':[{'path':str(f),'sha256':hashlib.sha256(f.read_bytes()).hexdigest()} for f in sources],
+                 'effective_config_sha256':canonical_hash(effective['config']),
+                 'config_layers_sha256':canonical_hash([{k:l[k] for k in ('name','version')} for l in effective['layers']])}
+            self.cap_path.write_bytes(canonical(cap))
+            policy['capability_manifest_sha256']=hashlib.sha256(self.cap_path.read_bytes()).hexdigest()
+            result=CodexGoalChannel(policy).preflight(self.intent)
+        self.assertEqual(result['state'],'HOST_ADMISSION_BOUND')
+        self.assertEqual(list(self.state.iterdir()),[])
+
     def test_capability_probe_timeouts_are_safe_errors_before_dispatch(self):
         real_run=subprocess.run
-        for command in ['--version','mcp','features']:
+        for command in ['--version','mcp']:
             def run(argv, **kwargs):
                 if command in argv:
                     raise subprocess.TimeoutExpired(argv,kwargs.get('timeout',1))

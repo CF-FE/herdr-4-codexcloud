@@ -35,9 +35,10 @@ CONTACT_REASONS = {"CHANNEL_UNAVAILABLE", "OWNER_OFFLINE", "IDENTITY_MISMATCH", 
 
 
 class CoordinatorError(ValueError):
-    def __init__(self, code):
+    def __init__(self, code, *, conflicts=()):
         super().__init__(code)
         self.code = code
+        self.conflicts = conflicts
 
 
 def require(condition, code):
@@ -96,6 +97,10 @@ def strings(value, required=False):
         text(item)
 
 
+def canonical_ref(value):
+    return value == value.strip() and value.isprintable()
+
+
 def validate_goal(goal, task_ref, deadline):
     """A bounded existing-owner assignment; neither a new owner nor a tool grant."""
     fields(goal, "objective work_key acceptance_criteria evidence_refs related_request_ids scope_refs "
@@ -104,6 +109,7 @@ def validate_goal(goal, task_ref, deadline):
     for name in ("acceptance_criteria", "evidence_refs", "scope_refs", "allowed_actions"):
         strings(goal[name], required=True)
         require(len(set(goal[name])) == len(goal[name]), "DUPLICATE_GOAL_VALUE")
+    require(all(canonical_ref(ref) for ref in goal["scope_refs"]), "NONCANONICAL_SCOPE_REF")
     strings(goal["related_request_ids"])
     for request_id in goal["related_request_ids"]:
         identifier(request_id)
@@ -410,15 +416,29 @@ class Coordinator:
                     self._require_bridge_origin(db, p, prior["request_id"], bridge_origin)
                 return self._status(db, p, prior["request_id"])
             if is_goal:
+                # A goal is fenced to its original owner generation. Reserving
+                # assets while no one holds that generation cannot lead to a send.
+                require(project["owner_principal"] is not None and project["assignment_state"] == "BOUND",
+                        "OWNER_UNVERIFIED")
                 goal = request["goal"]
-                require(not db.execute("SELECT 1 FROM goals WHERE project_id=? AND work_key=?",
-                                       (p, goal["work_key"])).fetchone(), "WORK_ALREADY_DELEGATED")
+                original = db.execute("SELECT request_id,work_key FROM goals WHERE project_id=? AND work_key=?",
+                                      (p, goal["work_key"])).fetchone()
+                if original:
+                    raise CoordinatorError("WORK_ALREADY_DELEGATED", conflicts=[dict(original)])
                 # A new request, Issue, or partial batch cannot bypass an asset
                 # reservation. The project owns the scope, not an Issue alias.
-                for existing in db.execute("SELECT r.body FROM goals g JOIN requests r USING(project_id,request_id)"
-                                           " WHERE g.project_id=?", (p,)):
+                conflicts = []
+                scopes = set(goal["scope_refs"])
+                for existing in db.execute("SELECT r.body,g.request_id,g.work_key FROM goals g"
+                                           " JOIN requests r USING(project_id,request_id)"
+                                           " WHERE g.project_id=? ORDER BY g.request_id", (p,)):
                     body = json.loads(existing["body"])
-                    require(not set(body["goal"]["scope_refs"]) & set(goal["scope_refs"]), "WORK_SCOPE_OVERLAP")
+                    # Older ledgers may contain padded IDs; reserve their scopes
+                    # without changing the original request, work key, or hash.
+                    if not scopes.isdisjoint(ref.strip() for ref in body["goal"]["scope_refs"]):
+                        conflicts.append({"request_id": existing["request_id"], "work_key": existing["work_key"]})
+                if conflicts:
+                    raise CoordinatorError("WORK_SCOPE_OVERLAP", conflicts=conflicts)
                 require(timestamp(goal["next_check_at"]) > self._now(), "CHECKPOINT_EXPIRED")
             require(expected == project["generation"], "STALE_GENERATION")
             require(timestamp(request["deadline"]) > self._now(), "DEADLINE_EXPIRED")
@@ -689,11 +709,32 @@ class Coordinator:
                 require(prior["report_hash"] == digest, "GOAL_UPDATE_CONFLICT")
                 return {"accepted": True, "late": False,
                         "delivery": self._delivery(db, project_id, request_id, prior["result_version"])}
-            require(row["state"] != "COMPLETED", "GOAL_TERMINAL")
-            require(seq == row["last_seq"] + 1, "GOAL_SEQUENCE_GAP")
-            require(observed <= self._now(), "FUTURE_OBSERVATION")
+            now = self._now()
+            late = not current or request["cancel_ref"] or contact["state"] == "STOPPED" or timestamp(body["deadline"]) <= now
+            # Late evidence has its own sequence; it never advances the adopted
+            # report cursor or creates a result. Reuse the durable audit log,
+            # including evidence written by older installations.
+            last_late = db.execute("SELECT json_extract(body,'$.report') FROM events"
+                                   " WHERE project_id=? AND request_id=? AND kind='LATE_GOAL_OBSERVATION'"
+                                   " ORDER BY seq DESC LIMIT 1",
+                                   (project_id, request_id)).fetchone()
+            last_late = json.loads(last_late[0]) if last_late else None
+            if last_late and seq <= last_late["seq"]:
+                late_reports = db.execute("SELECT json_extract(body,'$.report') FROM events"
+                                          " WHERE project_id=? AND request_id=? AND kind='LATE_GOAL_OBSERVATION'"
+                                          " AND json_extract(body,'$.report.seq')=?",
+                                          (project_id, request_id, seq)).fetchall()
+                require(late_reports and all(canonical_hash(json.loads(item[0])) == digest for item in late_reports),
+                        "GOAL_UPDATE_CONFLICT")
+                return {"accepted": False, "late": True}
+            late = bool(late or last_late)
+            require(late or row["state"] != "COMPLETED", "GOAL_TERMINAL")
+            require(seq == max(row["last_seq"], last_late["seq"] if last_late else 0) + 1, "GOAL_SEQUENCE_GAP")
+            require(observed <= now, "FUTURE_OBSERVATION")
             require(observed >= timestamp(request["created_at"]), "OBSERVATION_BEFORE_REQUEST")
-            if row["last_seq"]:
+            if last_late and last_late["seq"] >= row["last_seq"]:
+                require(observed >= timestamp(last_late["observed_at"]), "OBSERVATION_TIME_REGRESSION")
+            elif row["last_seq"]:
                 previous = db.execute("SELECT r.body FROM goal_updates u JOIN results r"
                                       " ON r.project_id=u.project_id AND r.request_id=u.request_id"
                                       " AND r.version=u.result_version WHERE u.project_id=? AND u.request_id=? AND u.seq=?",
@@ -724,7 +765,8 @@ class Coordinator:
                             "INDEPENDENT_REVIEW_REQUIRED")
                     text(review["reviewer"])
                     text(review["producer"])
-                    require(review["reviewer"] != review["producer"], "INDEPENDENT_REVIEW_REQUIRED")
+                    require(canonical_ref(review["reviewer"]) and canonical_ref(review["producer"]) and
+                            review["reviewer"] != review["producer"], "INDEPENDENT_REVIEW_REQUIRED")
                     strings(review["scope_refs"], required=True)
                     strings(review["evidence_refs"], required=True)
                     require(len(review["scope_refs"]) == len(goal["scope_refs"]) and
@@ -737,7 +779,7 @@ class Coordinator:
                       "task_ref": body["task_ref"], "work_key": goal["work_key"], "action_id": action_id,
                       "generation": generation, "source_principal": principal, "source_evidence_ref": evidence_ref,
                       "goal_state": phase, "report": report}
-            if not current or request["cancel_ref"] or timestamp(body["deadline"]) <= self._now():
+            if late:
                 self._event(db, project_id, request_id, "LATE_GOAL_OBSERVATION", principal, result, notify=True)
                 return {"accepted": False, "late": True}
             require(contact["state"] not in ("NOT_SENT", "STOPPED"), "CONTACT_TERMINAL")
@@ -746,7 +788,7 @@ class Coordinator:
             elif phase in ("IN_PROGRESS", "COMPLETED"):
                 require(row["accepted_seq"] is not None, "GOAL_ACCEPTANCE_REQUIRED")
             if phase != "COMPLETED":
-                require(timestamp(report["next_check_at"]) > self._now(), "CHECKPOINT_EXPIRED")
+                require(timestamp(report["next_check_at"]) > observed, "CHECKPOINT_EXPIRED")
             db.execute("UPDATE goals SET state=?,last_seq=?,accepted_seq=CASE WHEN ?='ACCEPTED' THEN ? ELSE accepted_seq END"
                        " WHERE project_id=? AND request_id=?", (phase, seq, phase, seq, project_id, request_id))
             # An active goal keeps the original owner fenced until completion or an
@@ -1037,6 +1079,9 @@ class Coordinator:
         require(project["owner_principal"] and project["generation"] == _generation(data["expected_generation"]),
                 "STALE_GENERATION")
         require(not request["cancel_ref"] and not self._contact(db, p, r), "ACTION_ALREADY_DECIDED")
+        require(request["kind"] != "DELEGATE_GOAL" or
+                json.loads(request["body"])["expected_generation"] == project["generation"],
+                "GOAL_ORIGINAL_GENERATION_MISMATCH")
         text(data["authorization_ref"])
         db.execute("UPDATE requests SET target_generation=? WHERE project_id=? AND request_id=?",
                    (project["generation"], p, r))
