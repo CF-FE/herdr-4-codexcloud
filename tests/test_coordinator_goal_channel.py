@@ -78,11 +78,15 @@ for line in sys.stdin:
    method={'approval':'item/commandExecution/requestApproval','patch-approval':'item/fileChange/requestApproval','dynamic-tool':'item/tool/call'}[mode]
    emit({'id':999,'method':method,'params':{}});continue
   value={'thread':json.loads((root/'native.json').read_text())}
+ elif method=='thread/turns/list':
+  assert params['itemsView']=='full' and params['sortDirection']=='desc' and params['threadId']==json.loads((root/'native.json').read_text())['id']
+  idx=int(params.get('cursor','0'));pages=json.loads((root/'pages.json').read_text());value=pages[idx]
+  with (root/'pages-read').open('a') as seen:seen.write(str(idx)+'\n')
  elif method=='thread/resume':
   thread=json.loads((root/'native.json').read_text())
   expected={'threadId':thread['id'],'excludeTurns':True}
   if overrides:
-   expected.update(config=overrides,cwd=str(root/'work'),sandbox='read-only',approvalPolicy='on-request')
+   expected['config']={k:overrides[k] for k in ('features','mcp_servers','web_search')}
    started=[n for n,s in effective['config']['mcp_servers'].items() if s.get('enabled',True)]
    (root/'started-tools.json').write_text(json.dumps(started))
    thread['status']={'type':'idle'};(root/'native.json').write_text(json.dumps(thread))
@@ -92,11 +96,16 @@ for line in sys.stdin:
  elif method=='mcpServerStatus/list':
   assert params['threadId']==json.loads((root/'native.json').read_text())['id']
   tools=overrides['mcp_servers']['bounded']['enabled_tools'] if overrides else ['coordinate']
-  value={'data':[{'name':'bounded','tools':{t:{} for t in (['extra'] if mode=='wide-tools' else tools)}}],'nextCursor':None}
+  value={'data':[{'name':'bounded','runtimeStatus':'connected','tools':{t:{} for t in (['extra'] if mode=='wide-tools' else tools)}}],'nextCursor':None}
+  if overrides:
+   value['data'].append({'name':'wide','runtimeStatus':'disabled','tools':{'extra':{}} if mode=='disabled-with-tools' else {}})
   if mode=='partial-tools':value['nextCursor']='more'
  elif method=='turn/start':
   thread=json.loads((root/'native.json').read_text());assert params['threadId']==thread['id']
-  assert params['sandboxPolicy']=={'type':'readOnly','networkAccess':False} and params['approvalPolicy']=='on-request'
+  if overrides:
+   assert not {'approvalPolicy','sandboxPolicy','permissions','cwd'} & params.keys()
+  else:
+   assert params['sandboxPolicy']=={'type':'readOnly','networkAccess':False} and params['approvalPolicy']=='on-request'
   assert params['outputSchema']['properties']['updates']['items']['anyOf']
   prompt=params['input'][0]['text'];intent=json.loads(prompt.split('FROZEN_INTENT\n',1)[1])
   calls=json.loads((root/'calls.json').read_text());calls.append(params);(root/'calls.json').write_text(json.dumps(calls))
@@ -183,7 +192,10 @@ class NativeGoalChannelTests(unittest.TestCase):
     def process_channel(self, policy=None):
         # An isolated installed-release fixture, not a runtime path override.
         with patch('coordinator_goal_channel.__file__', str(self.root/'release/scripts/coordinator_goal_channel.py')):
-            return CodexGoalChannel(policy or self.policy)
+            channel = CodexGoalChannel(policy or self.policy)
+        if channel.policy['v'] == 2:
+            channel.bind_organization_parent(self.root / 'core-state')
+        return channel
 
     def use_process_policy(self):
         self.native['status']={'type':'notLoaded'};self.save_native()
@@ -194,7 +206,16 @@ class NativeGoalChannelTests(unittest.TestCase):
         for name in TOOL_SOURCE_FILES:
             path=self.root/'release'/name;path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text('# isolated code artifact, never executed\n');artifacts.append(str(path))
-        tool_policy=self.root/'tool-policy.json';tool_policy.write_text('{}');tool_policy.chmod(0o600)
+        core_dir = self.root/'core-state'; core_dir.mkdir(mode=0o700)
+        tool_state = self.root/'organization-actions'; tool_state.mkdir(mode=0o700)
+        binding = {k:self.intent[k] for k in ('project_id','request_id','job_id','payload_hash','owner_principal',
+                                               'endpoint','generation','authorization_ref','deadline')}
+        binding.update({k:self.intent['goal'][k] for k in ('work_key','scope_refs','allowed_actions')})
+        tool_policy = self.root/'tool-policy.json'
+        tool_policy.write_bytes(canonical({'v':1,'role':'project_owner','binding':binding,'expires_at':binding['deadline'],
+                'core_state_dir':str(core_dir),'state_dir':str(tool_state),'review_contact_attempts':0,
+                'reviewer':None,'evidence':[],'source_bridge':None}))
+        tool_policy.chmod(0o600)
         python=str(Path(sys.executable).resolve())
         artifacts.extend([python,str(tool_policy)])
         process={'v':1,'codex_home':str(self.root),'endpoint':self.intent['endpoint'],
@@ -224,7 +245,8 @@ class NativeGoalChannelTests(unittest.TestCase):
                                          'endpoint','generation','codex_home')}
         proof.update(v=1,state='EXCLUSIVE_RELEASED',reviewer='host:independent-reviewer',
                      source_control_ref='fixture:original-host',handoff_ref='fixture:released',
-                     observed_at=now.isoformat(),expires_at=(now+timedelta(minutes=10)).isoformat(),last_turn_id=None)
+                     observed_at=now.isoformat(),expires_at=(now+timedelta(minutes=10)).isoformat(),last_turn_id=None,
+                     original_approval_policy='on-request',original_sandbox={'type':'readOnly','networkAccess':False})
         self.exclusivity_path=self.root/'owner-exclusivity.json'
         self.exclusivity_path.write_bytes(canonical(proof));self.exclusivity_path.chmod(0o600)
         self.cap.update(v=2,codex_home=str(self.root),endpoint=self.intent['endpoint'],
@@ -259,7 +281,7 @@ class NativeGoalChannelTests(unittest.TestCase):
         self.assertEqual({v['home'] for v in invocations},{str(self.root)})
         self.assertEqual(len({canonical_hash(v['overrides']) for v in invocations}),1)
         self.assertEqual(self.calls()[0]['threadId'],self.thread_id)
-        self.assertEqual(self.calls()[0]['sandboxPolicy'],{'type':'readOnly','networkAccess':False})
+        self.assertFalse({'sandboxPolicy','approvalPolicy','permissions','cwd'} & self.calls()[0].keys())
         self.assertEqual(json.loads((self.root/'native.json').read_text())['status']['type'],'idle')
 
     def test_process_overlay_rejects_inherited_server_before_any_resume(self):
@@ -286,7 +308,7 @@ class NativeGoalChannelTests(unittest.TestCase):
 
     def test_process_overlay_rejects_unknown_resumed_policy_and_tools(self):
         self.use_process_policy()
-        for mode in ('wide-resume','unknown-resume','wide-tools','partial-tools'):
+        for mode in ('wide-resume','unknown-resume','wide-tools','partial-tools','disabled-with-tools'):
             self.mode(mode)
             result=self.channel.submit_goal(self.intent,verify_current=lambda:None)
             self.assertEqual(result['outcome'],'NOT_SENT')
@@ -305,6 +327,8 @@ class NativeGoalChannelTests(unittest.TestCase):
         self.use_process_policy()
         original=json.loads(self.exclusivity_path.read_text())
         for changes,code in [({'state':'UNKNOWN'},'HOST_OWNER_EXCLUSIVITY_REQUIRED'),
+                             ({'original_approval_policy':'unverified'},'NATIVE_ORIGINAL_POLICY_UNVERIFIED'),
+                             ({'original_sandbox':{'type':'workspaceWrite'}},'NATIVE_ORIGINAL_POLICY_UNVERIFIED'),
                              ({'generation':2},'HOST_OWNER_EXCLUSIVITY_BINDING_MISMATCH'),
                              ({'observed_at':'2000-01-01T00:00:00Z'},'HOST_OWNER_EXCLUSIVITY_EXPIRED'),
                              ({'reviewer':self.intent['owner_principal']},'HOST_OWNER_EXCLUSIVITY_REQUIRED')]:
@@ -397,6 +421,28 @@ class NativeGoalChannelTests(unittest.TestCase):
         self.assertEqual(self.channel.submit_goal(self.intent,verify_current=lambda:None)['outcome'],'UNKNOWN')
         self.assertEqual(len(self.calls()),1)
 
+    def test_rejected_completion_does_not_hide_a_later_correction(self):
+        self.intent['goal']['review_requirement'] = 'independent_listening'
+        self.use_process_policy()
+        self.channel.submit_goal(self.intent, verify_current=lambda: None)
+        self.add_self_reported_listening_completion()
+        self.assert_code('NATIVE_LISTENING_CAPABILITY_UNAVAILABLE', lambda: self.channel.reconcile(self.intent))
+
+        path = self.root / 'native.json'
+        native = json.loads(path.read_text())
+        original = json.loads(native['turns'][0]['items'][-1]['text'])
+        correction = dict(original['updates'][0], seq=2, phase='IN_PROGRESS',
+                          summary='Reviewer accepted the batch and supplied the first receipt time.')
+        reply = {'receipt': original['receipt'], 'updates': [correction]}
+        native['turns'].append({'id': 'correction-turn', 'status': 'completed', 'items': [
+            {'type': 'agentMessage', 'id': 'correction-message', 'text': json.dumps(reply)}]})
+        path.write_text(json.dumps(native))
+
+        channel = self.process_channel()
+        reports = [channel.verified_observation(s, h).report for s, h in channel.reconcile(self.intent)]
+        self.assertEqual([(r['seq'], r['phase']) for r in reports], [(1, 'ACCEPTED'), (2, 'IN_PROGRESS')])
+        self.assertEqual(len(self.calls()), 1)
+
     def test_legacy_listening_report_contract_is_unchanged(self):
         self.intent['goal']['review_requirement']='independent_listening'
         self.channel.submit_goal(self.intent,verify_current=lambda:None)
@@ -414,10 +460,22 @@ class NativeGoalChannelTests(unittest.TestCase):
         found=self.channel.lookup_goal(self.intent)
         self.assertEqual((found['state'],found['turn_id']),('PRESENT','existing'))
         self.assertEqual(self.calls(),[]);self.assertEqual(list(self.state.iterdir()),[])
-        self.native['turns'][0]['itemsView']='summary';self.save_native()
+        self.native['turns'][0].update(itemsView='summary',items=[]);self.save_native()
         self.assert_code('NATIVE_HISTORY_INCOMPLETE',lambda:self.channel.lookup_goal(self.intent))
         self.native['turns']=[];self.native['historyMode']='paginated';self.save_native()
+        partial={'id':'partial','status':'completed','itemsView':'summary','items':[]}
+        hit={'id':'exact','status':'completed','itemsView':'full','items':[
+            {'type':'userMessage','content':[{'type':'text','text':self.channel._prompt(self.intent)}]}]}
+        pages=self.root/'pages.json'
+        pages.write_text(json.dumps([{'data':[partial],'nextCursor':'1'},{'data':[hit],'nextCursor':'2'}]))
+        self.assertEqual(self.channel.lookup_goal(self.intent)['turn_id'],'exact')
+        self.assertEqual((self.root/'pages-read').read_text().splitlines(),['0','1'])
+        pages.write_text(json.dumps([{'data':[partial],'nextCursor':'1'},{'data':[],'nextCursor':None}]))
         self.assert_code('NATIVE_HISTORY_INCOMPLETE',lambda:self.channel.lookup_goal(self.intent))
+        pages.write_text(json.dumps([{'data':[],'nextCursor':'1'},{'data':[],'nextCursor':'1'}]))
+        self.assert_code('NATIVE_HISTORY_INCOMPLETE',lambda:self.channel.lookup_goal(self.intent))
+        pages.write_text(json.dumps([{'data':[],'nextCursor':'1'},{'data':[],'nextCursor':None}]))
+        self.assertEqual(self.channel.lookup_goal(self.intent)['state'],'ABSENT')
         self.native['historyMode']='legacy';self.native['status']={'type':'active'};self.save_native()
         self.assert_code('NATIVE_HISTORY_INCOMPLETE',lambda:self.channel.lookup_goal(self.intent))
 

@@ -1,6 +1,6 @@
 # 受限项目协调工具
 
-Owner：本仓项目协调层维护者。源码为本目录的 `server.py`，仅使用 Python 标准库及同一固定 release 的 `scripts/project_coordinator.py`、`coordinator_transport.py`、`coordinator_bridge.py`、`coordinator_goal_channel.py`。不跨仓导入、不读取原生 session 文件、不创建负责人、网络服务或凭据。
+工具由本仓项目协调层维护。实际调用方是已绑定的项目负责人（`project_owner`）或独立审查者（`reviewer`），听检安排与项目验收由负责人决定。源码为本目录的 `server.py`，仅使用 Python 标准库及同一固定 release 的 `scripts/project_coordinator.py`、`coordinator_transport.py`、`coordinator_bridge.py`、`coordinator_goal_channel.py`。不跨仓导入、不读取原生 session 文件、不创建负责人、网络服务或凭据。
 
 用途是让已绑定负责人读取本单上下文与固定原件，并在额外明确许可下联系已登记的既有独立审查者核验已有证据。当前宿主是否有合法执行者另核；首次联系前缺少合法审者或许可返回 `BLOCKED`，已有联系意图的不明结果保留 `UNKNOWN`。不把工具列表、提名或本地排队当接手。
 

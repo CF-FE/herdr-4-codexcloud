@@ -66,7 +66,7 @@ TOOL_SOURCE_FILES = ('mcp/project-coordinator-tools/server.py', 'scripts/coordin
                      'scripts/coordinator_bridge.py', 'scripts/coordinator_transport.py', 'scripts/project_coordinator.py')
 EXCLUSIVITY_KEYS = {'v', 'project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
                     'generation', 'codex_home', 'state', 'reviewer', 'source_control_ref', 'handoff_ref',
-                    'observed_at', 'expires_at', 'last_turn_id'}
+                    'observed_at', 'expires_at', 'last_turn_id', 'original_approval_policy', 'original_sandbox'}
 OWNER_EXCLUSIVITY_MAX_SECONDS = 900
 
 
@@ -163,12 +163,45 @@ class CodexGoalChannel:
                     'PATH': os.defpath, 'LANG': 'en_US.UTF-8'}
         self._prepared = None
         self._policy_file = None
+        self._organization_parent = None
         self.binary = Path(policy['binary'])
         self._observations = {}
         self.peer = Peer('mac-codex-cli', self.thread_id)
         self.principal = policy['owner_principal']
         self.project_id = policy['project_id']
         self.release = Path(__file__).resolve().parents[1]
+
+    def bind_organization_parent(self, core_state_dir, *, reviewer_policy_sha256=None):
+        """Host-side custody, supplied by the coordinator or validated parent, never by the model."""
+        actual = (_private(core_state_dir, directory=True), reviewer_policy_sha256)
+        require(self._organization_parent in (None, actual), 'NATIVE_TOOL_PARENT_CHANGED')
+        self._organization_parent = actual
+
+    def _check_organization_tools(self, process, binding):
+        server = next(iter(process['mcp_servers'].values()))
+        raw = _private(server['policy']).read_bytes()
+        tool = _json(raw)
+        require(isinstance(tool, dict) and type(tool.get('v')) is int and tool['v'] == 1
+                and isinstance(tool.get('binding'), dict), 'NATIVE_TOOL_PARENT_MISMATCH')
+        b = tool['binding']
+        expected_review = None
+        if self._organization_parent:
+            parent, expected_review = self._organization_parent
+            require(tool.get('core_state_dir') == str(parent), 'NATIVE_TOOL_PARENT_MISMATCH')
+        if expected_review is not None:
+            # Reviewer tools intentionally read their parent's ledger. The calling
+            # parent's organization service already verified this *whole* policy.
+            require(tool.get('role') == 'reviewer' and hashlib.sha256(raw).hexdigest() == expected_review,
+                    'NATIVE_TOOL_PARENT_MISMATCH')
+        else:
+            require(tool.get('role') == 'project_owner' and type(b.get('generation')) is int and
+                    all(b.get(k) == self.policy[k] for k in (*BINDING_KEYS, 'work_key')),
+                    'NATIVE_TOOL_PARENT_MISMATCH')
+        for k in ('scope_refs', 'allowed_actions'):
+            require(isinstance(b.get(k), list) and all(isinstance(x, str) for x in b[k]) and
+                    sorted(b[k]) == sorted(self.policy[k]), 'NATIVE_TOOL_PARENT_MISMATCH')
+        if binding is not None:
+            require(b.get('deadline') == binding.get('deadline'), 'NATIVE_TOOL_PARENT_MISMATCH')
 
     def _process_config(self):
         """Read a pinned private description of the one supported stdio tool host."""
@@ -243,6 +276,11 @@ class CodexGoalChannel:
         require(isinstance(proof, dict) and set(proof) == EXCLUSIVITY_KEYS and
                 type(proof['v']) is int and proof['v'] == 1 and proof['state'] == 'EXCLUSIVE_RELEASED',
                 'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        require(proof['original_approval_policy'] in ('never', 'on-request') and
+                isinstance(proof['original_sandbox'], dict) and
+                set(proof['original_sandbox']) == {'type', 'networkAccess'} and
+                proof['original_sandbox']['type'] == 'readOnly' and proof['original_sandbox']['networkAccess'] is False,
+                'NATIVE_ORIGINAL_POLICY_UNVERIFIED')
         for key in ('project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
                     'generation', 'codex_home'):
             require(proof[key] == self.policy[key], 'HOST_OWNER_EXCLUSIVITY_BINDING_MISMATCH')
@@ -268,6 +306,7 @@ class CodexGoalChannel:
             require(isinstance(turns, list) and thread.get('status', {}).get('type') in allowed and
                     (turns[-1].get('id') if turns else None) == proof['last_turn_id'] and
                     all(t.get('status') != 'inProgress' for t in turns), 'HOST_OWNER_EXCLUSIVITY_STALE')
+        return proof
 
     @staticmethod
     def _intent(value):
@@ -336,7 +375,7 @@ class CodexGoalChannel:
         version = self._probe([str(self.binary), '--version'], 10)
         require(version.returncode == 0 and version.stdout.decode().strip() == self.policy['cli_version'],
                 'NATIVE_VERSION_CHANGED')
-        cap = self._read_capabilities()
+        cap = self._read_capabilities(binding)
         if self.policy['v'] == 2:
             self._check_owner_exclusivity(cap, deadline=binding['deadline'] if binding is not None else None)
         with self._reader() as (call, wait_turn):
@@ -353,6 +392,8 @@ class CodexGoalChannel:
     @contextmanager
     def prepare_goal(self, binding):
         """Hold the verified native reader across the caller's durable claim."""
+        if self.policy['v'] == 2:
+            require(self._organization_parent is not None, 'NATIVE_TOOL_PARENT_UNBOUND')
         with self._admission(binding) as prepared:
             thread = self._thread(prepared[0])
             if self.policy['v'] == 2:
@@ -367,7 +408,7 @@ class CodexGoalChannel:
             finally:
                 self._prepared = None
 
-    def _read_capabilities(self):
+    def _read_capabilities(self, binding=None):
         """Verify the host-reviewed closure and the actual enabled tool projection.
 
         No credential or full native configuration is printed or returned. The
@@ -411,6 +452,7 @@ class CodexGoalChannel:
                         for action, assigned in action_tools.items() for tool in assigned),
                     'NATIVE_ACTION_TOOL_MISMATCH')
             process = self._process_config()
+            self._check_organization_tools(process, binding)
             require(set(cap['disabled_features']) == set(process['disabled_features']) and
                     expected == {n: s['enabled_tools'] for n, s in process['mcp_servers'].items()},
                     'NATIVE_PROCESS_CAPABILITY_MISMATCH')
@@ -597,52 +639,73 @@ class CodexGoalChannel:
                 if app.stdout:
                     app.stdout.close()
 
-    def _thread(self, call=None):
+    @contextmanager
+    def _history_reader(self):
+        self._verify_binary()
+        manifest = _private(self.policy['capability_manifest']).read_bytes()
+        require(hashlib.sha256(manifest).hexdigest() == self.policy['capability_manifest_sha256'],
+                'NATIVE_CAPABILITY_MANIFEST_CHANGED')
+        self._check_files(_json(manifest))
+        with self._reader() as (call, _):
+            yield call
+
+    def _thread(self, call=None, *, include_turns=True):
         if call is None:
-            self._verify_binary()
-            manifest = _private(self.policy['capability_manifest']).read_bytes()
-            require(hashlib.sha256(manifest).hexdigest() == self.policy['capability_manifest_sha256'],
-                    'NATIVE_CAPABILITY_MANIFEST_CHANGED')
-            self._check_files(_json(manifest))
-            with self._reader() as (reader, _):
-                return self._thread(reader)
-        thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': True}).get('thread')
+            with self._history_reader() as reader:
+                return self._thread(reader, include_turns=include_turns)
+        thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': include_turns}).get('thread')
         require(isinstance(thread, dict) and thread.get('id') == self.thread_id and
-                Path(thread.get('cwd', '')).resolve() == self.cwd, 'NATIVE_THREAD_MISMATCH')
+                thread.get('cwd') == str(self.cwd), 'NATIVE_THREAD_MISMATCH')
         return thread
 
-    def lookup_goal(self, intent):
-        """Read only: locate the exact original prompt without creating an action.
+    def _lookup_pages(self, call, mode):
+        if mode == 'legacy':
+            yield self._thread(call).get('turns')
+            return
+        require(mode == 'paginated', 'NATIVE_HISTORY_INCOMPLETE')
+        params = {'threadId': self.thread_id, 'itemsView': 'full', 'sortDirection': 'desc', 'limit': 32}
+        cursors = set()
+        # Bound one pump invocation. Exhaustion or a broken continuation is UNKNOWN.
+        for _ in range(128):
+            page = call('thread/turns/list', params)
+            yield page.get('data')
+            require('nextCursor' in page, 'NATIVE_HISTORY_INCOMPLETE')
+            cursor = page['nextCursor']
+            if cursor is None:
+                return
+            require(isinstance(cursor, str) and cursor and cursor not in cursors, 'NATIVE_HISTORY_INCOMPLETE')
+            cursors.add(cursor)
+            params['cursor'] = cursor
+        raise TransportError('NATIVE_HISTORY_INCOMPLETE')
 
-        PRESENT is a native reference, never a manufactured dispatch receipt.
-        Missing or partial history raises; the caller must retain UNKNOWN. This
-        deliberately does not support proving absence in paginated histories.
-        """
+    def lookup_goal(self, intent):
+        """Find positive native evidence or require complete, terminal history for absence."""
         intent = self._intent(intent)
         self._binding(intent)
-        thread = self._thread()
-        require(thread.get('historyMode', 'legacy') == 'legacy' and isinstance(thread.get('turns'), list),
-                'NATIVE_HISTORY_INCOMPLETE')
         prompt = self._prompt(intent)
-        matches = []
-        for turn in thread['turns']:
-            require(isinstance(turn, dict) and isinstance(turn.get('id'), str) and
-                    turn.get('itemsView', 'full') == 'full' and isinstance(turn.get('items'), list),
-                    'NATIVE_HISTORY_INCOMPLETE')
-            users = [item for item in turn['items'] if item.get('type') == 'userMessage' and
-                     [part.get('text') for part in item.get('content', []) if part.get('type') == 'text'] == [prompt]]
-            require(len(users) <= 1, 'NATIVE_TURN_AMBIGUOUS')
-            if users:
-                matches.append(turn['id'])
-        require(len(matches) <= 1, 'NATIVE_TURN_AMBIGUOUS')
-        if matches:
-            return {'state': 'PRESENT', 'thread_id': self.thread_id, 'turn_id': matches[0],
-                    'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}
-        # notLoaded is a complete durable view, not proof that another native
-        # process has yielded control; dispatch independently requires custody.
-        require(thread.get('status', {}).get('type') in ('idle', 'notLoaded') and
-                all(t.get('status') in ('completed', 'failed', 'interrupted') for t in thread['turns']),
-                'NATIVE_HISTORY_INCOMPLETE')
+        with self._history_reader() as call:
+            meta = self._thread(call, include_turns=False)
+            complete = meta.get('status', {}).get('type') in ('idle', 'notLoaded')
+            seen = set()
+            for turns in self._lookup_pages(call, meta.get('historyMode', 'legacy')):
+                require(isinstance(turns, list), 'NATIVE_HISTORY_INCOMPLETE')
+                for turn in turns:
+                    require(isinstance(turn, dict) and isinstance(turn.get('id'), str)
+                            and turn['id'] and isinstance(turn.get('items'), list), 'NATIVE_HISTORY_INCOMPLETE')
+                    for item in turn['items']:
+                        require(isinstance(item, dict), 'NATIVE_HISTORY_INCOMPLETE')
+                        if item.get('type') == 'userMessage':
+                            content = item.get('content')
+                            require(isinstance(content, list) and all(isinstance(part, dict) for part in content),
+                                    'NATIVE_HISTORY_INCOMPLETE')
+                            if len(content) == 1 and content[0].get('type') == 'text' and content[0].get('text') == prompt:
+                                return {'state': 'PRESENT', 'thread_id': self.thread_id, 'turn_id': turn['id'],
+                                        'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}
+                    if (turn['id'] in seen or turn.get('itemsView', 'full') != 'full'
+                            or turn.get('status') not in ('completed', 'failed', 'interrupted')):
+                        complete = False
+                    seen.add(turn['id'])
+            require(complete, 'NATIVE_HISTORY_INCOMPLETE')
         return {'state': 'ABSENT', 'thread_id': self.thread_id}
 
     @staticmethod
@@ -717,16 +780,20 @@ class CodexGoalChannel:
             # rather than trusting persisted settings from its previous turn.
             self._check_files(cap)
             resume = {'threadId': self.thread_id, 'excludeTurns': True}
+            approval = 'on-request'
             if self.policy['v'] == 2:
-                # The same reviewed restrictions also override persisted thread
-                # settings. The native response still has to prove they applied.
-                resume.update(config=self._overrides(), cwd=str(self.cwd),
-                              sandbox='read-only', approvalPolicy='on-request')
+                # Native resume and turn security overrides persist on the original
+                # thread even if no turn starts. Keep its released security policy.
+                # Only restrict tool exposure on this process and resumed runtime.
+                original = self._check_owner_exclusivity(cap, deadline=intent['deadline'])
+                approval = original['original_approval_policy']
+                resume['config'] = {k: v for k, v in self._overrides().items()
+                                    if k in ('features', 'mcp_servers', 'web_search')}
             resumed = call('thread/resume', resume)
             require(resumed.get('thread', {}).get('id') == self.thread_id and resumed.get('cwd') == str(self.cwd)
                     and resumed.get('sandbox', {}).get('type') == 'readOnly'
                     and resumed['sandbox'].get('networkAccess', False) is False
-                    and resumed.get('approvalPolicy') == 'on-request', 'NATIVE_RESUMED_POLICY_MISMATCH')
+                    and resumed.get('approvalPolicy') == approval, 'NATIVE_RESUMED_POLICY_MISMATCH')
             self._verify_features(call, cap, {'threadId': self.thread_id})
             inventory = call('mcpServerStatus/list', {'threadId': self.thread_id, 'limit': 100,
                                                       'detail': 'toolsAndAuthOnly'})
@@ -735,10 +802,19 @@ class CodexGoalChannel:
             actual = {}
             require(isinstance(inventory.get('data'), list) and inventory.get('nextCursor') is None,
                     'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+            inactive = set(self._process_config()['disabled_mcp_servers']) if self.policy['v'] == 2 else set()
+            seen = set()
             for server in inventory['data']:
                 name = server.get('name')
-                require(name not in actual and isinstance(server.get('tools'), dict)
+                require(isinstance(name, str) and name not in seen and isinstance(server.get('tools'), dict)
                         and not server.get('toolsError'), 'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+                seen.add(name)
+                if name in inactive:
+                    require(server.get('runtimeStatus') == 'disabled' and not server['tools'],
+                            'NATIVE_THREAD_TOOLSET_CHANGED')
+                    continue
+                if self.policy['v'] == 2:
+                    require(server.get('runtimeStatus') == 'connected', 'NATIVE_THREAD_TOOLSET_UNVERIFIED')
                 actual[name] = sorted(server['tools'])
             require(actual == {k: sorted(v) for k, v in cap['mcp_tools'].items()}, 'NATIVE_THREAD_TOOLSET_CHANGED')
             slot.mkdir(mode=0o700)
@@ -764,9 +840,11 @@ class CodexGoalChannel:
 
         # The turn/start frame is the sole external submission boundary. An
         # error from this line onwards cannot establish that no turn occurred.
-        started = call('turn/start', {'threadId': self.thread_id, 'cwd': str(self.cwd),
-                       'sandboxPolicy': sandbox, 'approvalPolicy': 'on-request',
-                       'input': [{'type': 'text', 'text': prompt, 'text_elements': []}], 'outputSchema': schema})
+        turn_params = {'threadId': self.thread_id, 'input': [{'type': 'text', 'text': prompt, 'text_elements': []}],
+                       'outputSchema': schema}
+        if self.policy['v'] == 1:
+            turn_params.update(cwd=str(self.cwd), sandboxPolicy=sandbox, approvalPolicy='on-request')
+        started = call('turn/start', turn_params)
         turn_id = started.get('turn', {}).get('id')
         require(isinstance(turn_id, str) and turn_id, 'NATIVE_SUBMISSION_UNCONFIRMED')
         _new(slot / 'start-receipt.json', canonical({'thread': self.thread_id, 'turn': turn_id}))
@@ -807,6 +885,8 @@ class CodexGoalChannel:
         history, first = self._matching_history(intent)
         expected = self._receipt(intent)
         handles = []
+        rejected_completions = {}
+        reported_sequences = set()
         # Native history is chronological. Later reports from this same bound
         # owner may advance the original goal, but must carry its exact receipt.
         for turn in history[history.index(first):]:
@@ -837,22 +917,32 @@ class CodexGoalChannel:
                     require(_private(saved).read_bytes() == canonical(proof), 'NATIVE_REPORT_CHANGED')
                 for report in value['updates']:
                     require(isinstance(report, dict), 'NATIVE_GOAL_REPORT_SCHEMA')
+                    seq = report.get('seq')
+                    seq = seq if type(seq) is int and seq > 0 else None
                     # These four MCP tools exchange scoped JSON/text evidence;
                     # none provides listening. Preserve the native item proof,
                     # but never elevate a model's VERIFIED claim into acceptance.
                     if (self.policy['v'] == 2 and
                             intent['goal']['review_requirement'] == 'independent_listening' and
                             report.get('phase') == 'COMPLETED'):
-                        error = TransportError('NATIVE_LISTENING_CAPABILITY_UNAVAILABLE')
-                        error.evidence_ref = 'native-goal-report-sha256:' + canonical_hash(proof)
-                        error.validated_handles = tuple(handles)
-                        raise error
+                        rejected_completions[seq] = 'native-goal-report-sha256:' + canonical_hash(proof)
+                        continue
                     session, handle = object(), object()
                     observation = OwnerObservation(self.peer, intent['endpoint'],
                         intent['project_id'], intent['request_id'], intent['action_id'], intent['generation'],
                         'goal_update', 'native-goal-report-sha256:' + canonical_hash(proof), report, canonical_hash(report))
                     self._observations[session] = (handle, observation)
                     handles.append((session, handle))
+                    if seq is not None:
+                        reported_sequences.add(seq)
+        # A rejected claim never occupies a business sequence. A correction at
+        # that sequence still goes through the caller's ordinary report checks.
+        for seq, evidence_ref in rejected_completions.items():
+            if seq not in reported_sequences:
+                error = TransportError('NATIVE_LISTENING_CAPABILITY_UNAVAILABLE')
+                error.evidence_ref = evidence_ref
+                error.validated_handles = tuple(handles)
+                raise error
         require(bool(handles), 'NATIVE_REPORT_NOT_READY')
         return handles
 

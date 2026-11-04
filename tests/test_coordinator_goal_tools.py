@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 import hashlib
+import io
 import importlib.util
 import json
 from pathlib import Path
@@ -10,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = ROOT / 'mcp/project-coordinator-tools/server.py'
@@ -22,6 +24,9 @@ import test_coordinator_goal_channel as native_fixtures
 
 
 class FakeChannel:
+    def bind_organization_parent(self, core_state_dir, *, reviewer_policy_sha256):
+        self.organization_parent = (core_state_dir, reviewer_policy_sha256)
+
     def __init__(self, policy):
         self.policy = policy
         self.calls = 0
@@ -98,7 +103,7 @@ class GoalToolsTests(unittest.TestCase):
         context = self.core.goal_context('fixture', 'parent-request')
         binding = {k: context[k] for k in module.BINDING_KEYS - {'work_key', 'scope_refs', 'allowed_actions'}}
         binding.update({k: goal[k] for k in ('work_key', 'scope_refs', 'allowed_actions')})
-        self.policy = {'v': 1, 'role': 'coordinator', 'core_state_dir': str(self.core.path.parent), 'state_dir': str(self.state),
+        self.policy = {'v': 1, 'role': 'project_owner', 'core_state_dir': str(self.core.path.parent), 'state_dir': str(self.state),
                        'binding': binding, 'expires_at': request['deadline'], 'source_bridge': None,
                        'evidence': [], 'reviewer': None, 'review_contact_attempts': 0}
         self.policy_path = self.root / 'policy.json'
@@ -166,10 +171,37 @@ class GoalToolsTests(unittest.TestCase):
         responses = [json.loads(x) for x in result.stdout.splitlines()]
         self.assertEqual([x['id'] for x in responses], [1, 2, 3, 4])
         self.assertEqual(len(responses[1]['result']['tools']), 4)
-        self.assertEqual(responses[2]['result']['structuredContent']['trust'], 'HOST_ATTESTED')
-        self.assertFalse(responses[2]['result']['structuredContent']['native_acceptance_verified'])
+        self.assertTrue(responses[2]['result']['isError'])
+        self.assertEqual(responses[2]['result']['content'][0]['text'], 'SOURCE_BRIDGE_UNBOUND')
         self.assertEqual(responses[3]['result']['structuredContent']['state'], 'BLOCKED')
         self.assertFalse((self.state / 'review-contact.sqlite3').exists())
+
+    def test_full_size_evidence_and_oversized_reply_keep_stdio_usable(self):
+        self.bind_reviewer()
+        for ref, content in [('plain', b'x'), ('escaped', b'\\')]:
+            path = self.root / ref
+            raw = content * module.MAX_FILE
+            path.write_bytes(raw)
+            self.policy['evidence'].append({'ref_id': ref, 'path': str(path), 'bytes': len(raw),
+                'sha256': hashlib.sha256(raw).hexdigest(), 'kind': 'asset_index', 'format': 'text',
+                'scope_refs': self.policy['binding']['scope_refs']})
+        self.save()
+        requests = [
+            {'id': 1, 'method': 'initialize', 'params': {'protocolVersion': '2025-06-18', 'clientInfo': {}, 'capabilities': {}}},
+            {'method': 'notifications/initialized'},
+            *[{'id': i, 'method': 'tools/call', 'params': {'name': 'read_review_evidence', 'arguments': {'ref_id': ref}}}
+              for i, ref in ((2, 'plain'), (3, 'escaped'))],
+            {'id': 4, 'method': 'ping'}]
+        sink = io.BytesIO()
+        module.serve(self.tools(source_gate=lambda *_: None),
+                     io.BytesIO(b''.join(canonical({'jsonrpc': '2.0', **r}) + b'\n' for r in requests)), sink)
+        frames = sink.getvalue().splitlines(keepends=True)
+        self.assertTrue(all(len(frame) <= module.MAX_FRAME for frame in frames))
+        _, full, oversized, pong = map(json.loads, frames)
+        self.assertEqual(full['result']['structuredContent']['content'], 'x' * module.MAX_FILE)
+        self.assertEqual((oversized['id'], oversized['error']['message']), (3, 'MESSAGE_TOO_LARGE'))
+        self.assertLess(len(frames[2]), 256)
+        self.assertEqual(pong, {'jsonrpc': '2.0', 'id': 4, 'result': {}})
 
     def test_no_receiver_and_imported_accepted_json_never_mean_native_acceptance(self):
         tools = self.bind_reviewer()
@@ -185,7 +217,7 @@ class GoalToolsTests(unittest.TestCase):
         self.assertEqual(self.channel.calls, 0)
 
     def test_scope_and_evidence_arguments_cannot_expand_read_access(self):
-        tools = self.tools()
+        tools = self.bind_reviewer()
         with self.assertRaises(module.ToolError):
             tools.call('read_review_evidence', {'ref_id': 'fixture:index', 'path': '/etc/passwd'})
         ref = self.policy['evidence'][0]
@@ -194,19 +226,68 @@ class GoalToolsTests(unittest.TestCase):
             tools.read_review_evidence('fixture:index')
         self.assertEqual(raised.exception.code, 'EVIDENCE_CHANGED')
 
+    def test_active_original_authority_required_for_new_evidence_reads(self):
+        tools = self.bind_reviewer()
+        self.assertEqual(tools.read_review_evidence('fixture:index')['trust'], 'HOST_ATTESTED')
+        def revoked(*_):
+            raise module.ToolError('SOURCE_CANCELLED_OR_UNKNOWN')
+        tools.source_gate = revoked
+        with self.assertRaisesRegex(module.ToolError, 'SOURCE_CANCELLED_OR_UNKNOWN'):
+            tools.read_review_evidence('fixture:index')
+        tools.clock = lambda: datetime(2100, 1, 1, tzinfo=timezone.utc)
+        with self.assertRaisesRegex(module.ToolError, 'AUTHORITY_EXPIRED'):
+            tools.read_review_evidence('fixture:index')
+        self.core.cancel('cloud:fixture', 'fixture', 'parent-request', 'fixture:revoked')
+        with self.assertRaisesRegex(module.ToolError, 'PARENT_CANCELLED_OR_STOPPED'):
+            tools.read_review_evidence('fixture:index')
+        self.assertEqual(tools.read_coordination_report()['state'], 'NO_REVIEW_CONTACT')
+
+    def test_native_owner_cannot_admit_another_valid_task_tool_policy(self):
+        fixture = native_fixtures.NativeGoalChannelTests()
+        fixture.setUp(); self.addCleanup(fixture.doCleanups)
+        fixture.use_process_policy()
+        proc = json.loads(Path(fixture.policy['process_config']).read_text())
+        p = Path(proc['mcp_servers']['bounded']['policy'])
+        p.write_bytes(self.policy_path.read_bytes())
+        for artifact in fixture.cap['config_files']:
+            if artifact['path'] == str(p):
+                artifact['sha256'] = hashlib.sha256(p.read_bytes()).hexdigest()
+        fixture.refresh_capability()
+        # The swapped artifact is a valid authorized policy for another real
+        # synthetic request; pinning its bytes and tool names is insufficient.
+        self.assertNotEqual(self.tools().goal_context()['parent']['request_id'], fixture.intent['request_id'])
+        with self.assertRaisesRegex(native_fixtures.TransportError, 'NATIVE_TOOL_PARENT_MISMATCH'):
+            fixture.channel.preflight(fixture.intent)
+        self.assertFalse(fixture.calls())
+
+    def test_explicit_prior_round_does_not_require_a_completion_or_authorize_two_contacts(self):
+        self.bind_reviewer()
+        item = self.add_evidence('fixture:old-round-input', {'status': 'unknown'}, 'prior_round')
+        item['prior_round_ref'] = 'earlier-round-01'
+        self.save()
+        tools = self.tools(channel_loader=lambda _: self.channel, source_gate=lambda *_: None)
+        self.assertEqual(tools.read_review_evidence(item['ref_id'])['prior_round_ref'], 'earlier-round-01')
+        self.assertEqual(tools.coordinate_independent_review()['state'], 'REVIEWER_ACCEPTED')
+        self.assertEqual(tools.coordinate_independent_review()['state'], 'REVIEWER_ACCEPTED')
+        self.assertEqual(self.channel.calls, 1)
+        item['prior_round_ref'] = self.policy['binding']['request_id']
+        self.save()
+        with self.assertRaisesRegex(module.ToolError, 'INVALID_PRIOR_ROUND'):
+            self.tools()
+
     def test_known_source_credential_file_and_hardlink_cannot_be_exported_as_evidence(self):
         source = self.add_evidence('fixture:control', {'key_hex': 'fixture-control-value'}, 'receipt')
         Path(source['path']).chmod(0o600)
         self.policy['source_bridge'] = {'path': source['path'], 'sha256': source['sha256']}
         self.save()
         with self.assertRaises(module.ToolError) as raised:
-            self.tools().read_review_evidence(source['ref_id'])
+            self.tools(source_gate=lambda *_: None).read_review_evidence(source['ref_id'])
         self.assertEqual(raised.exception.code, 'CONTROL_FILE_NOT_BUSINESS_EVIDENCE')
         alias = self.root / 'business-looking-alias.json'
         alias.hardlink_to(source['path'])
         source['path'] = str(alias); self.save()
         with self.assertRaises(module.ToolError) as raised:
-            self.tools().read_review_evidence(source['ref_id'])
+            self.tools(source_gate=lambda *_: None).read_review_evidence(source['ref_id'])
         self.assertEqual(raised.exception.code, 'CONTROL_FILE_NOT_BUSINESS_EVIDENCE')
 
     def test_child_tools_have_no_recursive_coordination(self):
@@ -230,6 +311,26 @@ class GoalToolsTests(unittest.TestCase):
         self.assertEqual(self.core.route('fixture')['owner_principal'], 'owner:parent')
         self.assertEqual(self.core.inspect('fixture', 'parent-request')['goal_state'], 'ADMITTED')
         self.assertEqual(recovered.coordinate_independent_review()['reports'], result['reports'])
+
+    def test_interrupted_reservation_does_not_publish_an_empty_contact_journal(self):
+        tools = self.bind_reviewer()
+        with patch.object(module.os, 'link', side_effect=OSError('fixture:prepublication failure')):
+            self.assertEqual(tools.coordinate_independent_review()['state'], 'BLOCKED')
+        self.assertFalse(tools.journal.exists())
+        self.assertEqual(self.channel.calls, 0)
+        self.assertEqual(tools.coordinate_independent_review()['state'], 'REVIEWER_ACCEPTED')
+        self.assertEqual(self.channel.calls, 1)
+
+    def test_definite_not_sent_is_stable_across_reopen(self):
+        tools = self.bind_reviewer()
+        def not_sent(intent, **_):
+            return {**{k: intent[k] for k in CONTACT_KEYS}, 'kind': 'DELEGATE_GOAL', 'outcome': 'NOT_SENT'}
+        self.channel.submit_goal = not_sent
+        first = tools.coordinate_independent_review()
+        self.assertEqual(first['state'], 'NOT_SENT')
+        again = self.tools(channel_loader=lambda _: self.channel, source_gate=lambda *_: None)
+        self.assertEqual(again.coordinate_independent_review(), first)
+        self.assertEqual(self.channel.calls, 0)
 
     def test_final_send_rechecks_original_source_and_local_cancel(self):
         tools = self.bind_reviewer()
@@ -270,7 +371,7 @@ class GoalToolsTests(unittest.TestCase):
     def test_reviewer_channel_cannot_bind_coordinator_tools_or_recursive_tool(self):
         self.bind_reviewer()
         child = json.loads(self.child_policy_path.read_text())
-        child['role'] = 'coordinator'
+        child['role'] = 'project_owner'
         self.child_policy_path.write_bytes(canonical(child))
         result = self.tools(channel_loader=lambda _: self.channel, source_gate=lambda *_: None).coordinate_independent_review()
         self.assertEqual(result['reason'], 'REVIEW_TOOL_BOUNDARY_INVALID', result)
@@ -362,7 +463,9 @@ class GoalToolsTests(unittest.TestCase):
         Path(ref['path']).write_bytes(canonical(fixture.policy))
         ref['sha256'] = hashlib.sha256(Path(ref['path']).read_bytes()).hexdigest()
         self.save()
-        loader = lambda path: fixture.process_channel(json.loads(Path(path).read_text()))
+        def loader(path):
+            with patch('coordinator_goal_channel.__file__', str(fixture.root/'release/scripts/coordinator_goal_channel.py')):
+                return native_fixtures.CodexGoalChannel(json.loads(Path(path).read_text()))
         tools = self.tools(channel_loader=loader, source_gate=lambda *_: None)
         return tools, fixture, loader
 

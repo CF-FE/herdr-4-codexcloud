@@ -154,6 +154,7 @@ class GoalBridgeTests(unittest.TestCase):
             error.evidence_ref = 'native-goal-report-sha256:' + 'd' * 64
             raise error
         channel = SimpleNamespace(peer=peer, reconcile=reconcile,
+            bind_organization_parent=lambda path: self.assertEqual(path, self.core.path.parent),
             authenticated_peer=lambda value: peer if value is session else None,
             verified_observation=lambda value, ref: observation if value is session and ref is handle else None)
         candidate = self.root / 'fixed-channel.json'

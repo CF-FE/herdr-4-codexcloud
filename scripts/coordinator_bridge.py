@@ -277,6 +277,7 @@ def dispatch(args):
                 from coordinator_goal_channel import load_goal_channel
             try:
                 channel = load_goal_channel(config['goal_channel_config'])
+                channel.bind_organization_parent(core.path.parent)
                 context = core.goal_context(project, request_id)
                 owner_grant = Grant(channel.peer, project, context['owner_principal'], 'native-goal-owner',
                                     frozenset({'goal_update'}))

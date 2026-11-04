@@ -16,9 +16,10 @@ from pathlib import Path
 import sqlite3
 import stat
 import sys
+import tempfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts'))
-from project_coordinator import Coordinator, canonical, canonical_hash, GOAL_ACTIONS, GOAL_BUDGET, timestamp
+from project_coordinator import Coordinator, CoordinatorError, canonical, canonical_hash, GOAL_ACTIONS, GOAL_BUDGET, timestamp
 from coordinator_goal_channel import load_goal_channel
 from coordinator_bridge import SocketBridge, load_config
 from coordinator_transport import CoordinatorTransport, CONTACT_KEYS
@@ -101,7 +102,7 @@ class GoalTools:
         self.policy = p = parse(raw)
         require(isinstance(p, dict) and set(p) == POLICY_KEYS and type(p['v']) is int and p['v'] == 1,
                 'INVALID_TOOL_POLICY')
-        require(p['role'] in ('coordinator', 'reviewer') and type(p['review_contact_attempts']) is int
+        require(p['role'] in ('project_owner', 'reviewer') and type(p['review_contact_attempts']) is int
                 and p['review_contact_attempts'] in (0, 1), 'INVALID_TOOL_POLICY')
         b = p['binding']
         require(isinstance(b, dict) and set(b) == BINDING_KEYS and type(b['generation']) is int
@@ -120,10 +121,17 @@ class GoalTools:
         require(isinstance(p['evidence'], list) and len(p['evidence']) <= 64, 'INVALID_EVIDENCE')
         self.evidence = {}
         for item in p['evidence']:
-            require(isinstance(item, dict) and set(item) == {'ref_id', 'path', 'sha256', 'bytes', 'format', 'kind', 'scope_refs'}
+            require(isinstance(item, dict), 'INVALID_EVIDENCE')
+            keys = {'ref_id', 'path', 'sha256', 'bytes', 'format', 'kind', 'scope_refs'}
+            if item.get('kind') == 'prior_round':
+                keys.add('prior_round_ref')
+                require(plain(item.get('prior_round_ref')) and item['prior_round_ref'] not in
+                        (b['request_id'], b['job_id'], b['work_key']), 'INVALID_PRIOR_ROUND')
+            require(set(item) == keys
                     and plain(item['ref_id']) and item['ref_id'] not in self.evidence
                     and type(item['bytes']) is int and 0 <= item['bytes'] <= MAX_FILE
-                    and item['format'] in ('json', 'text') and item['kind'] in ('appointment', 'independence', 'arrangement', 'receipt', 'asset_index'),
+                    and item['format'] in ('json', 'text') and item['kind'] in ('appointment', 'independence', 'arrangement', 'receipt', 'asset_index',
+                        'prior_round'),
                     'INVALID_EVIDENCE')
             require(isinstance(item['scope_refs'], list) and set(item['scope_refs']) <= set(b['scope_refs']), 'EVIDENCE_SCOPE_MISMATCH')
             require(not set(Path(item['path']).parts) & {'.codex', '.ssh', '.aws', '.gnupg'}, 'RESTRICTED_EVIDENCE_PATH')
@@ -183,6 +191,7 @@ class GoalTools:
         require(len(raw) == ref['bytes'] and hashlib.sha256(raw).hexdigest() == ref['sha256'], 'EVIDENCE_CHANGED')
         value = parse(raw) if ref['format'] == 'json' else raw.decode('utf-8')
         return {'ref_id': ref_id, 'sha256': ref['sha256'], 'bytes': len(raw), 'kind': ref['kind'],
+                **({'prior_round_ref': ref['prior_round_ref']} if ref['kind'] == 'prior_round' else {}),
                 'trust': 'HOST_ATTESTED', 'native_acceptance_verified': False, 'content': value}
 
     def _forbid_control_evidence(self, evidence_path):
@@ -221,9 +230,12 @@ class GoalTools:
         check()
 
     def read_review_evidence(self, ref_id):
-        self._context()
+        core, context, _ = self._context(active=True)
         require('verify_existing_evidence' in self.policy['binding']['allowed_actions'], 'ACTION_NOT_ALLOWED')
-        return self._evidence(ref_id)
+        self._source(core, context)
+        value = self._evidence(ref_id)
+        self._context(active=True)
+        return value
 
     def _reviewer(self):
         b, r = self.policy['binding'], self.policy['reviewer']
@@ -257,6 +269,8 @@ class GoalTools:
         require(child.policy['role'] == 'reviewer' and child.policy['reviewer'] is None
                 and child.policy['review_contact_attempts'] == 0 and child.core_dir == self.core_dir
                 and child.state != self.state
+                and ('read_review_evidence' not in server['enabled_tools'] or
+                     child.policy['source_bridge'] == self.policy['source_bridge'])
                 and set(child.policy['binding']['allowed_actions']) <= set(CHILD_ACTIONS)
                 and all(child.policy['binding'][k] == self.policy['binding'][k]
                         for k in BINDING_KEYS - {'allowed_actions'}), 'REVIEW_TOOL_BOUNDARY_INVALID')
@@ -302,12 +316,10 @@ class GoalTools:
             yield
 
     @contextmanager
-    def _db(self, write=False):
-        if write:
-            fd = os.open(self.journal, os.O_CREAT | os.O_RDWR | getattr(os, 'O_NOFOLLOW', 0), 0o600)
-            os.close(fd)
-        read_file(self.journal, private=True, maximum=8 * MAX_FRAME)
-        db = sqlite3.connect(self.journal.as_uri() + ('?mode=rw' if write else '?mode=ro'), uri=True, isolation_level=None)
+    def _db(self, write=False, *, path=None):
+        path = self.journal if path is None else path
+        read_file(path, private=True, maximum=8 * MAX_FRAME)
+        db = sqlite3.connect(path.as_uri() + ('?mode=rw' if write else '?mode=ro'), uri=True, isolation_level=None)
         db.row_factory = sqlite3.Row
         try:
             db.execute('PRAGMA synchronous=FULL')
@@ -341,17 +353,30 @@ class GoalTools:
                     'unadopted_reports': unadopted, 'readback_blocks': blocks}
 
     def _record(self, intent, state, receipt=None):
+        if not self.journal.exists():
+            # The published database's existence means a committed original
+            # reservation. A crash before this link cannot leave an empty journal
+            # that suppresses the first authorized send forever.
+            with tempfile.TemporaryDirectory(dir=self.state, prefix='.prepare-review-') as folder:
+                pending = Path(folder) / self.journal.name
+                pending.touch(mode=0o600)
+                with self._db(True, path=pending) as db:
+                    db.execute('INSERT INTO contact VALUES(1,?,?,?,?,?,?)', (canonical_hash(self.policy['binding']),
+                               canonical(intent).decode(), self.policy_hash, state, self.clock().isoformat(),
+                               canonical(receipt).decode() if receipt else None))
+                os.link(pending, self.journal)
+                directory = os.open(self.state, os.O_RDONLY)
+                try:
+                    os.fsync(directory)
+                finally:
+                    os.close(directory)
+            return
         with self._db(True) as db:
             row = db.execute('SELECT * FROM contact WHERE id=1').fetchone()
-            if row:
-                require(row['binding_hash'] == canonical_hash(self.policy['binding']) and row['intent'] == canonical(intent).decode()
-                        and row['admission_hash'] == self.policy_hash, 'REVIEW_RESERVATION_CONFLICT')
-                db.execute('UPDATE contact SET state=?,receipt=COALESCE(?,receipt) WHERE id=1',
-                           (state, canonical(receipt).decode() if receipt else None))
-            else:
-                db.execute('INSERT INTO contact VALUES(1,?,?,?,?,?,?)', (canonical_hash(self.policy['binding']),
-                           canonical(intent).decode(), self.policy_hash, state, self.clock().isoformat(),
-                           canonical(receipt).decode() if receipt else None))
+            require(row and row['binding_hash'] == canonical_hash(self.policy['binding']) and row['intent'] == canonical(intent).decode()
+                    and row['admission_hash'] == self.policy_hash, 'REVIEW_RESERVATION_CONFLICT')
+            db.execute('UPDATE contact SET state=?,receipt=COALESCE(?,receipt) WHERE id=1',
+                       (state, canonical(receipt).decode() if receipt else None))
 
     def _reconcile(self, channel, intent):
         # Original-action readback is evidence recovery, never renewed authority.
@@ -454,7 +479,7 @@ class GoalTools:
                     and all(plain(x) for x in review['evidence_refs']), 'INDEPENDENT_LISTENING_REQUIRED')
 
     def coordinate_independent_review(self):
-        require(self.policy['role'] == 'coordinator' and 'plan_independent_review' in self.policy['binding']['allowed_actions'],
+        require(self.policy['role'] == 'project_owner' and 'plan_independent_review' in self.policy['binding']['allowed_actions'],
                 'ACTION_NOT_ALLOWED')
         try:
             with self._lock():
@@ -483,10 +508,17 @@ class GoalTools:
                     if state == 'EXTERNAL_SEEN':
                         return {'state': 'BLOCKED', 'reason': 'EXISTING_NATIVE_ACTION_REQUIRES_RECONCILIATION',
                                 'original': self.read_coordination_report()}
+                    if state == 'NOT_SENT':
+                        return self.read_coordination_report()
                     return self._reconcile(channel, intent)  # INTENT/UNKNOWN never call submit again.
+                channel.bind_organization_parent(self.core_dir, reviewer_policy_sha256=review_tool_hash)
                 for ref in self.evidence.values():
+                    if ref['kind'] == 'prior_round':
+                        require(ref['prior_round_ref'] not in (context['action_id'], intent['request_id'], intent['action_id']),
+                                'INVALID_PRIOR_ROUND')
                     if ref['kind'] in ('arrangement', 'receipt'):
                         imported = self._evidence(ref['ref_id'])
+                        self._context(active=True)
                         return {'state': 'BLOCKED', 'reason': 'EXISTING_ARRANGEMENT_REQUIRES_RECONCILIATION', 'existing': imported}
                 found = channel.lookup_goal(intent)
                 require(found.get('state') in ('ABSENT', 'PRESENT'), 'NATIVE_LOOKUP_UNKNOWN')
@@ -533,7 +565,7 @@ class GoalTools:
             names.append(('read_coordination_report', {}, [], True))
         if 'verify_existing_evidence' in actions:
             names.append(('read_review_evidence', {'ref_id': {'type': 'string', 'enum': list(self.evidence)}}, ['ref_id'], True))
-        if self.policy['role'] == 'coordinator' and 'plan_independent_review' in actions:
+        if self.policy['role'] == 'project_owner' and 'plan_independent_review' in actions:
             names.append(('coordinate_independent_review', {}, [], False))
         return [{'name': name, 'description': name.replace('_', ' ') + '; exact reviewed single-job scope only.',
                  'inputSchema': {'type': 'object', 'properties': properties, 'required': required, 'additionalProperties': False},
@@ -582,7 +614,8 @@ def serve(tools, source, sink):
                     require(isinstance(params, dict) and set(params) == {'name', 'arguments'}, 'INVALID_PARAMS')
                     try:
                         value = tools.call(params['name'], params['arguments'])
-                        result = {'content': [{'type': 'text', 'text': canonical(value).decode()}], 'structuredContent': value, 'isError': False}
+                        result = {'content': [{'type': 'text', 'text': canonical(value, max_bytes=MAX_FRAME - 1).decode()}],
+                                  'structuredContent': value, 'isError': False}
                     except Exception as error:
                         result = {'content': [{'type': 'text', 'text': getattr(error, 'code', 'TOOL_FAILED')}], 'isError': True}
                 else:
@@ -591,7 +624,16 @@ def serve(tools, source, sink):
         except Exception as error:
             answer = {'jsonrpc': '2.0', 'id': response_id, 'error': {'code': -32601 if getattr(error, 'code', '') == 'METHOD_NOT_FOUND' else -32600,
                       'message': getattr(error, 'code', 'INVALID_REQUEST')}}
-        sink.write(canonical(answer, max_bytes=MAX_FRAME) + b'\n')
+        try:
+            frame = canonical(answer, max_bytes=MAX_FRAME - 1)
+        except CoordinatorError as error:
+            if error.code != 'MESSAGE_TOO_LARGE':
+                raise
+            # An oversized request ID can itself prevent a bounded error reply.
+            small_id = response_id if len(str(response_id)) <= 256 else None
+            frame = canonical({'jsonrpc': '2.0', 'id': small_id,
+                               'error': {'code': -32000, 'message': 'MESSAGE_TOO_LARGE'}})
+        sink.write(frame + b'\n')
         sink.flush()
 
 
