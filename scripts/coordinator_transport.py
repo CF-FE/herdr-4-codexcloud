@@ -13,9 +13,9 @@ import re
 from typing import Callable, ContextManager, Protocol
 
 if __package__:
-    from .project_coordinator import canonical_hash
+    from .project_coordinator import CoordinatorError, canonical_hash
 else:
-    from project_coordinator import canonical_hash
+    from project_coordinator import CoordinatorError, canonical_hash
 
 
 class TransportError(ValueError):
@@ -294,7 +294,21 @@ class CoordinatorTransport:
                        evidence_refs=[*body['evidence_refs'], delivery.origin_ref, delivery.task.evidence_ref])
         if not is_goal:
             request['question'] = payload.get('content')
-        return self.core.submit(grant.principal, request, bridge_origin=self._origin(delivery))
+        status = self.core.submit(grant.principal, request, bridge_origin=self._origin(delivery))
+        if is_goal:
+            self._remember_initial_goal_route(grant, project_id, body['request_id'])
+        return status
+
+    def _goal_route_hash(self, grant, project_id):
+        route = self.core.route(project_id)
+        return canonical_hash([grant.peer.channel, grant.peer.subject, grant.principal, grant.sender_alias,
+                               self.recipient, route['repository'], route['project_ref'], route['report_route']])
+
+    def _remember_initial_goal_route(self, grant, project_id, request_id):
+        saved = self.core.goal_bridge_control(project_id, request_id)
+        if saved['revision'] == 0:
+            self.core.goal_bridge_control(project_id, request_id, expected_revision=0,
+                decision={'route_hash': self._goal_route_hash(grant, project_id), 'denied': None})
 
     def _request_state(self, grant, project_id, request_id):
         state = self.core.status(grant.principal, project_id, request_id)
@@ -317,7 +331,7 @@ class CoordinatorTransport:
         self._request_state(grant, project_id, request_id)
         return self.core.cancel(grant.principal, project_id, request_id, evidence_ref)
 
-    def _wire(self, outcome, reader=None):
+    def _wire(self, outcome, reader=None, *, observe_cancellation=False):
         delivery, payload = self._original(outcome['job_id'])
         require(reader is None or delivery.origin == reader, 'ACCESS_DENIED')
         association = payload.get('coordinator_request')
@@ -326,6 +340,10 @@ class CoordinatorTransport:
                 'ORIGINAL_JOB_MISMATCH')
         require(canonical_hash(outcome['result']) == outcome['result_hash'], 'CORE_RESULT_MISMATCH')
         self._verify_route(delivery, payload, outcome['project_id'], admitted_request=outcome['request_id'])
+        if observe_cancellation and delivery.record.get('cancel_requested') is True:
+            route = self.core.route(outcome['project_id'])
+            self.core.cancel(route['cloud_dot_principal'], outcome['project_id'], outcome['request_id'],
+                             f'bridge:cancel:{delivery.job_id}:{delivery.payload_hash}')
         # Pre-attach exactly the tracking the bridge would add. This lets both
         # sides verify the final wire bytes without equating local/server versions.
         return {'schema_version': 1, 'type': 'PROJECT_COORDINATOR_RESULT',
@@ -337,7 +355,24 @@ class CoordinatorTransport:
     def enqueue(self, project_id, request_id, version=1):
         """Recover a durable answer using the bridge producer identity."""
         outcome = self.core.delivery(project_id, request_id, version)
-        wire = self._wire(outcome)
+        goal = (outcome['result'].get('kind') == 'GOAL_UPDATE' or
+                outcome['result'].get('original_kind') == 'DELEGATE_GOAL')
+        saved = self.core.goal_bridge_control(project_id, request_id) if goal and not self.core.read_only else None
+        try:
+            wire = self._wire(outcome, observe_cancellation=saved is not None)
+        except (TransportError, CoordinatorError) as error:
+            # This is source/route verification only. A later lookup or enqueue
+            # denial belongs to the producer; it cannot revoke an owner observation.
+            if saved is not None:
+                digest = saved['known']['route_hash'] if saved['known'] else canonical_hash(saved['origin'])
+                self.core.goal_bridge_control(project_id, request_id, expected_revision=saved['revision'],
+                                              decision={'route_hash': digest, 'denied': error.code})
+            raise
+        if saved is not None and saved['revision'] == 0:
+            origin = saved['origin']
+            grant = self.grants.get((Peer(origin['channel'], origin['subject']), project_id))
+            if grant and 'submit_goal' in grant.actions:
+                self._remember_initial_goal_route(grant, project_id, request_id)
         job_id, event_id = outcome['job_id'], outcome['event_id']
         expected = {'job_id': job_id, 'event_id': event_id, 'status': 'REPORTED_COMPLETED',
                     'result_hash': canonical_hash(wire, max_bytes=MAILBOX_LIMIT)}
@@ -450,6 +485,7 @@ class CoordinatorTransport:
                 self.core.cancel(grant.principal, project_id, request_id,
                                  f'bridge:cancel:{original.job_id}:{original.payload_hash}')
             require(original.record.get('cancel_requested') is False, 'JOB_CANCELLED_OR_UNVERIFIED')
+            self._remember_initial_goal_route(grant, project_id, request_id)
 
         source_gate()
         # A busy owner has not received anything. Never spend the one durable
@@ -517,22 +553,56 @@ class CoordinatorTransport:
                 'OWNER_REPLY_HASH_MISMATCH')
         return self.core.reply(*args, observation.report)
 
-    def goal_update(self, session, project_id, request_id, handle):
-        args, observation = self._owner_observation(session, project_id, request_id, handle, 'goal_update')
-        require(isinstance(observation.report, dict) and canonical_hash(observation.report) == observation.report_hash,
-                'OWNER_REPLY_HASH_MISMATCH')
+    def _goal_observation_control(self, project_id, request_id):
+        """A network outage may delay control refresh, never authorize a new action or erase a denial."""
         state = self.core.inspect(project_id, request_id)
-        require(state.get('kind') == 'DELEGATE_GOAL', 'NOT_A_GOAL')
-        # Reading a native report does not prove the original task is still live.
-        # On an unavailable/revoked source leave the persisted native observation
-        # untouched; it can be reconciled by the same handle and report sequence.
-        original, payload = self._original(state['job_id'])
-        require(original.payload_hash == state['payload_hash'], 'ORIGINAL_JOB_MISMATCH')
-        self._verify_route(original, payload, project_id, admitted_request=request_id)
-        grant = self._grant(original.origin, project_id, 'submit_goal')
-        cancelled = original.record.get('cancel_requested')
-        require(type(cancelled) is bool, 'JOB_CANCELLED_OR_UNVERIFIED')
+        require(state.get('kind') == 'DELEGATE_GOAL' and state['action_id'], 'ORIGINAL_ACTION_REQUIRED')
+        saved = self.core.goal_bridge_control(project_id, request_id)
+        origin, known = saved['origin'], saved['known']
+        route_hash = known['route_hash'] if known else canonical_hash(origin)
+        try:
+            grant = self._grant(Peer(origin['channel'], origin['subject']), project_id, 'submit_goal')
+            require(grant.principal == saved['principal'] == self.core.route(project_id)['cloud_dot_principal'], 'ACCESS_DENIED')
+            route_hash = self._goal_route_hash(grant, project_id)
+            original, payload = self._original(state['job_id'])
+            require(original.payload_hash == state['payload_hash'], 'ORIGINAL_JOB_MISMATCH')
+            self._verify_route(original, payload, project_id, admitted_request=request_id)
+            cancelled = original.record.get('cancel_requested')
+            require(type(cancelled) is bool, 'JOB_CANCELLED_OR_UNVERIFIED')
+        except (TimeoutError, ConnectionError):
+            require(known is not None, 'OFFLINE_ORIGIN_NOT_VERIFIED')
+            if known['denied'] is not None:
+                error = TransportError(known['denied'])
+                error.source_control = {'refresh': 'UNAVAILABLE', 'last_denial': known['denied']}
+                raise error
+            require(known['route_hash'] == route_hash, 'ORIGIN_BINDING_CONFLICT')
+            return saved['revision'], {'refresh': 'UNAVAILABLE', 'last_verified_route': True,
+                                       'cancel_known_locally': state['cancel_requested']}
+        except (TransportError, CoordinatorError) as error:
+            self.core.goal_bridge_control(project_id, request_id, expected_revision=saved['revision'],
+                                          decision={'route_hash': route_hash, 'denied': error.code})
+            error.source_control = {'refresh': 'REJECTED', 'last_denial': error.code}
+            raise
         if cancelled:
             self.core.cancel(grant.principal, project_id, request_id,
                              f'bridge:cancel:{original.job_id}:{original.payload_hash}')
-        return self.core.goal_update(*args, observation.report)
+        current = self.core.goal_bridge_control(project_id, request_id, expected_revision=saved['revision'],
+                                                decision={'route_hash': route_hash, 'denied': None})
+        return current['revision'], {'refresh': 'VERIFIED', 'last_verified_route': True,
+                                     'cancel_known_locally': bool(cancelled or state['cancel_requested'])}
+
+    def goal_updates(self, project_id, request_id, observations):
+        """Read already-produced owner evidence; resolve source control at most once for this batch."""
+        control, revision, results = None, None, []
+        for session, handle in observations:
+            args, observed = self._owner_observation(session, project_id, request_id, handle, 'goal_update')
+            require(isinstance(observed.report, dict) and canonical_hash(observed.report) == observed.report_hash,
+                    'OWNER_REPLY_HASH_MISMATCH')
+            if revision is None:
+                revision, control = self._goal_observation_control(project_id, request_id)
+            results.append(self.core.goal_update(*args, observed.report, bridge_control_revision=revision))
+        return control, results
+
+    def goal_update(self, session, project_id, request_id, handle):
+        _, results = self.goal_updates(project_id, request_id, [(session, handle)])
+        return results[0]

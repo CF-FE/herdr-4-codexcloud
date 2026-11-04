@@ -741,6 +741,11 @@ class CodexGoalChannel:
 
     @classmethod
     def _prompt(cls, intent):
+        # Old prompts are native reconciliation keys. Only the new explicit
+        # designation adds this instruction; default/legacy bytes stay stable.
+        acceptance_note = ('本单另有指定验收者（见 goal.acceptor_ref）。ACCEPTED 表示负责人接手，'
+                           'COMPLETED 只报告成果，验收决定由指定者留在原项目任务。\n'
+                           if 'acceptor_ref' in intent['goal'] else '')
         return ('受控完整目标交办。只在已批准的原有权限、预算和范围内推进；不得自批权限、创建负责人、'
                 '扩大工具范围、生成音频或重复派发。必须明确接手；缺能力时报告 BLOCKED 及下一责任与检查时间。'
                 '以下 JSON 为冻结任务数据。回复严格为 {receipt, updates}；receipt 原样回显本单身份，'
@@ -749,7 +754,7 @@ class CodexGoalChannel:
                 '每条observed_at用真实有时区时间；非完成next_check_at必须在现在之后且不超过deadline。'
                 '完成必须逐项覆盖全部acceptance_criteria。需要听检时真实听辨和独立性证据不可由ASR或技术检查代替。'
                 '后续原生回合沿同receipt和下一seq回报，不重新派发本任务。报告JSON schema如下。\n'
-                'REPORT_SCHEMA\n' + canonical(cls._schema(intent)).decode() + '\nFROZEN_INTENT\n'
+                + acceptance_note + 'REPORT_SCHEMA\n' + canonical(cls._schema(intent)).decode() + '\nFROZEN_INTENT\n'
                 + canonical(intent).decode())
 
     def submit_goal(self, intent, *, verify_current, preparation=None):

@@ -112,6 +112,45 @@ class GoalBridgeTests(unittest.TestCase):
         missing.unlink()
         self.assert_saved_result_drains(missing)
 
+    def test_stuck_outbox_does_not_starve_two_native_reports_in_same_pump(self):
+        original = self.accepted_goal_result()
+        action = self.core.inspect('example', 'query-1')['action_id']
+        peer, session = Peer('fixture-native', 'existing-owner'), object()
+        handles = {}
+        for seq in (2, 3):
+            report = {'seq': seq, 'phase':'IN_PROGRESS', 'summary':'Checked fixed evidence.',
+                'observed_at':datetime.now(timezone.utc).isoformat(), 'evidence_refs':['test:original'],
+                'next_owner':'owner:existing', 'next_check_at':'2098-01-01T00:00:00Z'}
+            handles[object()] = OwnerObservation(peer, 'native:existing', 'example', 'query-1', action, 1,
+                'goal_update', 'test:native-' + str(seq), report, canonical_hash(report))
+        channel = SimpleNamespace(peer=peer, bind_organization_parent=lambda path: None,
+            reconcile=lambda _: [(session, h) for h in handles], authenticated_peer=lambda s: peer if s is session else None,
+            verified_observation=lambda s,h: handles[h])
+        self.config['goal_channel_config'] = str(self.root/'fixture-native.json')
+        self.config_path.write_bytes(fixtures.wire(self.config))
+        def pump():
+            return bridge_runtime.dispatch(Namespace(config=self.config_path, operation='pump'))
+        with patch.object(native_runtime, 'load_goal_channel', return_value=channel):
+            with patch.object(bridge_runtime.SocketBridge, 'lookup_report', side_effect=TimeoutError('outbox unreachable')):
+                before = self.port.calls.count('verified_job')
+                first = pump()
+                self.assertEqual(self.port.calls.count('verified_job') - before, 1)
+                self.assertEqual((first['state'], first['local_goal_state'], first['local_result_version']),
+                                 ('UNKNOWN','IN_PROGRESS',3))
+                self.assertEqual(first['event_id'], original['event_id'])
+                self.assertEqual(self.core.pilot_outbox_version('example', 'query-1'), 1)
+                self.assertEqual(pump()['local_result_version'], 3)
+            sent = [pump() for _ in range(3)]
+        self.assertEqual([x['core_version'] for x in sent], [1,2,3])
+        self.assertEqual(len(self.port.reports), 3)
+        self.assertEqual(sent[0]['event_id'], original['event_id'])
+
+    def test_socket_permission_denial_is_never_an_offline_readback(self):
+        bridge = bridge_runtime.SocketBridge(self.config)
+        with patch.object(bridge_runtime, 'private_path', side_effect=PermissionError('denied')):
+            with self.assertRaisesRegex(TransportError, 'ACCESS_DENIED'):
+                bridge.verified_job('job-1')
+
     def test_saved_result_drains_without_early_native_permission_check(self):
         unsafe = self.root / 'unsafe-native-config.json'
         unsafe.write_text('{}')

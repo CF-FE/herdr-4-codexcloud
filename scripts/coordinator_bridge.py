@@ -119,6 +119,9 @@ def peer_uid(sock):
 class SocketBridge:
     """One authenticated bounded exchange with the original collector per connection."""
 
+    readback_job = None
+    _readback_snapshot = None
+
     def __init__(self, config):
         self.socket_path = config['socket_path']
         self.key_id = config['key_id']
@@ -175,6 +178,8 @@ class SocketBridge:
                     if op == 'enqueue_result':
                         raise ConnectionError('UNCONFIRMED_ENQUEUE') from error
                     raise
+        except PermissionError as error:
+            raise TransportError('ACCESS_DENIED') from error
         except OSError as error:
             raise ConnectionError('BRIDGE_UNAVAILABLE') from error
         require(type(response.get('v')) is int and response['v'] == 1 and type(response.get('ok')) is bool,
@@ -190,6 +195,21 @@ class SocketBridge:
         raise TransportError(code)
 
     def verified_job(self, job_id):
+        # This socket adapter lives for exactly one CLI invocation. Only the
+        # already-issued action's readback and outbox phases share a source
+        # snapshot. Admission and the last gate before a new send stay live.
+        if job_id != self.readback_job:
+            return self._verified_job(job_id)
+        if self._readback_snapshot is None:
+            try:
+                self._readback_snapshot = self._verified_job(job_id)
+            except (ConnectionError, TimeoutError, TransportError, CoordinatorError) as error:
+                self._readback_snapshot = error
+        if isinstance(self._readback_snapshot, Exception):
+            raise self._readback_snapshot
+        return self._readback_snapshot
+
+    def _verified_job(self, job_id):
         value = self.call('verified_job', job_id=job_id)
         require(isinstance(value, dict) and set(value) == {'origin', 'origin_ref', 'job_id', 'payload_hash', 'record', 'task'}
                 and isinstance(value['origin'], dict) and set(value['origin']) == {'channel', 'subject'}
@@ -237,6 +257,9 @@ def dispatch(args):
     state_dir = app / 'state'
     require((state_dir / 'project-coordinator.sqlite3').is_file(), 'STATE_NOT_INITIALIZED')
     core = Coordinator(state_dir, read_only=args.operation == 'enqueue')
+    if args.operation == 'enqueue' and core.inspect(identifier(args.project_id), identifier(args.request_id)).get('kind') == 'DELEGATE_GOAL':
+        # Goal publication also records authenticated source-control changes.
+        core = Coordinator(state_dir)
     transport = CoordinatorTransport(core, grants=grants, recipient=config['recipient'], bridge=bridge, callers=None)
     if args.operation == 'deliver':
         status = transport.deliver(identifier(args.job_id))
@@ -256,20 +279,21 @@ def dispatch(args):
     require(status['job_id'] == pilot['job_id'] and status['payload_hash'] == pilot['payload_hash'],
             'PILOT_BINDING_MISMATCH')
     version = core.pilot_outbox_version(project, request_id)
-    if status['result_version'] and version <= status['result_version']:
-        # Deliver saved evidence before touching a possibly unavailable native
-        # endpoint. Recovery of a result never depends on another model turn.
+    goal = status.get('kind') == 'DELEGATE_GOAL'
+    pending_at_start = bool(status['result_version'] and version <= status['result_version'])
+    if not goal and pending_at_start:
         receipt = transport.enqueue(project, request_id, version)
         if receipt['state'] in ('PENDING', 'SENT'):
             core.pilot_outbox_version(project, request_id, version=version, receipt=receipt)
         return {'state': receipt['state'], 'core_version': version, 'event_id': receipt['event_id']}
-    channel_state = None
-    if status.get('kind') == 'DELEGATE_GOAL' and not status['unblocked']:
+    channel_state, channel_error, control = None, None, None
+    if goal and not status['unblocked']:
         if not config.get('goal_channel_config'):
             # Receipt of a goal is not native acceptance. Keep the original
             # request available without consuming the one dispatch attempt.
             channel_state = 'WAITING_NATIVE_GOAL_CHANNEL'
-            goal_wait(core, project, request_id, channel_state)
+            if not pending_at_start:
+                goal_wait(core, project, request_id, channel_state)
         else:
             if __package__:
                 from .coordinator_goal_channel import load_goal_channel
@@ -289,6 +313,7 @@ def dispatch(args):
                 if context['action_id']:
                     # This reads the original native action. It never resumes a
                     # second turn, even after UNKNOWN or a missing result receipt.
+                    bridge.readback_job = context['job_id']
                     try:
                         observations = channel.reconcile(context)
                     except TransportError as error:
@@ -297,29 +322,41 @@ def dispatch(args):
                         # retained handle still passes the ordinary owner/source
                         # and report gates; the rejected item is never adopted.
                         if error.code == 'NATIVE_LISTENING_CAPABILITY_UNAVAILABLE':
-                            for session, handle in getattr(error, 'validated_handles', ()):
-                                transport.goal_update(session, project, request_id, handle)
+                            control, _ = transport.goal_updates(project, request_id, getattr(error, 'validated_handles', ()))
                         raise
-                    for session, handle in observations:
-                        transport.goal_update(session, project, request_id, handle)
+                    control, _ = transport.goal_updates(project, request_id, observations)
                 channel_state = core.inspect(project, request_id)['goal_state']
             except (TransportError, CoordinatorError, OSError, ValueError) as error:
                 code = getattr(error, 'code', 'NATIVE_CHANNEL_UNAVAILABLE')
                 code = code if isinstance(code, str) and re.fullmatch('[A-Z][A-Z0-9_]{0,63}', code) else 'NATIVE_CHANNEL_UNAVAILABLE'
                 channel_state = 'GOAL_CHANNEL_BLOCKED'
+                channel_error = code
+                control = getattr(error, 'source_control', control)
                 evidence = getattr(error, 'evidence_ref', None)
                 evidence = evidence if (code == 'NATIVE_LISTENING_CAPABILITY_UNAVAILABLE'
                     and isinstance(evidence, str) and re.fullmatch('native-goal-report-sha256:[a-f0-9]{64}', evidence)) else None
-                goal_wait(core, project, request_id, code, evidence)
+                if not pending_at_start or evidence:
+                    goal_wait(core, project, request_id, code, evidence)
         status = core.inspect(project, request_id)
     version = core.pilot_outbox_version(project, request_id)
+    local = ({'local_goal_state': status['goal_state'], 'local_result_version': status['result_version'],
+              'native_state': channel_state, 'native_error': channel_error, 'source_control': control} if goal else {})
     if not status['result_version'] or version > status['result_version']:
         return {'state': channel_state or 'FOLLOWING', 'scope': 'LOCAL_LEDGER',
-                'request_state': status['state'], 'next_version': version}
-    receipt = transport.enqueue(project, request_id, version)
+                'request_state': status['state'], 'next_version': version, **local}
+    try:
+        receipt = transport.enqueue(project, request_id, version)
+    except (TimeoutError, ConnectionError):
+        if not goal:
+            raise
+        return {**local, 'state': 'UNKNOWN', 'outbox_error': 'BRIDGE_UNAVAILABLE', 'core_version': version}
+    except (TransportError, CoordinatorError) as error:
+        if not goal:
+            raise
+        return {**local, 'state': 'OUTBOX_BLOCKED', 'outbox_error': error.code, 'core_version': version}
     if receipt['state'] in ('PENDING', 'SENT'):
         core.pilot_outbox_version(project, request_id, version=version, receipt=receipt)
-    return {'state': receipt['state'], 'core_version': version, 'event_id': receipt['event_id']}
+    return {'state': receipt['state'], 'core_version': version, 'event_id': receipt['event_id'], **local}
 
 
 def main(argv=None):
@@ -338,7 +375,7 @@ def main(argv=None):
     try:
         result = dispatch(args)
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
-        return 2 if result.get('state') == 'UNKNOWN' else 0
+        return 2 if result.get('state') in ('UNKNOWN', 'OUTBOX_BLOCKED') else 0
     except (TransportError, CoordinatorError) as error:
         detail = {'code': error.code}
         if getattr(error, 'conflicts', None):

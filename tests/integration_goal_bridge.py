@@ -142,7 +142,10 @@ transport = adapter(core)
 again = transport.dispatch_goal('example', 'cross-goal-request', 1)
 assert again['outcome'] == 'RECONCILE_ORIGINAL' and not again['native_attempted']
 assert again['action_id'] == first['action_id']
-results = []
+# Once the original handoff has occurred, the local owner can continue while
+# the signed bridge is unreachable. No sender or outbox receipt is synthesized.
+transport.bridge = SocketBridge({**config, 'socket_path': str(root / 'offline.sock')})
+local_versions = []
 for seq, phase in ((1, 'ACCEPTED'), (2, 'COMPLETED')):
     report = {'seq': seq, 'phase': phase, 'summary': 'Synthetic trusted native goal observation.',
               'observed_at': datetime.now(timezone.utc).isoformat(),
@@ -160,8 +163,22 @@ for seq, phase in ((1, 'ACCEPTED'), (2, 'COMPLETED')):
         first['action_id'], 1, 'goal_update', 'fixture:receipt:' + str(seq), report, canonical_hash(report))
     delivery = transport.goal_update(native.session, 'example', 'cross-goal-request', handle)['delivery']
     assert transport.goal_update(native.session, 'example', 'cross-goal-request', handle)['delivery'] == delivery
+    local_versions.append(delivery['version'])
+assert local_versions == [1, 2]
+before_reconnect = core.inspect('example', 'cross-goal-request')
+assert before_reconnect['goal_state'] == 'COMPLETED' and not before_reconnect['cloud_dot_read']
+assert before_reconnect['business_acceptance'] == {
+    'binding': 'DESIGNATED', 'acceptor_ref': 'qa:designated', 'task_ref': payload['tracking']['issue_url'],
+    'decision_state': 'NOT_RECORDED_HERE',
+}
+
+core = Coordinator(root / 'core')
+transport = adapter(core)
+results = []
+for version in local_versions:
+    delivery = core.delivery('example', 'cross-goal-request', version=version)
     queued = transport.enqueue('example', 'cross-goal-request', delivery['version'])
-    if seq == 1:
+    if version == 1:
         assert queued['state'] == 'UNKNOWN', 'socket reply loss must not be reported as confirmed'
     pending = transport.enqueue('example', 'cross-goal-request', delivery['version'])
     assert pending['state'] == 'PENDING'
@@ -176,7 +193,7 @@ assert counts == {'requests': 1, 'contacts': 1, 'results': 2, 'goal_updates': 2}
 assert native.calls == len(native.effects) == 1
 assert core.inspect('example', 'cross-goal-request')['goal_state'] == 'COMPLETED'
 print(json.dumps({'pid': os.getpid(), 'native_fixture_attempts': native.calls, 'action_id': first['action_id'],
-    'sqlite_counts': counts, 'results': results, 'goal_state': 'COMPLETED'}), flush=True)
+    'sqlite_counts': counts, 'local_versions_before_reconnect': local_versions, 'results': results, 'goal_state': 'COMPLETED'}), flush=True)
 '''
 
 
@@ -219,6 +236,7 @@ def run(argv=None):
         goal = {'objective': 'Synthetic coordination of an existing independent review.', 'scope_refs': scopes,
                 'work_key': digest({'task_ref': issue, 'scope_refs': sorted(scopes)}),
                 'acceptance_criteria': ['review accepted', 'original review evidence returned'],
+                'acceptor_ref': 'qa:designated',
                 'evidence_refs': ['fixture:original-input'], 'related_request_ids': [],
                 'allowed_actions': ['coordinate_existing_owner', 'verify_existing_evidence', 'plan_independent_review', 'report_progress'],
                 'next_check_at': (now + timedelta(minutes=10)).isoformat(), 'review_requirement': 'independent_listening'}
@@ -280,7 +298,8 @@ def run(argv=None):
         private_json(args.report, result)
     summary = {'passed': True, 'reports': len(result['server']['reports']),
                'core_versions': [r['core_version'] for r in result['client']['results']],
-               'outbox_state': 'PENDING', 'native_attempts': result['client']['native_fixture_attempts'],
+               'outbox_state': 'PENDING', 'local_versions_before_reconnect': result['client']['local_versions_before_reconnect'],
+               'native_attempts': result['client']['native_fixture_attempts'],
                'lost_socket_receipts': result['server']['lost_socket_receipts'],
                'rpc_calls': result['server']['rpc_calls'],
                'temporary_state_and_keys_removed': result['temporary_state_and_keys_removed'],

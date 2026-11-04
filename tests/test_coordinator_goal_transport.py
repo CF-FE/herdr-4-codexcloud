@@ -4,6 +4,7 @@ from copy import deepcopy
 from contextlib import nullcontext
 from dataclasses import replace
 import unittest
+from unittest.mock import patch
 
 import test_coordinator_transport as fixtures
 from coordinator_transport import CONTACT_KEYS, CoordinatorTransport, OwnerObservation, TransportError
@@ -209,7 +210,7 @@ class GoalTransportTests(unittest.TestCase):
         self.assertEqual(status['last_seq'], 0)
         self.assertIn(handle, self.port.owner_messages)
 
-    def test_observation_source_revocation_or_unknown_does_not_advance_or_discard_report(self):
+    def test_explicit_denial_survives_restart_and_outage_until_an_authenticated_recheck(self):
         self.start()
         handle = self.observation()
         original = self.port.jobs['job-alpha']
@@ -225,12 +226,62 @@ class GoalTransportTests(unittest.TestCase):
         def unavailable(job):
             raise TimeoutError('Synthetic source observation unknown')
         self.port.verified_job = unavailable
-        with self.assertRaises(TimeoutError):
+        with self.assertRaises(TransportError) as blocked:
             self.update(handle)
+        self.assertEqual(blocked.exception.source_control, {'refresh': 'UNAVAILABLE', 'last_denial': 'ACCESS_DENIED'})
         self.assertEqual(self.core.inspect('alpha', 'req-alpha')['last_seq'], 0)
         self.assertIn(handle, self.port.owner_messages)
         self.port.verified_job = fetch
         self.assertTrue(self.update(handle)['accepted'])
+
+    def test_offline_batch_adopts_only_frozen_route_and_never_dispatches_or_acks(self):
+        self.start()
+        handles = [self.observation(), self.observation(2, 'IN_PROGRESS')]
+        calls = []
+        def offline(job):
+            calls.append(job)
+            raise ConnectionError('bridge offline')
+        self.port.verified_job = offline
+        control, changes = self.adapter.goal_updates('alpha', 'req-alpha', [(self.owner, h) for h in handles])
+        self.assertEqual(control, {'refresh':'UNAVAILABLE', 'last_verified_route':True, 'cancel_known_locally':False})
+        self.assertEqual(calls, ['job-alpha'])
+        self.assertEqual([c['delivery']['version'] for c in changes], [1, 2])
+        self.assertFalse(self.core.inspect('alpha', 'req-alpha')['cloud_dot_read'])
+        self.assertEqual(len(self.port.native_effects), 1)
+        self.core.cancel(self.grants[0].principal, 'alpha', 'req-alpha', 'locally-observed:cancel')
+        control, updates = self.adapter.goal_updates('alpha', 'req-alpha', [(self.owner, self.observation(3, 'IN_PROGRESS'))])
+        self.assertTrue(control['cancel_known_locally'])
+        self.assertEqual(updates, [{'accepted':False, 'late':True}])
+        self.assertEqual(self.core.inspect('alpha', 'req-alpha')['last_seq'], 2)
+        self.adapter.grants[(self.a_peer, 'alpha')] = replace(self.grants[0], sender_alias='different')
+        self.assert_transport_error('ORIGIN_BINDING_CONFLICT', lambda: self.update(handles[0]))
+
+    def test_source_refusal_during_publication_latches_but_outbox_refusal_does_not(self):
+        self.start()
+        self.update(self.observation())
+        # No newer native report yet: the outbox-only path discovers the denial.
+        with patch.object(self.port, 'verified_job', side_effect=TransportError('ACCESS_DENIED')):
+            self.assert_transport_error('ACCESS_DENIED', lambda: self.adapter.enqueue('alpha', 'req-alpha', 1))
+        handle = self.observation(2,'IN_PROGRESS')
+        with patch.object(self.port, 'verified_job', side_effect=ConnectionError('offline')):
+            self.assert_transport_error('ACCESS_DENIED', lambda: self.update(handle))
+        self.assertEqual(self.core.inspect('alpha','req-alpha')['last_seq'], 1)
+        self.assertTrue(self.update(handle)['accepted'])  # fully verified restore
+        with patch.object(self.port, 'lookup_report', side_effect=TransportError('ACCESS_DENIED')):
+            self.assert_transport_error('ACCESS_DENIED', lambda: self.adapter.enqueue('alpha','req-alpha',1))
+        with patch.object(self.port, 'verified_job', side_effect=ConnectionError('offline')):
+            self.assertTrue(self.update(self.observation(3, 'IN_PROGRESS'))['accepted'])
+        self.assertEqual(len(self.port.native_effects),1)
+
+    def test_admission_interruption_recovers_at_next_verified_send(self):
+        with patch.object(self.adapter, '_remember_initial_goal_route', side_effect=OSError('interrupted after commit')):
+            with self.assertRaises(OSError):
+                self.adapter.deliver('job-alpha')
+        self.assertEqual(self.core.goal_bridge_control('alpha','req-alpha')['revision'], 0)
+        self.adapter.dispatch_goal('alpha','req-alpha',1)
+        with patch.object(self.port,'verified_job',side_effect=ConnectionError('offline')):
+            self.assertTrue(self.update(self.observation())['accepted'])
+        self.assertEqual(len(self.port.native_effects),1)
 
     def test_native_report_hash_sequence_and_listening_method_are_verified(self):
         self.start()
