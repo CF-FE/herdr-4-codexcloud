@@ -9,6 +9,7 @@
 | 查已交付、已部署和未验范围 | [当前结论](docs/status.md#当前结论) · [后续缺口](docs/status.md#后续缺口) |
 | 决定云端Dot直派还是协调层承接 | [分工与取舍](docs/coordination-policy.md#1-默认分工与取舍) · [小迭代边界](docs/coordination-policy.md#3-云端dot小迭代直派) · [协调员指挥 Cloud 的目标合同](docs/coordination-policy.md#4-协调员指挥-cloud-路由) |
 | 核对角色称呼 | [云端Dot与历史称呼](docs/coordination-policy.md#全局角色名称映射) |
+| 查每个角色在哪里运行、怎样创建和调用 | [组织岗位、专业角色与 Worker 的宿主和调用示例](docs/agent-hosts.md) |
 | 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |
 | 交办完整目标并沿原任务回报 | [目标交办合同与准入](docs/goal-handoff.md) |
 | 保留原线程并使用受限组织工具 | [目标运行入口](docs/goal-runtime.md) · [组织 MCP](mcp/project-coordinator-tools/README.md) |
