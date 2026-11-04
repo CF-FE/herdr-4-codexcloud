@@ -14,7 +14,7 @@
 
 <a id="三机组件与调用图"></a>
 
-**向下交办。** 公子和云端Dot是需求与汇报终端。下游分协调组织与执行两层。协调员统筹各项目；现任负责人决定本项目怎么做、派给谁、怎样验。图中的机器名表示 Worker 的运行位置，同一机器可有多个按任务绑定的 Agent。
+**向下交办。** 公子和云端Dot是需求与汇报终端。下游分协调组织与执行两层。协调员统筹各项目；现任负责人决定本项目怎么做、派给谁、怎样验。图中的机器名表示 Worker 的运行位置，同一机器可有多个按任务绑定的 Agent。当前有哪些环境、各自验证过哪些工具和模型，查 [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)；新增同类宿主沿用该入口。
 
 ```mermaid
 graph TD
@@ -24,7 +24,7 @@ graph TD
     subgraph 第二层 协调组织 Mac Herdr
         C["项目协调员<br/>统筹负责人、资源与路线"] -->|"联系现任者，核接手"| O["项目负责人<br/>分工、组织复核、默认验收"]
     end
-    subgraph 第三层 执行 按任务选择 Worker
+    subgraph 第三层 Worker 执行
         M["Mac 本机 Herdr<br/>绑定的本地 Agent"]
         W["Win Herdr<br/>目标 Agent 或命令 pane"]
         X["Codex Cloud 作业<br/>原生 task ID"]
