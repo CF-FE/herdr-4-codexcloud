@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "project": "sample-project",
+  "workflow": "batch-review",
+  "memory": "docs/project-memory.md",
+  "start": "inventory",
+  "steps": {
+    "inventory": {
+      "kind": "program",
+      "operation": "verify_files",
+      "routes": {"ready": "finish", "needs_review": "review"}
+    },
+    "review": {
+      "kind": "decision",
+      "question": "清单中有待核项。按已有证据汇总，还是交原 Worker 补核？",
+      "choices": {"summarize": "finish", "check": "handoff"}
+    },
+    "handoff": {
+      "kind": "handoff",
+      "instruction": "沿原任务核对清单中缺失或摘要不符的条目，交回原生证据引用。",
+      "next": "finish"
+    },
+    "finish": {"kind": "end"}
+  }
+}

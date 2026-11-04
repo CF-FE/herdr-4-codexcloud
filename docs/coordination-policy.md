@@ -35,6 +35,8 @@ Mac 接手后，项目负责人在授权范围内推进。云端暂时离线时�
 
 例如，凡人旁白的术语读音、听检方法和交付格式属于凡人主仓。哪一批待听、谁跟进、哪一版已验收，记在凡人的原 Project／Issue。Win 上哪种模型已验证能听辨，记在[组织环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)。
 
+负责人接手项目时维护一个项目记忆入口。遇到可复用的业务流程，可在自己的 Herdr 会话设计步骤和决定点，生成到项目主仓，之后在项目内独立迭代。[工作流生成与接手示例](project-workflow-development.md)
+
 ### 云端Dot作为发起者
 
 完整目标默认沿 **云端Dot → 项目协调员 → 现任项目负责人 → Worker** 交办。独立小迭代按[直派条件](#3-云端dot小迭代直派)办理，仍保留项目归属、唯一派发者和指定验收者。协调层可选择 Mac、Win 或获准的 Cloud 路线。Mac Worker 在本地 Herdr 受理，Win Worker 通过 Herdr 保存的机器配置经 SSH 定向受理，Codex 路由创建的 Cloud 作业按其原生任务 ID 回收。[岗位与宿主](agent-hosts.md)
