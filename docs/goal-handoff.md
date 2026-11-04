@@ -71,7 +71,7 @@
 
 每个已验证报告在同一事务中写入原请求的不可变 `results` 版本。沿原桥 outbox、稳定 event ID、core/wire hash 回传同一个 job。回执丢失先查原 outbox，不重派或重做结果。`COORDINATOR_WAIT_REPORT` 可报告期限、取消和等待状态，但不能充当业务完成。信箱 `REPORTED_COMPLETED` 表示这份报告已提交，不代表目标完成；目标状态读 `result.goal_state`。
 
-云端继续沿原 job 读指定版本/hash并确认；读取确认不关闭未完成业务。检查点只触发原任务的确定性提醒，不自动获得新模型、Worker、生成或审批权限。
+云端Dot可按原 job 查询最新进展，或按版本/hash读取某一份报告。GitHub Project 呈现项目里程碑与验收结论。已读确认仅在明确约定的传输核验中使用。检查点只触发原任务的确定性提醒，不自动获得新模型、Worker、生成或审批权限。
 
 ## 安装与验收边界
 
