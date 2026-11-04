@@ -4,9 +4,9 @@
 
 ## 当前结论
 
-**仓库已提供受限原生入口与组织工具，Mac 当前部署仍为下列 PR #4 版本。** v2 保留原 home 与原线程，以单个进程的固定覆盖和宿主独占证明控制入口；同版本 stdio 工具提供范围内原件读取、既有安排核对和另经单件许可的独立审查者联系。没有合法执行者时返回 `BLOCKED`，不创建身份或音频。验收边界、最小安全配置和撤销责任见[目标运行入口](goal-runtime.md)。该入口的现场启用和凡人业务交办各沿原任务记录。
+**2026-11-04 12:45（北京时间），Mac 协调员已升级到 [PR #5 合并版本 `785dc2d`](https://github.com/CF-FE/herdr-4-codexcloud/commit/785dc2defeba28538d180f534106d20762a3f66a)。** 五份运行文件匹配固定提交，原等待检查和桥接轮询服务各已自然运行两次，最近退出码均为 0。本机桥签名握手通过，原数据库 11 张表与切换前备份一致。轮询配置为 `NO_PILOT`。凡人 22 段听检已从本机沿 [Project #5 的原 Issue 交办](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6622784733)，现任负责人在原生会话明确接手安排和验收。本件使用项目入口，未创建信箱业务单。实际听检进展沿原 Issue 更新。[目标运行入口](goal-runtime.md)
 
-**2026-11-04 10:49（北京时间），完整目标交办已部署到 Mac。** [协调员 PR #4](https://github.com/CF-FE/herdr-4-codexcloud/pull/4) 的合并提交 [`b08fb24`](https://github.com/CF-FE/herdr-4-codexcloud/commit/b08fb24ce5a892925593bc59a1c7e16da95aa14e) 已由等待检查与信箱轮询两个 launchd 服务实际加载，两者均已运行并正常退出。已安装的客户端与 Mac 桥签名握手通过。原有 4 件查询、联系与结果全部保留，数据库完整性检查通过。轮询返回 `NO_PILOT`，业务授权和新增目标数均为 0。凡人 22 段听检仍待原项目交办。[目标合同与单件准入](goal-handoff.md)
+**2026-11-04 10:49（北京时间），Mac 首次部署完整目标交办。** [协调员 PR #4](https://github.com/CF-FE/herdr-4-codexcloud/pull/4) 的合并提交 [`b08fb24`](https://github.com/CF-FE/herdr-4-codexcloud/commit/b08fb24ce5a892925593bc59a1c7e16da95aa14e) 已由等待检查与信箱轮询两个 launchd 服务实际加载，两者均已运行并正常退出。已安装的客户端与 Mac 桥签名握手通过。原有 4 件查询、联系与结果全部保留，数据库完整性检查通过。轮询返回 `NO_PILOT`，业务授权和新增目标数均为 0。[目标合同与单件准入](goal-handoff.md)
 
 配套 [Task Mailbox PR #4](https://github.com/CF-FE/task-mailbox-mcp/pull/4) 的合并提交 [`560b9f5`](https://github.com/CF-FE/task-mailbox-mcp/commit/560b9f5de160caf989cfe48d6bc5a83fb0a7bd1a) 已在 Mac 桥生效。10:48:31 完成一轮远端收件，10:49:11 再次出现升级前已见的间歇连接失败，本地端口仍就绪。VPS 服务源码无变更。[信箱宿主核验记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md#当前状态)
 
