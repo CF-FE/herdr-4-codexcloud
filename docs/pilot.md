@@ -21,7 +21,7 @@ Dot自身的原生Mac任务路径使用[专门评估](dot-mac-herdr-evaluation.m
 
 官方[Herdr技能固定源](https://github.com/herdrdev/herdr/blob/ee5bfb5041bb3e4a49d591c72308aae3c81ecdde/skills/herdr/SKILL.md)适用于真实Herdr管理窗格中的Agent，要求原生注入的`HERDR_ENV=1`；不得伪造环境或pane身份。2026-11-02 Mac安装与读取证据保留在[历史记录](history/status-through-2026-11-03.md)，不推定其他CLI、账号或机器自动安装／发现。
 
-外部桌面或Dot任务能否定向操作Herdr取决于它自己的实际工具与授权，不能由技能文件存在推导。显式适配器的driver要求与已有Agent范围见[执行合同](herdr-executor.md#职责许可与范围)；一次测试的session创建例外不成为适配器常设生命周期权限。
+外部桌面或 Dot 任务沿已授权的原任务联系受管 driver，由 driver 在 Herdr 内核对和操作目标。组织 Agent 的宿主归属见[原生宿主约定](../skill/organization-collaboration/references/context-and-reporting.md#组织-agent-的原生宿主)。适配器的已有 Agent 范围与历史单次测试的 session 创建例外见[执行合同](herdr-executor.md#职责许可与范围)。
 
 ## 启动前绑定
 
