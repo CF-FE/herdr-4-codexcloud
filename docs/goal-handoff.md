@@ -40,6 +40,8 @@
 
 ## 现有 Codex 线程适配器
 
+保留原 home/线程的 v2 进程配置及实际组织工具见[目标运行入口](goal-runtime.md)。下述 v1 策略仍保留，不能用新空 home 或旧查询 profile 推定目标线程与工具已经可用。
+
 `coordinator_goal_channel.py` 提供可选的 `CodexGoalChannel`。协调桥私有配置的 `goal_channel_config` 引用单件策略文件；缺省不启用，且必须已有精确 pilot。策略绑定项目、原 job/hash、request、负责人/endpoint/代次、授权引用、工作键、资产范围、动作和有效期；固定 CLI 路径、摘要、版本、已存在的 profile、工作目录及私有动作记录目录。不会创建线程、profile、服务或凭据。
 
 单件策略的 `codex_home` 指向该线程已有的私有 Codex 目录。在本机 CLI 上，`app-server` 使用该目录内的 `config.toml`，具名 MCP 检查使用同目录的 `<profile>.config.toml`。准入清单须覆盖两份配置，且内容逐字节相同。配置指定的动作必须与原件完全相符。
@@ -69,7 +71,7 @@
 
 每个已验证报告在同一事务中写入原请求的不可变 `results` 版本。沿原桥 outbox、稳定 event ID、core/wire hash 回传同一个 job。回执丢失先查原 outbox，不重派或重做结果。`COORDINATOR_WAIT_REPORT` 可报告期限、取消和等待状态，但不能充当业务完成。信箱 `REPORTED_COMPLETED` 表示这份报告已提交，不代表目标完成；目标状态读 `result.goal_state`。
 
-云端继续沿原 job 读指定版本/hash并确认；读取确认不关闭未完成业务。检查点只触发原任务的确定性提醒，不自动获得新模型、Worker、生成或审批权限。
+云端Dot可按原 job 查询最新进展，或按版本/hash读取某一份报告。GitHub Project 呈现项目里程碑与验收结论。已读确认仅在明确约定的传输核验中使用。检查点只触发原任务的确定性提醒，不自动获得新模型、Worker、生成或审批权限。
 
 ## 安装与验收边界
 

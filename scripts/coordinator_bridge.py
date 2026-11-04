@@ -206,7 +206,7 @@ class SocketBridge:
         return self.call('enqueue_result', **result)
 
 
-def goal_wait(core, project, request_id, reason):
+def goal_wait(core, project, request_id, reason, evidence_ref=None):
     """Durably expose a local admission/recovery blocker on the original job."""
     status = core.inspect(project, request_id)
     wait = dict(status['waiting'])
@@ -217,7 +217,7 @@ def goal_wait(core, project, request_id, reason):
                  else 'Resolve the original native goal channel and reconcile any existing action')
     wait.update(project_id=project, request_id=request_id, action_owner=core.coordinator_id,
                 reason=reason, next_condition=condition,
-                evidence_ref='local:goal-channel:' + reason)
+                evidence_ref=evidence_ref or 'local:goal-channel:' + reason)
     core.manage('set_wait', wait)
     core.manage('report_wait', {'project_id': project, 'request_id': request_id,
                                'evidence_ref': wait['evidence_ref']})
@@ -277,6 +277,7 @@ def dispatch(args):
                 from coordinator_goal_channel import load_goal_channel
             try:
                 channel = load_goal_channel(config['goal_channel_config'])
+                channel.bind_organization_parent(core.path.parent)
                 context = core.goal_context(project, request_id)
                 owner_grant = Grant(channel.peer, project, context['owner_principal'], 'native-goal-owner',
                                     frozenset({'goal_update'}))
@@ -288,14 +289,28 @@ def dispatch(args):
                 if context['action_id']:
                     # This reads the original native action. It never resumes a
                     # second turn, even after UNKNOWN or a missing result receipt.
-                    for session, handle in channel.reconcile(context):
+                    try:
+                        observations = channel.reconcile(context)
+                    except TransportError as error:
+                        # A later rejected report must not erase an earlier
+                        # verified acceptance in the same native readback. Each
+                        # retained handle still passes the ordinary owner/source
+                        # and report gates; the rejected item is never adopted.
+                        if error.code == 'NATIVE_LISTENING_CAPABILITY_UNAVAILABLE':
+                            for session, handle in getattr(error, 'validated_handles', ()):
+                                transport.goal_update(session, project, request_id, handle)
+                        raise
+                    for session, handle in observations:
                         transport.goal_update(session, project, request_id, handle)
                 channel_state = core.inspect(project, request_id)['goal_state']
             except (TransportError, CoordinatorError, OSError, ValueError) as error:
                 code = getattr(error, 'code', 'NATIVE_CHANNEL_UNAVAILABLE')
                 code = code if isinstance(code, str) and re.fullmatch('[A-Z][A-Z0-9_]{0,63}', code) else 'NATIVE_CHANNEL_UNAVAILABLE'
                 channel_state = 'GOAL_CHANNEL_BLOCKED'
-                goal_wait(core, project, request_id, code)
+                evidence = getattr(error, 'evidence_ref', None)
+                evidence = evidence if (code == 'NATIVE_LISTENING_CAPABILITY_UNAVAILABLE'
+                    and isinstance(evidence, str) and re.fullmatch('native-goal-report-sha256:[a-f0-9]{64}', evidence)) else None
+                goal_wait(core, project, request_id, code, evidence)
         status = core.inspect(project, request_id)
     version = core.pilot_outbox_version(project, request_id)
     if not status['result_version'] or version > status['result_version']:

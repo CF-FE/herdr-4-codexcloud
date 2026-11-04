@@ -2,7 +2,9 @@
 
 This module never creates a thread, changes a profile, installs a tool, approves a
 request, or provisions credentials. A trusted host must first verify that the
-named EXISTING profile enforces the listed organizational actions and asset scope.
+existing profile (v1) or process-only configuration (v2) enforces the listed
+organizational actions and asset scope. V2 keeps the owner's original home and
+thread; it never copies native history or authentication into a different home.
 That verification is a separate admission artifact, not a claim made by a goal.
 The native profile and its platform approval policy remain authoritative.
 """
@@ -33,6 +35,7 @@ POLICY_KEYS = {'v', 'binary', 'binary_sha256', 'cli_version', 'profile', 'codex_
                'project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
                'generation', 'authorization_ref', 'work_key', 'scope_refs', 'allowed_actions',
                'capability_evidence_ref', 'capability_manifest', 'capability_manifest_sha256', 'expires_at'}
+POLICY_V2_KEYS = (POLICY_KEYS - {'profile'}) | {'process_config', 'process_config_sha256'}
 BINDING_KEYS = ('project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal',
                 'endpoint', 'generation', 'authorization_ref')
 INTENT_KEYS = (*CONTACT_KEYS, 'kind', 'job_id', 'payload_hash', 'task_ref', 'authorization_ref',
@@ -47,6 +50,37 @@ CAPABILITY_KEYS = {'v', 'profile', 'binary_sha256', 'project_id', 'request_id', 
                    'review_evidence_ref', 'expires_at', 'config_files', 'mcp_tools', 'action_tools',
                    'disabled_features', 'enforces_scope', 'production_writes', 'audio_generations',
                    'effective_config_sha256', 'config_layers_sha256'}
+CAPABILITY_V2_KEYS = (CAPABILITY_KEYS - {'profile'}) | {'codex_home', 'endpoint', 'process_config_sha256',
+                    'owner_exclusivity', 'owner_exclusivity_sha256', 'environment_sha256'}
+PROCESS_KEYS = {'v', 'codex_home', 'endpoint', 'mcp_servers', 'disabled_mcp_servers', 'disabled_features'}
+PROCESS_SERVER_KEYS = {'python', 'script', 'policy', 'enabled_tools', 'artifacts'}
+ORGANIZATION_TOOLS = frozenset({'goal_context', 'read_review_evidence', 'coordinate_independent_review',
+                                'read_coordination_report'})
+ACTION_TOOL_ALLOWLIST = {
+    'coordinate_existing_owner': frozenset({'goal_context'}),
+    'verify_existing_evidence': frozenset({'goal_context', 'read_review_evidence'}),
+    'plan_independent_review': ORGANIZATION_TOOLS,
+    'report_progress': frozenset({'goal_context', 'read_coordination_report'}),
+}
+TOOL_SOURCE_FILES = ('mcp/project-coordinator-tools/server.py', 'scripts/coordinator_goal_channel.py',
+                     'scripts/coordinator_bridge.py', 'scripts/coordinator_transport.py', 'scripts/project_coordinator.py')
+EXCLUSIVITY_KEYS = {'v', 'project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
+                    'generation', 'codex_home', 'state', 'reviewer', 'source_control_ref', 'handoff_ref',
+                    'observed_at', 'expires_at', 'last_turn_id', 'original_approval_policy', 'original_sandbox'}
+OWNER_EXCLUSIVITY_MAX_SECONDS = 900
+
+
+def _toml(value):
+    """Encode only the closed, validated override types; never accept raw argv/TOML."""
+    if type(value) is bool:
+        return 'true' if value else 'false'
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=True)
+    if isinstance(value, list):
+        return '[' + ','.join(_toml(v) for v in value) + ']'
+    if isinstance(value, dict):
+        return '{' + ','.join(_toml(k) + '=' + _toml(value[k]) for k in sorted(value)) + '}'
+    raise TransportError('INVALID_NATIVE_PROCESS_CONFIG')
 
 
 def _private(path, directory=False):
@@ -99,13 +133,15 @@ def load_goal_channel(path):
 
 class CodexGoalChannel:
     def __init__(self, policy):
-        require(isinstance(policy, dict) and set(policy) == POLICY_KEYS and
-                type(policy['v']) is int and policy['v'] == 1, 'INVALID_NATIVE_GOAL_POLICY')
+        require(isinstance(policy, dict) and type(policy.get('v')) is int and policy['v'] in (1, 2),
+                'INVALID_NATIVE_GOAL_POLICY')
+        keys = POLICY_KEYS if policy['v'] == 1 else POLICY_V2_KEYS
+        require(set(policy) == keys, 'INVALID_NATIVE_GOAL_POLICY')
         require(all(isinstance(policy[k], str) and policy[k].strip() for k in
-                    POLICY_KEYS - {'v', 'generation', 'scope_refs', 'allowed_actions'}),
+                    keys - {'v', 'generation', 'scope_refs', 'allowed_actions'}),
                 'INVALID_NATIVE_GOAL_POLICY')
         require(type(policy['generation']) is int and policy['generation'] > 0 and
-                re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', policy['profile']),
+                (policy['v'] == 2 or re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,127}', policy['profile'])),
                 'INVALID_NATIVE_GOAL_POLICY')
         require(isinstance(policy['scope_refs'], list) and policy['scope_refs'] and
                 all(isinstance(x, str) and x for x in policy['scope_refs']) and
@@ -127,11 +163,150 @@ class CodexGoalChannel:
                     'PATH': os.defpath, 'LANG': 'en_US.UTF-8'}
         self._prepared = None
         self._policy_file = None
+        self._organization_parent = None
         self.binary = Path(policy['binary'])
         self._observations = {}
         self.peer = Peer('mac-codex-cli', self.thread_id)
         self.principal = policy['owner_principal']
         self.project_id = policy['project_id']
+        self.release = Path(__file__).resolve().parents[1]
+
+    def bind_organization_parent(self, core_state_dir, *, reviewer_policy_sha256=None):
+        """Host-side custody, supplied by the coordinator or validated parent, never by the model."""
+        actual = (_private(core_state_dir, directory=True), reviewer_policy_sha256)
+        require(self._organization_parent in (None, actual), 'NATIVE_TOOL_PARENT_CHANGED')
+        self._organization_parent = actual
+
+    def _check_organization_tools(self, process, binding):
+        server = next(iter(process['mcp_servers'].values()))
+        raw = _private(server['policy']).read_bytes()
+        tool = _json(raw)
+        require(isinstance(tool, dict) and type(tool.get('v')) is int and tool['v'] == 1
+                and isinstance(tool.get('binding'), dict), 'NATIVE_TOOL_PARENT_MISMATCH')
+        b = tool['binding']
+        expected_review = None
+        if self._organization_parent:
+            parent, expected_review = self._organization_parent
+            require(tool.get('core_state_dir') == str(parent), 'NATIVE_TOOL_PARENT_MISMATCH')
+        if expected_review is not None:
+            # Reviewer tools intentionally read their parent's ledger. The calling
+            # parent's organization service already verified this *whole* policy.
+            require(tool.get('role') == 'reviewer' and hashlib.sha256(raw).hexdigest() == expected_review,
+                    'NATIVE_TOOL_PARENT_MISMATCH')
+        else:
+            require(tool.get('role') == 'project_owner' and type(b.get('generation')) is int and
+                    all(b.get(k) == self.policy[k] for k in (*BINDING_KEYS, 'work_key')),
+                    'NATIVE_TOOL_PARENT_MISMATCH')
+        for k in ('scope_refs', 'allowed_actions'):
+            require(isinstance(b.get(k), list) and all(isinstance(x, str) for x in b[k]) and
+                    sorted(b[k]) == sorted(self.policy[k]), 'NATIVE_TOOL_PARENT_MISMATCH')
+        if binding is not None:
+            require(b.get('deadline') == binding.get('deadline'), 'NATIVE_TOOL_PARENT_MISMATCH')
+
+    def _process_config(self):
+        """Read a pinned private description of the one supported stdio tool host."""
+        raw = _private(self.policy['process_config']).read_bytes()
+        require(len(raw) <= 65536 and hashlib.sha256(raw).hexdigest() == self.policy['process_config_sha256'],
+                'NATIVE_PROCESS_CONFIG_CHANGED')
+        value = _json(raw)
+        require(isinstance(value, dict) and set(value) == PROCESS_KEYS and
+                type(value['v']) is int and value['v'] == 1 and
+                value['codex_home'] == str(self.home) and value['endpoint'] == self.policy['endpoint'],
+                'INVALID_NATIVE_PROCESS_CONFIG')
+        disabled = value['disabled_features']
+        require(isinstance(disabled, list) and
+                all(isinstance(n, str) and re.fullmatch('[a-z][a-z0-9_]*', n) for n in disabled) and
+                len(disabled) == len(set(disabled)) and set(disabled) >= DISABLED_FEATURES,
+                'NATIVE_TOOL_BOUNDARY_REQUIRED')
+        servers = value['mcp_servers']
+        require(isinstance(servers, dict) and len(servers) == 1, 'INVALID_NATIVE_PROCESS_CONFIG')
+        inactive = value['disabled_mcp_servers']
+        require(isinstance(inactive, list) and all(isinstance(n, str) and re.fullmatch('[A-Za-z0-9_-]+', n) for n in inactive)
+                and len(inactive) == len(set(inactive)) and not set(inactive) & set(servers),
+                'INVALID_NATIVE_PROCESS_CONFIG')
+        for name, server in servers.items():
+            require(isinstance(name, str) and re.fullmatch('[A-Za-z0-9_-]+', name) and
+                    isinstance(server, dict) and set(server) == PROCESS_SERVER_KEYS,
+                    'INVALID_NATIVE_PROCESS_CONFIG')
+            for field in ('python', 'script', 'policy'):
+                require(isinstance(server[field], str) and server[field], 'NATIVE_TOOL_ARTIFACT_REQUIRED')
+                path = Path(server[field])
+                require(path.is_absolute() and path.resolve() == path and path.is_file(),
+                        'NATIVE_TOOL_ARTIFACT_REQUIRED')
+            require(re.fullmatch(r'python[0-9.]*', Path(server['python']).name) and
+                    Path(server['script']) == self.release / TOOL_SOURCE_FILES[0],
+                    'NATIVE_TOOL_ARTIFACT_REQUIRED')
+            _private(server['policy'])
+            require(isinstance(server['enabled_tools'], list) and server['enabled_tools'] and
+                    all(isinstance(t, str) for t in server['enabled_tools']) and
+                    len(server['enabled_tools']) == len(set(server['enabled_tools'])) and
+                    set(server['enabled_tools']) <= ORGANIZATION_TOOLS, 'NATIVE_GOAL_TOOLS_REQUIRED')
+            require(isinstance(server['artifacts'], list) and server['artifacts'] and
+                    all(isinstance(p, str) for p in server['artifacts']) and
+                    len(server['artifacts']) == len(set(server['artifacts'])) and
+                    ({server[k] for k in ('python', 'script', 'policy')} |
+                     {str(self.release / p) for p in TOOL_SOURCE_FILES}) <= set(server['artifacts']),
+                    'NATIVE_TOOL_ARTIFACT_REQUIRED')
+        return value
+
+    def _overrides(self):
+        value = self._process_config()
+        return {'sandbox_mode': 'read-only', 'approval_policy': 'on-request', 'web_search': 'disabled',
+                'features': dict.fromkeys(value['disabled_features'], False),
+                'mcp_servers': {**{name: {'enabled': False} for name in value['disabled_mcp_servers']},
+                    **{name: {'command': server['python'],
+                    'args': ['-I', '-S', '-B', server['script'], '--policy', server['policy']],
+                    'enabled': True, 'enabled_tools': server['enabled_tools']}
+                    for name, server in value['mcp_servers'].items()}}}
+
+    def _override_args(self):
+        return [part for key, value in sorted(self._overrides().items()) for part in ('--config', key + '=' + _toml(value))]
+
+    def _check_owner_exclusivity(self, cap, thread=None, deadline=None, *, loaded=True):
+        """Host attestation, not an OS-wide native lock or an agent's idle claim."""
+        require(isinstance(cap.get('owner_exclusivity'), str) and
+                isinstance(cap.get('owner_exclusivity_sha256'), str), 'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        path = _private(cap['owner_exclusivity'])
+        require(path != self.cwd and self.cwd not in path.parents and
+                path != self.state and self.state not in path.parents, 'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        raw = path.read_bytes()
+        require(len(raw) <= 65536 and hashlib.sha256(raw).hexdigest() == cap['owner_exclusivity_sha256'],
+                'HOST_OWNER_EXCLUSIVITY_CHANGED')
+        proof = _json(raw)
+        require(isinstance(proof, dict) and set(proof) == EXCLUSIVITY_KEYS and
+                type(proof['v']) is int and proof['v'] == 1 and proof['state'] == 'EXCLUSIVE_RELEASED',
+                'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        require(proof['original_approval_policy'] in ('never', 'on-request') and
+                isinstance(proof['original_sandbox'], dict) and
+                set(proof['original_sandbox']) == {'type', 'networkAccess'} and
+                proof['original_sandbox']['type'] == 'readOnly' and proof['original_sandbox']['networkAccess'] is False,
+                'NATIVE_ORIGINAL_POLICY_UNVERIFIED')
+        for key in ('project_id', 'request_id', 'job_id', 'payload_hash', 'owner_principal', 'endpoint',
+                    'generation', 'codex_home'):
+            require(proof[key] == self.policy[key], 'HOST_OWNER_EXCLUSIVITY_BINDING_MISMATCH')
+        require(all(isinstance(proof[k], str) and proof[k].strip() and proof[k] == proof[k].strip() for k in
+                    ('reviewer', 'source_control_ref', 'handoff_ref', 'observed_at', 'expires_at')) and
+                proof['reviewer'] != self.principal and
+                (proof['last_turn_id'] is None or isinstance(proof['last_turn_id'], str) and proof['last_turn_id']),
+                'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        try:
+            observed = datetime.fromisoformat(proof['observed_at'].replace('Z', '+00:00'))
+            expires = datetime.fromisoformat(proof['expires_at'].replace('Z', '+00:00'))
+            limit = datetime.fromisoformat((deadline or self.policy['expires_at']).replace('Z', '+00:00'))
+        except ValueError as error:
+            raise TransportError('HOST_OWNER_EXCLUSIVITY_REQUIRED') from error
+        require(all(t.tzinfo is not None for t in (observed, expires, limit)), 'HOST_OWNER_EXCLUSIVITY_REQUIRED')
+        now = datetime.now(timezone.utc)
+        require(observed <= now < expires <= limit and
+                0 < (expires - observed).total_seconds() <= OWNER_EXCLUSIVITY_MAX_SECONDS,
+                'HOST_OWNER_EXCLUSIVITY_EXPIRED')
+        if thread is not None:
+            turns = thread.get('turns')
+            allowed = ('idle',) if loaded else ('idle', 'notLoaded')
+            require(isinstance(turns, list) and thread.get('status', {}).get('type') in allowed and
+                    (turns[-1].get('id') if turns else None) == proof['last_turn_id'] and
+                    all(t.get('status') != 'inProgress' for t in turns), 'HOST_OWNER_EXCLUSIVITY_STALE')
+        return proof
 
     @staticmethod
     def _intent(value):
@@ -154,6 +329,11 @@ class CodexGoalChannel:
         # The existing profile is deliberately not overridden: no approvals=never,
         # no --dangerously-bypass, no model/provider/credential or tool configuration.
         return [str(self.binary), '--profile', self.policy['profile'], '-C', str(self.cwd)]
+
+    def _mcp_args(self, *args):
+        if self.policy['v'] == 2:
+            return [str(self.binary), 'mcp', *self._override_args(), *args]
+        return [*self._args(), 'mcp', *args]
 
     def _probe(self, argv, timeout):
         try:
@@ -195,7 +375,9 @@ class CodexGoalChannel:
         version = self._probe([str(self.binary), '--version'], 10)
         require(version.returncode == 0 and version.stdout.decode().strip() == self.policy['cli_version'],
                 'NATIVE_VERSION_CHANGED')
-        cap = self._read_capabilities()
+        cap = self._read_capabilities(binding)
+        if self.policy['v'] == 2:
+            self._check_owner_exclusivity(cap, deadline=binding['deadline'] if binding is not None else None)
         with self._reader() as (call, wait_turn):
             self._verify_config(call, cap)
             yield call, wait_turn, cap, stamp
@@ -205,13 +387,17 @@ class CodexGoalChannel:
         with self._admission(binding):
             return {'state': 'HOST_ADMISSION_BOUND', 'capability_verification': 'HOST_ATTESTED',
                     'capability_evidence_ref': self.policy['capability_evidence_ref'],
-                    'profile': self.policy['profile'], 'new_permissions': False}
+                    'profile': self.policy.get('profile'), 'policy_version': self.policy['v'], 'new_permissions': False}
 
     @contextmanager
     def prepare_goal(self, binding):
         """Hold the verified native reader across the caller's durable claim."""
+        if self.policy['v'] == 2:
+            require(self._organization_parent is not None, 'NATIVE_TOOL_PARENT_UNBOUND')
         with self._admission(binding) as prepared:
             thread = self._thread(prepared[0])
+            if self.policy['v'] == 2:
+                self._check_owner_exclusivity(prepared[2], thread, binding['deadline'], loaded=False)
             require(thread.get('status', {}).get('type') not in ('active', 'systemError') and
                     not any(t.get('status') == 'inProgress' for t in thread.get('turns', [])), 'NATIVE_OWNER_BUSY')
             require(self._prepared is None, 'NATIVE_PREPARATION_IN_USE')
@@ -222,7 +408,7 @@ class CodexGoalChannel:
             finally:
                 self._prepared = None
 
-    def _read_capabilities(self):
+    def _read_capabilities(self, binding=None):
         """Verify the host-reviewed closure and the actual enabled tool projection.
 
         No credential or full native configuration is printed or returned. The
@@ -234,9 +420,11 @@ class CodexGoalChannel:
         require(len(raw) <= 65536 and hashlib.sha256(raw).hexdigest() == self.policy['capability_manifest_sha256'],
                 'NATIVE_CAPABILITY_MANIFEST_CHANGED')
         cap = _json(raw)
-        require(isinstance(cap, dict) and set(cap) == CAPABILITY_KEYS and type(cap['v']) is int and cap['v'] == 1,
+        keys = CAPABILITY_KEYS if self.policy['v'] == 1 else CAPABILITY_V2_KEYS
+        require(isinstance(cap, dict) and set(cap) == keys and type(cap['v']) is int and cap['v'] == self.policy['v'],
                 'INVALID_NATIVE_CAPABILITY_MANIFEST')
-        for key in ('profile', 'binary_sha256', 'project_id', 'request_id', 'job_id', 'payload_hash',
+        bindings = ('profile',) if self.policy['v'] == 1 else ('codex_home', 'endpoint', 'process_config_sha256')
+        for key in (*bindings, 'binary_sha256', 'project_id', 'request_id', 'job_id', 'payload_hash',
                     'owner_principal', 'generation', 'work_key'):
             require(cap[key] == self.policy[key], 'NATIVE_CAPABILITY_BINDING_MISMATCH')
         require(cap['review_evidence_ref'] == self.policy['capability_evidence_ref'] and
@@ -259,6 +447,15 @@ class CodexGoalChannel:
                 {x for v in action_tools.values() for x in v} == tools, 'NATIVE_GOAL_TOOLS_REQUIRED')
         require(isinstance(cap['disabled_features'], list) and set(cap['disabled_features']) >= DISABLED_FEATURES,
                 'NATIVE_TOOL_BOUNDARY_REQUIRED')
+        if self.policy['v'] == 2:
+            require(all(tool.split('/', 1)[1] in ACTION_TOOL_ALLOWLIST[action]
+                        for action, assigned in action_tools.items() for tool in assigned),
+                    'NATIVE_ACTION_TOOL_MISMATCH')
+            process = self._process_config()
+            self._check_organization_tools(process, binding)
+            require(set(cap['disabled_features']) == set(process['disabled_features']) and
+                    expected == {n: s['enabled_tools'] for n, s in process['mcp_servers'].items()},
+                    'NATIVE_PROCESS_CAPABILITY_MISMATCH')
         return cap
 
     def _verify_config(self, call, cap):
@@ -280,12 +477,32 @@ class CodexGoalChannel:
                     l['name'].get('file') == str(self.home / 'config.toml') for l in layers),
                 'NATIVE_CONFIG_CLOSURE_REQUIRED')
         config = effective['config']
+        if self.policy['v'] == 2:
+            # Check before thread/resume can start an MCP process. A merge that
+            # retained any inherited server is rejected, even when tools/list
+            # might later omit it. Unknown native projections fail closed.
+            actual_servers = config.get('mcp_servers')
+            expected_servers = self._overrides()['mcp_servers']
+            require(isinstance(actual_servers, dict) and set(actual_servers) == set(expected_servers),
+                    'NATIVE_PROCESS_TOOLSET_UNVERIFIED')
+            for name, server in expected_servers.items():
+                actual_server = actual_servers[name]
+                # Fixed CLI alpha.6 config/read serializes McpServerConfig,
+                # including these defaults (config/src/mcp_types.rs). Do not
+                # remove unknown actual fields: credentials/transport/settings
+                # inherited under the enabled server name must still be denied.
+                projected = {**server, 'environment_id': 'local', 'tool_timeout_sec': None}
+                require(isinstance(actual_server, dict) and
+                        (actual_server == projected if server['enabled'] else actual_server.get('enabled') is False),
+                        'NATIVE_PROCESS_TOOLSET_UNVERIFIED')
         require(config.get('sandbox_mode') == 'read-only' and config.get('web_search') == 'disabled'
                 and config.get('approval_policy') == 'on-request', 'NATIVE_TOOL_BOUNDARY_REQUIRED')
-        require(all(config.get('features', {}).get(f) is False for f in cap['disabled_features']),
+        def disabled(value):
+            return value is False or (self.policy['v'] == 2 and isinstance(value, dict) and value.get('enabled') is False)
+        require(all(disabled(config.get('features', {}).get(f)) for f in cap['disabled_features']),
                 'NATIVE_TOOL_BOUNDARY_CHANGED')
         self._verify_features(call, cap, {})
-        listed = self._probe([*self._args(), 'mcp', 'list', '--json'], 15)
+        listed = self._probe(self._mcp_args('list', '--json'), 15)
         require(listed.returncode == 0, 'NATIVE_CAPABILITY_PROBE_FAILED')
         servers = _json(listed.stdout)
         require(isinstance(servers, list), 'NATIVE_CAPABILITY_PROBE_FAILED')
@@ -296,7 +513,7 @@ class CodexGoalChannel:
             if server['enabled']:
                 name = server['name']
                 require(name in expected and name not in actual, 'NATIVE_TOOLSET_CHANGED')
-                detail = self._probe([*self._args(), 'mcp', 'get', name, '--json'], 15)
+                detail = self._probe(self._mcp_args('get', name, '--json'), 15)
                 require(detail.returncode == 0, 'NATIVE_CAPABILITY_PROBE_FAILED')
                 details = _json(detail.stdout)
                 require(details.get('name') == name and details.get('enabled') is True and
@@ -334,14 +551,24 @@ class CodexGoalChannel:
         # This CLI supports --profile for 'mcp' but not 'app-server'. Accept
         # only a reviewed dedicated home whose base and named layer are identical.
         base = self.home / 'config.toml'
-        profile = self.home / (self.policy['profile'] + '.config.toml')
-        require(base in hashes and profile in hashes and hashes[base] == hashes[profile],
-                'NATIVE_PROFILE_NOT_EQUIVALENT')
+        if self.policy['v'] == 1:
+            profile = self.home / (self.policy['profile'] + '.config.toml')
+            require(base in hashes and profile in hashes and hashes[base] == hashes[profile],
+                    'NATIVE_PROFILE_NOT_EQUIVALENT')
+        else:
+            require(canonical_hash(self.env) == cap.get('environment_sha256'), 'NATIVE_ENVIRONMENT_CHANGED')
+            process = self._process_config()
+            required = {base, Path(self.policy['process_config'])}
+            required.update(Path(p) for s in process['mcp_servers'].values() for p in s['artifacts'])
+            require(required <= set(hashes), 'NATIVE_CONFIG_CLOSURE_REQUIRED')
 
     @contextmanager
     def _reader(self):
         try:
-            app = subprocess.Popen([str(self.binary), 'app-server', '--stdio'], cwd=self.cwd, env=self.env,
+            argv = [str(self.binary), 'app-server', '--stdio']
+            if self.policy['v'] == 2:
+                argv.extend(self._override_args())
+            app = subprocess.Popen(argv, cwd=self.cwd, env=self.env,
                                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         except OSError as error:
             raise TransportError('NATIVE_READER_UNAVAILABLE') from error
@@ -412,19 +639,74 @@ class CodexGoalChannel:
                 if app.stdout:
                     app.stdout.close()
 
-    def _thread(self, call=None):
+    @contextmanager
+    def _history_reader(self):
+        self._verify_binary()
+        manifest = _private(self.policy['capability_manifest']).read_bytes()
+        require(hashlib.sha256(manifest).hexdigest() == self.policy['capability_manifest_sha256'],
+                'NATIVE_CAPABILITY_MANIFEST_CHANGED')
+        self._check_files(_json(manifest))
+        with self._reader() as (call, _):
+            yield call
+
+    def _thread(self, call=None, *, include_turns=True):
         if call is None:
-            self._verify_binary()
-            manifest = _private(self.policy['capability_manifest']).read_bytes()
-            require(hashlib.sha256(manifest).hexdigest() == self.policy['capability_manifest_sha256'],
-                    'NATIVE_CAPABILITY_MANIFEST_CHANGED')
-            self._check_files(_json(manifest))
-            with self._reader() as (reader, _):
-                return self._thread(reader)
-        thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': True}).get('thread')
+            with self._history_reader() as reader:
+                return self._thread(reader, include_turns=include_turns)
+        thread = call('thread/read', {'threadId': self.thread_id, 'includeTurns': include_turns}).get('thread')
         require(isinstance(thread, dict) and thread.get('id') == self.thread_id and
-                Path(thread.get('cwd', '')).resolve() == self.cwd, 'NATIVE_THREAD_MISMATCH')
+                thread.get('cwd') == str(self.cwd), 'NATIVE_THREAD_MISMATCH')
         return thread
+
+    def _lookup_pages(self, call, mode):
+        if mode == 'legacy':
+            yield self._thread(call).get('turns')
+            return
+        require(mode == 'paginated', 'NATIVE_HISTORY_INCOMPLETE')
+        params = {'threadId': self.thread_id, 'itemsView': 'full', 'sortDirection': 'desc', 'limit': 32}
+        cursors = set()
+        # Bound one pump invocation. Exhaustion or a broken continuation is UNKNOWN.
+        for _ in range(128):
+            page = call('thread/turns/list', params)
+            yield page.get('data')
+            require('nextCursor' in page, 'NATIVE_HISTORY_INCOMPLETE')
+            cursor = page['nextCursor']
+            if cursor is None:
+                return
+            require(isinstance(cursor, str) and cursor and cursor not in cursors, 'NATIVE_HISTORY_INCOMPLETE')
+            cursors.add(cursor)
+            params['cursor'] = cursor
+        raise TransportError('NATIVE_HISTORY_INCOMPLETE')
+
+    def lookup_goal(self, intent):
+        """Find positive native evidence or require complete, terminal history for absence."""
+        intent = self._intent(intent)
+        self._binding(intent)
+        prompt = self._prompt(intent)
+        with self._history_reader() as call:
+            meta = self._thread(call, include_turns=False)
+            complete = meta.get('status', {}).get('type') in ('idle', 'notLoaded')
+            seen = set()
+            for turns in self._lookup_pages(call, meta.get('historyMode', 'legacy')):
+                require(isinstance(turns, list), 'NATIVE_HISTORY_INCOMPLETE')
+                for turn in turns:
+                    require(isinstance(turn, dict) and isinstance(turn.get('id'), str)
+                            and turn['id'] and isinstance(turn.get('items'), list), 'NATIVE_HISTORY_INCOMPLETE')
+                    for item in turn['items']:
+                        require(isinstance(item, dict), 'NATIVE_HISTORY_INCOMPLETE')
+                        if item.get('type') == 'userMessage':
+                            content = item.get('content')
+                            require(isinstance(content, list) and all(isinstance(part, dict) for part in content),
+                                    'NATIVE_HISTORY_INCOMPLETE')
+                            if len(content) == 1 and content[0].get('type') == 'text' and content[0].get('text') == prompt:
+                                return {'state': 'PRESENT', 'thread_id': self.thread_id, 'turn_id': turn['id'],
+                                        'prompt_sha256': hashlib.sha256(prompt.encode()).hexdigest()}
+                    if (turn['id'] in seen or turn.get('itemsView', 'full') != 'full'
+                            or turn.get('status') not in ('completed', 'failed', 'interrupted')):
+                        complete = False
+                    seen.add(turn['id'])
+            require(complete, 'NATIVE_HISTORY_INCOMPLETE')
+        return {'state': 'ABSENT', 'thread_id': self.thread_id}
 
     @staticmethod
     def _receipt(intent):
@@ -497,11 +779,21 @@ class CodexGoalChannel:
             # Resume does not submit a user message. Verify this loaded thread,
             # rather than trusting persisted settings from its previous turn.
             self._check_files(cap)
-            resumed = call('thread/resume', {'threadId': self.thread_id, 'excludeTurns': True})
+            resume = {'threadId': self.thread_id, 'excludeTurns': True}
+            approval = 'on-request'
+            if self.policy['v'] == 2:
+                # Native resume and turn security overrides persist on the original
+                # thread even if no turn starts. Keep its released security policy.
+                # Only restrict tool exposure on this process and resumed runtime.
+                original = self._check_owner_exclusivity(cap, deadline=intent['deadline'])
+                approval = original['original_approval_policy']
+                resume['config'] = {k: v for k, v in self._overrides().items()
+                                    if k in ('features', 'mcp_servers', 'web_search')}
+            resumed = call('thread/resume', resume)
             require(resumed.get('thread', {}).get('id') == self.thread_id and resumed.get('cwd') == str(self.cwd)
                     and resumed.get('sandbox', {}).get('type') == 'readOnly'
                     and resumed['sandbox'].get('networkAccess', False) is False
-                    and resumed.get('approvalPolicy') == 'on-request', 'NATIVE_RESUMED_POLICY_MISMATCH')
+                    and resumed.get('approvalPolicy') == approval, 'NATIVE_RESUMED_POLICY_MISMATCH')
             self._verify_features(call, cap, {'threadId': self.thread_id})
             inventory = call('mcpServerStatus/list', {'threadId': self.thread_id, 'limit': 100,
                                                       'detail': 'toolsAndAuthOnly'})
@@ -510,10 +802,19 @@ class CodexGoalChannel:
             actual = {}
             require(isinstance(inventory.get('data'), list) and inventory.get('nextCursor') is None,
                     'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+            inactive = set(self._process_config()['disabled_mcp_servers']) if self.policy['v'] == 2 else set()
+            seen = set()
             for server in inventory['data']:
                 name = server.get('name')
-                require(name not in actual and isinstance(server.get('tools'), dict)
+                require(isinstance(name, str) and name not in seen and isinstance(server.get('tools'), dict)
                         and not server.get('toolsError'), 'NATIVE_THREAD_TOOLSET_UNVERIFIED')
+                seen.add(name)
+                if name in inactive:
+                    require(server.get('runtimeStatus') == 'disabled' and not server['tools'],
+                            'NATIVE_THREAD_TOOLSET_CHANGED')
+                    continue
+                if self.policy['v'] == 2:
+                    require(server.get('runtimeStatus') == 'connected', 'NATIVE_THREAD_TOOLSET_UNVERIFIED')
                 actual[name] = sorted(server['tools'])
             require(actual == {k: sorted(v) for k, v in cap['mcp_tools'].items()}, 'NATIVE_THREAD_TOOLSET_CHANGED')
             slot.mkdir(mode=0o700)
@@ -527,7 +828,11 @@ class CodexGoalChannel:
             self._check_files(cap)
             self._expiry(cap['expires_at'], 'NATIVE_CAPABILITY_EXPIRED')
             self._expiry(self.policy['expires_at'], 'NATIVE_ADMISSION_EXPIRED')
+            if self.policy['v'] == 2:
+                self._check_owner_exclusivity(cap, self._thread(call), intent['deadline'])
             verify_current()
+            if self.policy['v'] == 2:
+                self._check_owner_exclusivity(cap, deadline=intent['deadline'])
         except (ValueError, OSError, TransportError) as error:
             code = getattr(error, 'code', 'NATIVE_PREPARATION_FAILED')
             return {**ids, 'kind': 'DELEGATE_GOAL', 'outcome': 'NOT_SENT', 'reason': 'POLICY_DENIED',
@@ -535,9 +840,11 @@ class CodexGoalChannel:
 
         # The turn/start frame is the sole external submission boundary. An
         # error from this line onwards cannot establish that no turn occurred.
-        started = call('turn/start', {'threadId': self.thread_id, 'cwd': str(self.cwd),
-                       'sandboxPolicy': sandbox, 'approvalPolicy': 'on-request',
-                       'input': [{'type': 'text', 'text': prompt, 'text_elements': []}], 'outputSchema': schema})
+        turn_params = {'threadId': self.thread_id, 'input': [{'type': 'text', 'text': prompt, 'text_elements': []}],
+                       'outputSchema': schema}
+        if self.policy['v'] == 1:
+            turn_params.update(cwd=str(self.cwd), sandboxPolicy=sandbox, approvalPolicy='on-request')
+        started = call('turn/start', turn_params)
         turn_id = started.get('turn', {}).get('id')
         require(isinstance(turn_id, str) and turn_id, 'NATIVE_SUBMISSION_UNCONFIRMED')
         _new(slot / 'start-receipt.json', canonical({'thread': self.thread_id, 'turn': turn_id}))
@@ -578,6 +885,8 @@ class CodexGoalChannel:
         history, first = self._matching_history(intent)
         expected = self._receipt(intent)
         handles = []
+        rejected_completions = {}
+        reported_sequences = set()
         # Native history is chronological. Later reports from this same bound
         # owner may advance the original goal, but must carry its exact receipt.
         for turn in history[history.index(first):]:
@@ -608,12 +917,32 @@ class CodexGoalChannel:
                     require(_private(saved).read_bytes() == canonical(proof), 'NATIVE_REPORT_CHANGED')
                 for report in value['updates']:
                     require(isinstance(report, dict), 'NATIVE_GOAL_REPORT_SCHEMA')
+                    seq = report.get('seq')
+                    seq = seq if type(seq) is int and seq > 0 else None
+                    # These four MCP tools exchange scoped JSON/text evidence;
+                    # none provides listening. Preserve the native item proof,
+                    # but never elevate a model's VERIFIED claim into acceptance.
+                    if (self.policy['v'] == 2 and
+                            intent['goal']['review_requirement'] == 'independent_listening' and
+                            report.get('phase') == 'COMPLETED'):
+                        rejected_completions[seq] = 'native-goal-report-sha256:' + canonical_hash(proof)
+                        continue
                     session, handle = object(), object()
                     observation = OwnerObservation(self.peer, intent['endpoint'],
                         intent['project_id'], intent['request_id'], intent['action_id'], intent['generation'],
                         'goal_update', 'native-goal-report-sha256:' + canonical_hash(proof), report, canonical_hash(report))
                     self._observations[session] = (handle, observation)
                     handles.append((session, handle))
+                    if seq is not None:
+                        reported_sequences.add(seq)
+        # A rejected claim never occupies a business sequence. A correction at
+        # that sequence still goes through the caller's ordinary report checks.
+        for seq, evidence_ref in rejected_completions.items():
+            if seq not in reported_sequences:
+                error = TransportError('NATIVE_LISTENING_CAPABILITY_UNAVAILABLE')
+                error.evidence_ref = evidence_ref
+                error.validated_handles = tuple(handles)
+                raise error
         require(bool(handles), 'NATIVE_REPORT_NOT_READY')
         return handles
 
