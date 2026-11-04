@@ -69,7 +69,8 @@ def load_config(raw):
         data = source.read(65537)
     require(len(data) <= 65536, 'CONFIG_TOO_LARGE')
     config = json_object(data)
-    require(set(config) == {'v', 'socket_path', 'key_id', 'key_hex', 'recipient', 'grants', 'pilot'}
+    required = {'v', 'socket_path', 'key_id', 'key_hex', 'recipient', 'grants', 'pilot'}
+    require(required <= set(config) <= required | {'goal_channel_config'}
             and type(config['v']) is int and config['v'] == 1, 'INVALID_CONFIG')
     identifier(config['key_id'])
     require(isinstance(config['key_hex'], str) and HEX64.fullmatch(config['key_hex'])
@@ -78,10 +79,15 @@ def load_config(raw):
             and isinstance(config['grants'], list) and len(config['grants']) <= 64, 'INVALID_CONFIG')
     grants = []
     for item in config['grants']:
-        require(isinstance(item, dict) and set(item) == {'channel', 'subject', 'project_id', 'principal', 'sender_alias'}
-                and all(isinstance(v, str) and v.strip() for v in item.values()), 'INVALID_GRANT')
+        names = {'channel', 'subject', 'project_id', 'principal', 'sender_alias'}
+        require(isinstance(item, dict) and names <= set(item) <= names | {'actions'}
+                and all(isinstance(item[k], str) and item[k].strip() for k in names), 'INVALID_GRANT')
+        # Legacy enrollment remains query-only. Installing code never upgrades a grant.
+        actions = item.get('actions', ['submit'])
+        require(isinstance(actions, list) and actions and len(actions) == len(set(actions))
+                and all(a in ('submit', 'submit_goal') for a in actions), 'INVALID_GRANT')
         grants.append(Grant(Peer(item['channel'], item['subject']), identifier(item['project_id']),
-                            item['principal'], item['sender_alias'], frozenset({'submit'})))
+                            item['principal'], item['sender_alias'], frozenset(actions)))
     pilot = config['pilot']
     if pilot is not None:
         require(isinstance(pilot, dict) and set(pilot) == {'project_id', 'job_id', 'request_id', 'payload_hash'}
@@ -89,6 +95,12 @@ def load_config(raw):
         for key in ('project_id', 'job_id', 'request_id'):
             identifier(pilot[key])
         require(any(g.project_id == pilot['project_id'] for g in grants), 'PILOT_PROJECT_NOT_GRANTED')
+    if config.get('goal_channel_config') is not None:
+        require(pilot is not None, 'GOAL_CHANNEL_REQUIRES_EXACT_PILOT')
+        require(isinstance(config['goal_channel_config'], str)
+                and Path(config['goal_channel_config']).is_absolute(), 'PRIVATE_PATH_REQUIRED')
+        # Existence, symlinks and permissions belong to load_goal_channel. Saved
+        # results must drain even when that separate native binding is unavailable.
     return path.parent, config, grants
 
 
@@ -194,6 +206,23 @@ class SocketBridge:
         return self.call('enqueue_result', **result)
 
 
+def goal_wait(core, project, request_id, reason):
+    """Durably expose a local admission/recovery blocker on the original job."""
+    status = core.inspect(project, request_id)
+    wait = dict(status['waiting'])
+    wait.pop('follow_up_owner', None)
+    wait.pop('contact_reason', None)
+    condition = ('Wait for the current owner turn to finish, then check the original request again'
+                 if reason == 'NATIVE_OWNER_BUSY' and not status['action_id']
+                 else 'Resolve the original native goal channel and reconcile any existing action')
+    wait.update(project_id=project, request_id=request_id, action_owner=core.coordinator_id,
+                reason=reason, next_condition=condition,
+                evidence_ref='local:goal-channel:' + reason)
+    core.manage('set_wait', wait)
+    core.manage('report_wait', {'project_id': project, 'request_id': request_id,
+                               'evidence_ref': wait['evidence_ref']})
+
+
 def dispatch(args):
     app, config, grants = load_config(args.config)
     bridge = SocketBridge(config)
@@ -227,8 +256,51 @@ def dispatch(args):
     require(status['job_id'] == pilot['job_id'] and status['payload_hash'] == pilot['payload_hash'],
             'PILOT_BINDING_MISMATCH')
     version = core.pilot_outbox_version(project, request_id)
+    if status['result_version'] and version <= status['result_version']:
+        # Deliver saved evidence before touching a possibly unavailable native
+        # endpoint. Recovery of a result never depends on another model turn.
+        receipt = transport.enqueue(project, request_id, version)
+        if receipt['state'] in ('PENDING', 'SENT'):
+            core.pilot_outbox_version(project, request_id, version=version, receipt=receipt)
+        return {'state': receipt['state'], 'core_version': version, 'event_id': receipt['event_id']}
+    channel_state = None
+    if status.get('kind') == 'DELEGATE_GOAL' and not status['unblocked']:
+        if not config.get('goal_channel_config'):
+            # Receipt of a goal is not native acceptance. Keep the original
+            # request available without consuming the one dispatch attempt.
+            channel_state = 'WAITING_NATIVE_GOAL_CHANNEL'
+            goal_wait(core, project, request_id, channel_state)
+        else:
+            if __package__:
+                from .coordinator_goal_channel import load_goal_channel
+            else:
+                from coordinator_goal_channel import load_goal_channel
+            try:
+                channel = load_goal_channel(config['goal_channel_config'])
+                context = core.goal_context(project, request_id)
+                owner_grant = Grant(channel.peer, project, context['owner_principal'], 'native-goal-owner',
+                                    frozenset({'goal_update'}))
+                transport = CoordinatorTransport(core, grants=[*grants, owner_grant], recipient=config['recipient'],
+                                                 bridge=bridge, callers=channel, owners=channel)
+                if not status['action_id'] and not status['cancel_requested']:
+                    transport.dispatch_goal(project, request_id, status['target_generation'])
+                context = core.goal_context(project, request_id)
+                if context['action_id']:
+                    # This reads the original native action. It never resumes a
+                    # second turn, even after UNKNOWN or a missing result receipt.
+                    for session, handle in channel.reconcile(context):
+                        transport.goal_update(session, project, request_id, handle)
+                channel_state = core.inspect(project, request_id)['goal_state']
+            except (TransportError, CoordinatorError, OSError, ValueError) as error:
+                code = getattr(error, 'code', 'NATIVE_CHANNEL_UNAVAILABLE')
+                code = code if isinstance(code, str) and re.fullmatch('[A-Z][A-Z0-9_]{0,63}', code) else 'NATIVE_CHANNEL_UNAVAILABLE'
+                channel_state = 'GOAL_CHANNEL_BLOCKED'
+                goal_wait(core, project, request_id, code)
+        status = core.inspect(project, request_id)
+    version = core.pilot_outbox_version(project, request_id)
     if not status['result_version'] or version > status['result_version']:
-        return {'state': 'FOLLOWING', 'scope': 'LOCAL_LEDGER', 'request_state': status['state'], 'next_version': version}
+        return {'state': channel_state or 'FOLLOWING', 'scope': 'LOCAL_LEDGER',
+                'request_state': status['state'], 'next_version': version}
     receipt = transport.enqueue(project, request_id, version)
     if receipt['state'] in ('PENDING', 'SENT'):
         core.pilot_outbox_version(project, request_id, version=version, receipt=receipt)
@@ -253,12 +325,14 @@ def main(argv=None):
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))
         return 2 if result.get('state') == 'UNKNOWN' else 0
     except (TransportError, CoordinatorError) as error:
-        code = error.code
+        detail = {'code': error.code}
+        if getattr(error, 'conflicts', None):
+            detail['conflicts'] = error.conflicts
     except ConnectionError:
-        code = 'BRIDGE_UNAVAILABLE'
+        detail = {'code': 'BRIDGE_UNAVAILABLE'}
     except (OSError, ValueError, sqlite3.Error):
-        code = 'LOCAL_BRIDGE_IO_ERROR'
-    print(json.dumps({'error': {'code': code}}), file=sys.stderr)
+        detail = {'code': 'LOCAL_BRIDGE_IO_ERROR'}
+    print(json.dumps({'error': detail}), file=sys.stderr)
     return 2
 
 

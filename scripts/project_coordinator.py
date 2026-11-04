@@ -26,6 +26,8 @@ LEGACY_COORDINATOR_ID = "g8-project-coordinator"
 LEGACY_PRINCIPAL_COLUMN = "g8_principal"
 MAX_MESSAGE = 256 * 1024
 DEFAULT_BUDGET = {"contact_attempts": 1, "production_writes": 0, "audio_generations": 0}
+GOAL_BUDGET = {"dispatch_attempts": 1, "production_writes": 0, "audio_generations": 0}
+GOAL_ACTIONS = {"coordinate_existing_owner", "verify_existing_evidence", "plan_independent_review", "report_progress"}
 UNRESOLVED = ("INTENT", "UNKNOWN", "SUBMITTED", "OWNER_READ")
 CONTACT_REASONS = {"CHANNEL_UNAVAILABLE", "OWNER_OFFLINE", "IDENTITY_MISMATCH", "STALE_GENERATION",
                    "POLICY_DENIED", "SEND_FAILED", "NATIVE_SUBMISSION", "RECEIPT_MISMATCH",
@@ -33,9 +35,10 @@ CONTACT_REASONS = {"CHANNEL_UNAVAILABLE", "OWNER_OFFLINE", "IDENTITY_MISMATCH", 
 
 
 class CoordinatorError(ValueError):
-    def __init__(self, code):
+    def __init__(self, code, *, conflicts=()):
         super().__init__(code)
         self.code = code
+        self.conflicts = conflicts
 
 
 def require(condition, code):
@@ -94,6 +97,29 @@ def strings(value, required=False):
         text(item)
 
 
+def canonical_ref(value):
+    return value == value.strip() and value.isprintable()
+
+
+def validate_goal(goal, task_ref, deadline):
+    """A bounded existing-owner assignment; neither a new owner nor a tool grant."""
+    fields(goal, "objective work_key acceptance_criteria evidence_refs related_request_ids scope_refs "
+                 "allowed_actions next_check_at review_requirement")
+    text(goal["objective"], 32768)
+    for name in ("acceptance_criteria", "evidence_refs", "scope_refs", "allowed_actions"):
+        strings(goal[name], required=True)
+        require(len(set(goal[name])) == len(goal[name]), "DUPLICATE_GOAL_VALUE")
+    require(all(canonical_ref(ref) for ref in goal["scope_refs"]), "NONCANONICAL_SCOPE_REF")
+    strings(goal["related_request_ids"])
+    for request_id in goal["related_request_ids"]:
+        identifier(request_id)
+    require(set(goal["allowed_actions"]) <= GOAL_ACTIONS, "GOAL_ACTION_NOT_ALLOWED")
+    require(goal["review_requirement"] in ("none", "independent_listening"), "INVALID_REVIEW_REQUIREMENT")
+    require(goal["work_key"] == canonical_hash({"task_ref": task_ref, "scope_refs": sorted(goal["scope_refs"])}),
+            "WORK_KEY_MISMATCH")
+    require(timestamp(goal["next_check_at"]) <= timestamp(deadline), "INVALID_CHECKPOINT")
+
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS projects(
  project_id TEXT PRIMARY KEY, repository TEXT NOT NULL, project_ref TEXT NOT NULL,
@@ -138,6 +164,17 @@ CREATE TABLE IF NOT EXISTS wait_schedule(
 CREATE INDEX IF NOT EXISTS coordinator_due ON wait_schedule(due,project_id,request_id) WHERE due IS NOT NULL;
 CREATE INDEX IF NOT EXISTS project_due ON wait_schedule(project_id,due,request_id) WHERE due IS NOT NULL;
 CREATE INDEX IF NOT EXISTS project_event_kind ON events(project_id,kind,seq);
+CREATE TABLE IF NOT EXISTS goals(
+ project_id TEXT NOT NULL, work_key TEXT NOT NULL, request_id TEXT NOT NULL,
+ state TEXT NOT NULL DEFAULT 'ADMITTED', accepted_seq INTEGER, last_seq INTEGER NOT NULL DEFAULT 0,
+ PRIMARY KEY(project_id,work_key), UNIQUE(project_id,request_id),
+ FOREIGN KEY(project_id,request_id) REFERENCES requests);
+CREATE TABLE IF NOT EXISTS goal_updates(
+ project_id TEXT NOT NULL, request_id TEXT NOT NULL, seq INTEGER NOT NULL,
+ report_hash TEXT NOT NULL, result_version INTEGER NOT NULL,
+ PRIMARY KEY(project_id,request_id,seq),
+ FOREIGN KEY(project_id,request_id) REFERENCES requests,
+ FOREIGN KEY(project_id,request_id,result_version) REFERENCES results(project_id,request_id,version));
 """
 
 
@@ -304,7 +341,7 @@ class Coordinator:
             project = self._project(db, project_id)
             state = ("READY" if project["owner_principal"] and project["generation"] == r["target_generation"]
                      else "WAITING_OWNER")
-        return {"coordinator_id": self.coordinator_id, "project_id": project_id, "request_id": request_id,
+        result = {"coordinator_id": self.coordinator_id, "project_id": project_id, "request_id": request_id,
                 "job_id": body["job_id"], "payload_hash": body["payload_hash"], "state": state, "target_generation": r["target_generation"],
                 "contact_state": contact["state"] if contact else None,
                 "contact_reason": contact["reason"] if contact else None,
@@ -315,6 +352,13 @@ class Coordinator:
                 "cloud_dot_read": bool(latest and latest["read_ref"]), "waiting": json.loads(r["waiting"]),
                 "wait_revision": schedule["revision"], "waiting_active": schedule["phase"] != "CLOSED",
                 "observed_at": self._now().isoformat()}
+        if r["kind"] == "DELEGATE_GOAL":
+            goal = db.execute("SELECT work_key,state,accepted_seq,last_seq FROM goals WHERE project_id=? AND request_id=?",
+                              (project_id, request_id)).fetchone()
+            result["goal"] = dict(goal)
+            result.update(kind="DELEGATE_GOAL", goal_state=goal["state"], last_seq=goal["last_seq"],
+                          work_key=goal["work_key"], accepted=goal["accepted_seq"] is not None)
+        return result
 
     @staticmethod
     def _require_bridge_origin(db, project_id, request_id, origin):
@@ -329,17 +373,26 @@ class Coordinator:
             self._require_bridge_origin(db, project_id, request_id, origin)
 
     def submit(self, principal, request, *, bridge_origin=None):
-        fields(request, "project_id request_id job_id task_ref idempotency_key kind expected_generation deadline "
-                        "question authorization_ref payload_hash evidence_refs budget")
+        common = "project_id request_id job_id task_ref idempotency_key kind expected_generation deadline " \
+                 "authorization_ref payload_hash evidence_refs budget"
+        fields(request, common, "question goal")
+        require(request["kind"] in ("QUERY_BLOCKER", "DELEGATE_GOAL"), "OPERATION_NOT_ALLOWED")
+        is_goal = request["kind"] == "DELEGATE_GOAL"
+        fields(request, common + (" goal" if is_goal else " question"))
         p, r = identifier(request["project_id"]), identifier(request["request_id"])
         with self._db() as db:
             project = self._project(db, p, text(principal))
             identifier(request["job_id"])
             idem = identifier(request["idempotency_key"])
-            require(request["kind"] == "QUERY_BLOCKER", "OPERATION_NOT_ALLOWED")
             for key in ("task_ref", "authorization_ref"):
                 text(request[key])
-            text(request["question"], 32768)
+            if is_goal:
+                require(re.fullmatch(r"https://github\.com/" + re.escape(project["repository"]) +
+                                     r"/issues/[1-9][0-9]*", request["task_ref"]) or
+                        re.fullmatch(r"DI_[A-Za-z0-9_-]{1,125}", request["task_ref"]), "CANONICAL_TASK_REQUIRED")
+                validate_goal(request["goal"], request["task_ref"], request["deadline"])
+            else:
+                text(request["question"], 32768)
             strings(request["evidence_refs"])
             if bridge_origin is not None:
                 fields(bridge_origin, "channel subject origin_ref task_evidence_ref")
@@ -351,7 +404,8 @@ class Coordinator:
             require(isinstance(request["payload_hash"], str) and
                     re.fullmatch("[a-f0-9]{64}", request["payload_hash"]), "INVALID_HASH")
             b = request["budget"]
-            require(isinstance(b, dict) and b == DEFAULT_BUDGET and all(type(v) is int for v in b.values()),
+            require(isinstance(b, dict) and b == (GOAL_BUDGET if is_goal else DEFAULT_BUDGET)
+                    and all(type(v) is int for v in b.values()),
                     "INVALID_BUDGET")
             digest = canonical_hash(request)
             prior = db.execute("SELECT request_id,input_hash FROM requests WHERE project_id=? AND "
@@ -361,6 +415,31 @@ class Coordinator:
                 if bridge_origin is not None:
                     self._require_bridge_origin(db, p, prior["request_id"], bridge_origin)
                 return self._status(db, p, prior["request_id"])
+            if is_goal:
+                # A goal is fenced to its original owner generation. Reserving
+                # assets while no one holds that generation cannot lead to a send.
+                require(project["owner_principal"] is not None and project["assignment_state"] == "BOUND",
+                        "OWNER_UNVERIFIED")
+                goal = request["goal"]
+                original = db.execute("SELECT request_id,work_key FROM goals WHERE project_id=? AND work_key=?",
+                                      (p, goal["work_key"])).fetchone()
+                if original:
+                    raise CoordinatorError("WORK_ALREADY_DELEGATED", conflicts=[dict(original)])
+                # A new request, Issue, or partial batch cannot bypass an asset
+                # reservation. The project owns the scope, not an Issue alias.
+                conflicts = []
+                scopes = set(goal["scope_refs"])
+                for existing in db.execute("SELECT r.body,g.request_id,g.work_key FROM goals g"
+                                           " JOIN requests r USING(project_id,request_id)"
+                                           " WHERE g.project_id=? ORDER BY g.request_id", (p,)):
+                    body = json.loads(existing["body"])
+                    # Older ledgers may contain padded IDs; reserve their scopes
+                    # without changing the original request, work key, or hash.
+                    if not scopes.isdisjoint(ref.strip() for ref in body["goal"]["scope_refs"]):
+                        conflicts.append({"request_id": existing["request_id"], "work_key": existing["work_key"]})
+                if conflicts:
+                    raise CoordinatorError("WORK_SCOPE_OVERLAP", conflicts=conflicts)
+                require(timestamp(goal["next_check_at"]) > self._now(), "CHECKPOINT_EXPIRED")
             require(expected == project["generation"], "STALE_GENERATION")
             require(timestamp(request["deadline"]) > self._now(), "DEADLINE_EXPIRED")
             wait = {"follow_up_owner": self.coordinator_id, "action_owner": self.coordinator_id,
@@ -368,6 +447,8 @@ class Coordinator:
                     "next_condition": "Verified project owner and approved contact route",
                     "deadline": request["deadline"], "escalate_to": principal,
                     "evidence_ref": request["task_ref"]}
+            if is_goal:
+                wait["next_check_at"] = request["goal"]["next_check_at"]
             try:
                 db.execute("INSERT INTO requests(project_id,request_id,principal,kind,idem,input_hash,body,"
                            "target_generation,created_at,waiting) VALUES(?,?,?,?,?,?,?,?,?,?)",
@@ -375,6 +456,9 @@ class Coordinator:
                             expected, self._now().isoformat(), canonical(wait).decode()))
             except sqlite3.IntegrityError as error:
                 raise CoordinatorError("REQUEST_ID_CONFLICT") from error
+            if is_goal:
+                db.execute("INSERT INTO goals(project_id,work_key,request_id) VALUES(?,?,?)",
+                           (p, request["goal"]["work_key"], r))
             self._schedule(db, p, r, wait)
             evidence = {"input_hash": digest}
             if bridge_origin is not None:
@@ -390,6 +474,36 @@ class Coordinator:
     def inspect(self, project_id, request_id):
         with self._db(False) as db:
             return self._status(db, project_id, request_id)
+
+    def goal_context(self, project_id, request_id):
+        """Host-only immutable input for preflight or the original native readback.
+
+        No intent is created. A previous action keeps its original owner binding,
+        so recovery never silently redirects an unknown execution to a successor.
+        """
+        with self._db(False) as db:
+            project = self._project(db, project_id)
+            request = self._request(db, project_id, request_id)
+            require(request['kind'] == 'DELEGATE_GOAL', 'OPERATION_NOT_ALLOWED')
+            body = json.loads(request['body'])
+            contact = self._contact(db, project_id, request_id)
+            return {'project_id': project_id, 'request_id': request_id, 'kind': 'DELEGATE_GOAL',
+                    'action_id': contact['action_id'] if contact else None,
+                    'generation': contact['generation'] if contact else request['target_generation'],
+                    'owner_principal': contact['owner'] if contact else project['owner_principal'],
+                    'endpoint': contact['endpoint'] if contact else project['endpoint'],
+                    **{k: body[k] for k in ('job_id', 'payload_hash', 'task_ref', 'authorization_ref',
+                                          'goal', 'budget', 'deadline')}}
+
+    def goal_for_work(self, principal, project_id, work_key):
+        """Read the original work reservation; never create a replacement request."""
+        require(isinstance(work_key, str) and re.fullmatch("[a-f0-9]{64}", work_key), "INVALID_HASH")
+        with self._db(False) as db:
+            self._project(db, project_id, text(principal))
+            row = db.execute("SELECT request_id FROM goals WHERE project_id=? AND work_key=?",
+                             (project_id, work_key)).fetchone()
+            require(row is not None, "WORK_NOT_FOUND")
+            return self._status(db, project_id, row["request_id"])
 
     def claim_contact(self, project_id, request_id, expected_generation):
         """Only send when send=True. The persisted intent consumes the entire one-contact budget."""
@@ -415,11 +529,16 @@ class Coordinator:
                             next_condition="Verified receipt or reply on the original contact action", evidence_ref=action)
                 self._wait(db, project_id, request_id, wait)
             contact = self._contact(db, project_id, request_id)
-            return {"send": before is None, "action_id": contact["action_id"], "project_id": project_id,
+            result = {"send": before is None, "action_id": contact["action_id"], "project_id": project_id,
                     "request_id": request_id, "generation": contact["generation"], "owner_principal": contact["owner"],
-                    "endpoint": contact["endpoint"], "question": body["question"], "deadline": body["deadline"],
+                    "endpoint": contact["endpoint"], "deadline": body["deadline"],
                     "job_id": body["job_id"], "payload_hash": body["payload_hash"], "task_ref": body["task_ref"],
                     "authorization_ref": body["authorization_ref"], "budget": body["budget"]}
+            if request["kind"] == "DELEGATE_GOAL":
+                result.update(kind="DELEGATE_GOAL", goal=body["goal"])
+            else:
+                result.update(kind="QUERY_BLOCKER", question=body["question"])
+            return result
 
     def check_contact(self, project_id, request_id, action_id, generation):
         """Re-read admission at the final controlled send point. This cannot fence an unrelated native writer."""
@@ -483,6 +602,7 @@ class Coordinator:
     def owner_read(self, principal, project_id, request_id, action_id, generation, endpoint, evidence_ref):
         text(evidence_ref)
         with self._db() as db:
+            require(self._request(db, project_id, request_id)["kind"] == "QUERY_BLOCKER", "OPERATION_NOT_ALLOWED")
             row, current = self._verified_contact(db, principal, project_id, request_id, action_id, generation, endpoint)
             self._event(db, project_id, request_id, "OWNER_READ" if current else "LATE_OWNER_READ", principal,
                         {"action_id": action_id, "evidence_ref": evidence_ref})
@@ -534,6 +654,7 @@ class Coordinator:
             strings(report[key], required=key == "evidence_refs")
         timestamp(report["observed_at"])
         with self._db() as db:
+            require(self._request(db, project_id, request_id)["kind"] == "QUERY_BLOCKER", "OPERATION_NOT_ALLOWED")
             row, current = self._verified_contact(db, principal, project_id, request_id, action_id, generation, endpoint)
             request = json.loads(self._request(db, project_id, request_id)["body"])
             result = {"schema_version": 1, "kind": "BLOCKER_REPLY", "project_id": project_id,
@@ -556,6 +677,141 @@ class Coordinator:
                         "evidence_ref": evidence_ref}
                 self._wait(db, project_id, request_id, wait)
             return {"accepted": True, "late": False, "delivery": self._save_result(db, project_id, request_id, result)}
+
+    def goal_update(self, principal, project_id, request_id, action_id, generation, endpoint, evidence_ref, report):
+        """Apply an authenticated owner's business observation, separately from transport delivery.
+
+        Evidence contracts are checked here; listening quality itself is attested by the
+        named native reviewer, not inferred from a counter, ASR output, or this ledger.
+        """
+        text(evidence_ref)
+        base = "seq phase summary observed_at evidence_refs next_owner"
+        fields(report, base, "next_check_at terminal_condition criteria_evidence independent_review")
+        phase, seq = report["phase"], report["seq"]
+        require(phase in ("ACCEPTED", "IN_PROGRESS", "BLOCKED", "COMPLETED"), "INVALID_GOAL_PHASE")
+        require(type(seq) is int and 0 < seq < 2**63, "INVALID_GOAL_SEQUENCE")
+        text(report["summary"], 8192)
+        text(report["next_owner"])
+        strings(report["evidence_refs"], required=True)
+        observed = timestamp(report["observed_at"])
+        digest = canonical_hash(report)
+        with self._db() as db:
+            request = self._request(db, project_id, request_id)
+            require(request["kind"] == "DELEGATE_GOAL", "OPERATION_NOT_ALLOWED")
+            contact, current = self._verified_contact(db, principal, project_id, request_id, action_id, generation, endpoint)
+            body = json.loads(request["body"])
+            goal = body["goal"]
+            row = db.execute("SELECT * FROM goals WHERE project_id=? AND request_id=?",
+                             (project_id, request_id)).fetchone()
+            prior = db.execute("SELECT report_hash,result_version FROM goal_updates WHERE project_id=? AND request_id=? AND seq=?",
+                               (project_id, request_id, seq)).fetchone()
+            if prior:
+                require(prior["report_hash"] == digest, "GOAL_UPDATE_CONFLICT")
+                return {"accepted": True, "late": False,
+                        "delivery": self._delivery(db, project_id, request_id, prior["result_version"])}
+            now = self._now()
+            late = not current or request["cancel_ref"] or contact["state"] == "STOPPED" or timestamp(body["deadline"]) <= now
+            # Late evidence has its own sequence; it never advances the adopted
+            # report cursor or creates a result. Reuse the durable audit log,
+            # including evidence written by older installations.
+            last_late = db.execute("SELECT json_extract(body,'$.report') FROM events"
+                                   " WHERE project_id=? AND request_id=? AND kind='LATE_GOAL_OBSERVATION'"
+                                   " ORDER BY seq DESC LIMIT 1",
+                                   (project_id, request_id)).fetchone()
+            last_late = json.loads(last_late[0]) if last_late else None
+            if last_late and seq <= last_late["seq"]:
+                late_reports = db.execute("SELECT json_extract(body,'$.report') FROM events"
+                                          " WHERE project_id=? AND request_id=? AND kind='LATE_GOAL_OBSERVATION'"
+                                          " AND json_extract(body,'$.report.seq')=?",
+                                          (project_id, request_id, seq)).fetchall()
+                require(late_reports and all(canonical_hash(json.loads(item[0])) == digest for item in late_reports),
+                        "GOAL_UPDATE_CONFLICT")
+                return {"accepted": False, "late": True}
+            late = bool(late or last_late)
+            require(late or row["state"] != "COMPLETED", "GOAL_TERMINAL")
+            require(seq == max(row["last_seq"], last_late["seq"] if last_late else 0) + 1, "GOAL_SEQUENCE_GAP")
+            require(observed <= now, "FUTURE_OBSERVATION")
+            require(observed >= timestamp(request["created_at"]), "OBSERVATION_BEFORE_REQUEST")
+            if last_late and last_late["seq"] >= row["last_seq"]:
+                require(observed >= timestamp(last_late["observed_at"]), "OBSERVATION_TIME_REGRESSION")
+            elif row["last_seq"]:
+                previous = db.execute("SELECT r.body FROM goal_updates u JOIN results r"
+                                      " ON r.project_id=u.project_id AND r.request_id=u.request_id"
+                                      " AND r.version=u.result_version WHERE u.project_id=? AND u.request_id=? AND u.seq=?",
+                                      (project_id, request_id, row["last_seq"])).fetchone()
+                require(observed >= timestamp(json.loads(previous["body"])["report"]["observed_at"]),
+                        "OBSERVATION_TIME_REGRESSION")
+            if phase == "COMPLETED":
+                extra = " terminal_condition criteria_evidence"
+                if goal["review_requirement"] == "independent_listening":
+                    extra += " independent_review"
+                fields(report, base + extra)
+                text(report["terminal_condition"], 8192)
+                checks = report["criteria_evidence"]
+                require(isinstance(checks, list) and len(checks) == len(goal["acceptance_criteria"]),
+                        "GOAL_CRITERIA_INCOMPLETE")
+                covered = []
+                for check in checks:
+                    fields(check, "criterion evidence_refs")
+                    text(check["criterion"])
+                    strings(check["evidence_refs"], required=True)
+                    covered.append(check["criterion"])
+                require(len(set(covered)) == len(covered) and set(covered) == set(goal["acceptance_criteria"]),
+                        "GOAL_CRITERIA_INCOMPLETE")
+                if goal["review_requirement"] == "independent_listening":
+                    review = report["independent_review"]
+                    fields(review, "state reviewer producer scope_refs evidence_refs method")
+                    require(review["state"] == "VERIFIED" and review["method"] in ("human_listening", "audio_perception"),
+                            "INDEPENDENT_REVIEW_REQUIRED")
+                    text(review["reviewer"])
+                    text(review["producer"])
+                    require(canonical_ref(review["reviewer"]) and canonical_ref(review["producer"]) and
+                            review["reviewer"] != review["producer"], "INDEPENDENT_REVIEW_REQUIRED")
+                    strings(review["scope_refs"], required=True)
+                    strings(review["evidence_refs"], required=True)
+                    require(len(review["scope_refs"]) == len(goal["scope_refs"]) and
+                            set(review["scope_refs"]) == set(goal["scope_refs"]), "REVIEW_SCOPE_INCOMPLETE")
+            else:
+                fields(report, base + " next_check_at")
+                require(timestamp(report["next_check_at"]) <= timestamp(body["deadline"]), "INVALID_CHECKPOINT")
+            result = {"schema_version": 1, "kind": "GOAL_UPDATE", "project_id": project_id,
+                      "request_id": request_id, "job_id": body["job_id"], "payload_hash": body["payload_hash"],
+                      "task_ref": body["task_ref"], "work_key": goal["work_key"], "action_id": action_id,
+                      "generation": generation, "source_principal": principal, "source_evidence_ref": evidence_ref,
+                      "goal_state": phase, "report": report}
+            if late:
+                self._event(db, project_id, request_id, "LATE_GOAL_OBSERVATION", principal, result, notify=True)
+                return {"accepted": False, "late": True}
+            require(contact["state"] not in ("NOT_SENT", "STOPPED"), "CONTACT_TERMINAL")
+            if phase == "ACCEPTED":
+                require(row["accepted_seq"] is None, "GOAL_ALREADY_ACCEPTED")
+            elif phase in ("IN_PROGRESS", "COMPLETED"):
+                require(row["accepted_seq"] is not None, "GOAL_ACCEPTANCE_REQUIRED")
+            if phase != "COMPLETED":
+                require(timestamp(report["next_check_at"]) > observed, "CHECKPOINT_EXPIRED")
+            db.execute("UPDATE goals SET state=?,last_seq=?,accepted_seq=CASE WHEN ?='ACCEPTED' THEN ? ELSE accepted_seq END"
+                       " WHERE project_id=? AND request_id=?", (phase, seq, phase, seq, project_id, request_id))
+            # An active goal keeps the original owner fenced until completion or an
+            # independently attested stop. A business progress report is not a release.
+            db.execute("UPDATE contacts SET state=? WHERE action_id=?",
+                       ("REPLIED" if phase == "COMPLETED" else "OWNER_READ", action_id))
+            if phase == "COMPLETED":
+                db.execute("UPDATE requests SET unblock_ref=? WHERE project_id=? AND request_id=?",
+                           (evidence_ref, project_id, request_id))
+            wait = {"follow_up_owner": self.coordinator_id, "action_owner": report["next_owner"],
+                    "reason": "GOAL_" + phase,
+                    "next_condition": report.get("terminal_condition", report["summary"]),
+                    "deadline": body["deadline"], "escalate_to": self._project(db, project_id)["cloud_dot_principal"],
+                    "evidence_ref": evidence_ref}
+            if phase != "COMPLETED":
+                wait["next_check_at"] = report["next_check_at"]
+            self._wait(db, project_id, request_id, wait)
+            delivery = self._save_result(db, project_id, request_id, result)
+            db.execute("INSERT INTO goal_updates VALUES(?,?,?,?,?)",
+                       (project_id, request_id, seq, digest, delivery["version"]))
+            self._event(db, project_id, request_id, "GOAL_" + phase, principal,
+                        {"action_id": action_id, "seq": seq, "report_hash": digest, "evidence_ref": evidence_ref}, notify=True)
+            return {"accepted": True, "late": False, "delivery": delivery}
 
     def delivery(self, project_id, request_id, version=1):
         with self._db(False) as db:
@@ -626,6 +882,7 @@ class Coordinator:
             require((project["owner_principal"], project["generation"], project["endpoint"]) ==
                     (text(principal), _generation(generation), text(endpoint)), "ACCESS_DENIED")
             request = self._request(db, project_id, request_id)
+            require(request["kind"] == "QUERY_BLOCKER", "OPERATION_NOT_ALLOWED")
             contact = self._contact(db, project_id, request_id)
             require(contact and contact["reply_hash"], "REPLY_REQUIRED")
             wait = json.loads(request["waiting"])
@@ -822,6 +1079,9 @@ class Coordinator:
         require(project["owner_principal"] and project["generation"] == _generation(data["expected_generation"]),
                 "STALE_GENERATION")
         require(not request["cancel_ref"] and not self._contact(db, p, r), "ACTION_ALREADY_DECIDED")
+        require(request["kind"] != "DELEGATE_GOAL" or
+                json.loads(request["body"])["expected_generation"] == project["generation"],
+                "GOAL_ORIGINAL_GENERATION_MISMATCH")
         text(data["authorization_ref"])
         db.execute("UPDATE requests SET target_generation=? WHERE project_id=? AND request_id=?",
                    (project["generation"], p, r))
@@ -904,12 +1164,15 @@ class Coordinator:
         request = self._request(db, p, r)
         body = json.loads(request["body"])
         require(not request["unblock_ref"], "ALREADY_UNBLOCKED")
-        return self._save_result(db, p, r,
-                                 {"schema_version": 1, "kind": "COORDINATOR_WAIT_REPORT",
-                                  "project_id": p, "request_id": r, "job_id": body["job_id"],
-                                  "payload_hash": body["payload_hash"], "task_ref": body["task_ref"],
-                                  "source_principal": self.coordinator_id, "source_evidence_ref": text(data["evidence_ref"]),
-                                  "waiting": json.loads(request["waiting"])})
+        result = {"schema_version": 1, "kind": "COORDINATOR_WAIT_REPORT",
+                  "project_id": p, "request_id": r, "job_id": body["job_id"],
+                  "payload_hash": body["payload_hash"], "task_ref": body["task_ref"],
+                  "source_principal": self.coordinator_id, "source_evidence_ref": text(data["evidence_ref"]),
+                  "waiting": json.loads(request["waiting"])}
+        if request["kind"] == "DELEGATE_GOAL":
+            goal = db.execute("SELECT state,last_seq FROM goals WHERE project_id=? AND request_id=?", (p, r)).fetchone()
+            result.update(original_kind="DELEGATE_GOAL", goal_state=goal["state"], last_seq=goal["last_seq"])
+        return self._save_result(db, p, r, result)
 
     def _admin_notifications(self, db, data):
         fields(data, "project_id", "after limit")

@@ -17,7 +17,8 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ('scripts/project_coordinator.py', 'scripts/coordinator_transport.py')
 BRIDGE = 'scripts/coordinator_bridge.py'
-FILES = (*CORE_FILES, BRIDGE)
+GOAL_CHANNEL = 'scripts/coordinator_goal_channel.py'
+FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
 
@@ -40,7 +41,10 @@ def install(revision, destination, *, repository=ROOT):
     payload = {}
     # Older fixed commits can still be verified/reinstalled using their original manifest.
     has_bridge = bool(git('ls-tree', revision, '--', BRIDGE).strip())
-    for name in (FILES if has_bridge else CORE_FILES):
+    selected = (*CORE_FILES, *((BRIDGE,) if has_bridge else ()))
+    if git('ls-tree', revision, '--', GOAL_CHANNEL).strip():
+        selected += (GOAL_CHANNEL,)
+    for name in selected:
         entry = git('ls-tree', revision, '--', name).decode().strip().split()
         if len(entry) != 4 or entry[0] not in ('100644', '100755') or entry[1] != 'blob' or entry[3] != name:
             raise ValueError('The selected commit lacks an ordinary coordinator source file')
