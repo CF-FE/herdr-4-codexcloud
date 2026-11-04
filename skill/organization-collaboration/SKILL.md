@@ -5,7 +5,7 @@ description: 在组织或项目协作中确认岗位、责任与汇报路径，�
 
 # 组织协作
 
-组织协议版本：1.7.0。
+组织协议版本：1.8.0。
 
 先回答本次任务的三个问题：**我对谁负责、结果交给谁、沿哪个实际通道和任务关联沟通。** 组织岗位、专业能力、运行执行器分别识别；岗位名、创建者或机器名不能代替任职记录、权限和真实工具。
 
@@ -36,7 +36,7 @@ description: 在组织或项目协作中确认岗位、责任与汇报路径，�
 
 只读当前岗位及实际缺项所需参考。多步骤、局部阻塞、并行或共享容量安排读[规划与进度](references/planning-and-progress.md)；首次绑定、汇报或接管读[上下文与汇报](references/context-and-reporting.md)；新增／更新／撤换岗位、角色或任职关系读[维护规则](references/maintenance.md)。没有该岗位定义时报告具体缺口，不自行套用相近岗位。专业方法按需另选，不加载全角色库。
 
-涉及产物质量与交付时，按[产物就地复核](references/execution-and-review.md#产物就地复核)检查明确版本，并使用[验收回执](references/context-and-reporting.md#产物复核与验收回执)。负责人默认组织复核并作最终验收；报告先交负责人，不以总协调收到原文件为前提。
+涉及产物质量与交付时，按[产物就地复核](references/execution-and-review.md#产物就地复核)检查明确版本，并使用[验收回执](references/context-and-reporting.md#产物复核与验收回执)。需要人作判断时，在原任务单列[成品人工介入清单](references/context-and-reporting.md#成品人工介入清单)，按已可用的范围交付。负责人默认组织复核并作最终验收。
 
 安排项目资产归档、用途副本、交付或恢复时，按需读[资产归档](references/asset-archiving.md)；它只补资产事实和证据，不授权实际上传、迁移或执行，也不建立第二套正式状态。
 

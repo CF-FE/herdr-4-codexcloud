@@ -6,7 +6,7 @@
 
 **2026-11-04 13:11（北京时间），弱连接协作迭代已部署到 Mac。** 原两项协调员服务已加载 [协调员 #6，`a7ae323`](https://github.com/CF-FE/herdr-4-codexcloud/pull/6)，Mac 桥已加载 [信箱 #6，`95dec8b`](https://github.com/CF-FE/task-mailbox-mcp/pull/6)。13:11:47 两端签名握手通过，原台账和授权保留。13:11:41 一轮远端收件仍出现切换前已有的间歇连接失败。本机跨仓隔离联调中，桥断开期间负责人两个模拟报告先落本地，重连后按原单补传，只发生一次派发。此项未在生产发送测试单。[弱连接协作约定](coordination-policy.md#弱连接下的进度与迭代)
 
-凡人 Issue #2 的首批 22 段旁白已在 win-work 完成模型听检，首份回执于 11 月 4 日 13:32（北京时间）取得。负责人采纳了现有原音候选，后续工作继续。60 秒定向人工复核可按需安排。负责人沿原单跟踪有疑点的片段，并决定正式成品验收。[负责人当前决定](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6623347130)
+凡人 Issue #2 的首批 22 段旁白已在 win-work 完成模型听检，首份回执于 11 月 4 日 13:32（北京时间）取得。负责人采纳了现有原音候选，后续工作继续。公子可随时更新 60 秒定向听审意见。负责人沿原单跟进相应片段，并决定正式成品验收。[逐项听审清单](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6625500276) · [负责人当前决定](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6623347130)
 
 凡人项目自行维护 [Windows INT4 环境重建指南](https://github.com/CF-FE/fanren-work/blob/main/docs/audio-environment-windows-int4.md)和[旧 Lody 工作区巡检记录](https://github.com/CF-FE/fanren-work/blob/main/docs/session-lifecycle-management.md)。
 
@@ -24,7 +24,7 @@
 | Mac → Win Herdr | TUI 0.9.5 原生 saved-machine／LAN SSH 的保存连接、reachable 及定向 Agent 清单回读通过 | Win Herdr 内模型派发、业务产物回收与生产写权切换 |
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
-| 本仓技能与协作规范 | 组织协作源码 1.7.0（本仓修订）、Projects 1.1.0；[协作约定](coordination-policy.md)明确云端Dot上游定位、协调员广泛调度、小迭代直派与 Cloud 路由目标合同 | 目标宿主安装／加载、新关系的实际采用；协调员触发 Cloud 的运行链路尚未实现／验证 |
+| 本仓技能与协作规范 | [组织协作 1.8.0](../skill/organization-collaboration/references/context-and-reporting.md#成品人工介入清单)（本仓修订）、Projects 1.1.0；[协作约定](coordination-policy.md)明确云端Dot上游定位、协调员广泛调度、小迭代直派与 Cloud 路由目标合同 | 目标宿主安装／加载、新关系的实际采用；协调员触发 Cloud 的运行链路尚未实现／验证 |
 | 云端Dot与 Mac 项目协调员 | 采用既有定时查信。[凡人负责人答复的定时读回](project-coordinator.md#fanren-scheduled-read)和[原计划首发、Mac 自动回传](project-coordinator.md#scheduled-first-submit)已验证 | 长期运行稳定性 |
 | Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main`；11 月 4 日本次 Cloud 工作区已进行仓库文档编辑与[离线检查](#本地检查) | 协调员触发 Cloud、Cloud 信箱接入、指定接收者的成果读回及生产业务；本次工具权限不推广到其他任务 |
 
