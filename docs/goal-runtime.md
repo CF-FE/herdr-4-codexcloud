@@ -57,7 +57,7 @@ CLI 覆盖表采用递归合并，写一个新 `mcp_servers` 表不会删除旧�
 2. 宿主管理者核原 owner 与（可选）reviewer的实际原生身份、原入口独占/交还、合法认证复用、固定 CLI、进程覆盖、MCP 工具及服务端范围约束。任何未验证项列出，不能用自填 capability manifest 证明真实能力。
 3. 在具体许可后配置本单 key、两端精确来源 grant、目标 policy/manifest和工具 policy；原 OAuth、collector、游标、全局配置、其它授权及源资产不动。先保持 pilot 为 null，不让准备步骤隐式派发。
 4. 最后核所有摘要/绑定与原 job状态，再挂单件 `goal_channel_config` 和精确 pilot；这是实际放行开关。已有 pump 会执行，不另开第二个发送者。收取 ADMITTED、原生接受/阻塞及原信箱版本/hash分别记证。
-5. 结果或终止回执安全进入原 outbox并核 event/hash后，只撤本单新加的 key/grant/pilot/通道引用和能力准入，保留历史。已排队事件由原 collector补传，不依赖新业务 grant。云端Dot可按原 job 查看最新进展，或从 GitHub Project 查看里程碑。日常交办不要求已读回报。项目负责人继续负责业务验收。
+5. 结果或终止回执安全进入原 outbox并核 event/hash后，只撤本单新加的 key/grant/pilot/通道引用和能力准入，保留历史。已排队事件由原 collector补传，不依赖新业务 grant。云端Dot可按原 job 查看最新进展，或从 GitHub Project 查看里程碑。日常交办不要求已读回报。业务验收默认由项目负责人承担，另有指定时由本单验收者承担。
 
 期限同时绑定 request.deadline、各 policy/manifest和独占证明；业务 grant schema没有自动 TTL字段。宿主管理者承担到期撤销，不能伪造未支持的 expires_at字段或默许无限保留。到期还未排队时停止新动作、保留原结果并报告补传缺口，任何延期另核对应权限。
 
