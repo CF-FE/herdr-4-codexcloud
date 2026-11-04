@@ -8,6 +8,73 @@
 
 早期 core 优先、VPS 常驻协调 Codex 和脱离 Mac 的设想已被当前分工替代；研究沿[通信指引](agent-communication.md)及历史记录保留，不作为当前安装要求。
 
+<a id="整套候选分工"></a>
+
+## 整套协作分工
+
+<a id="三机组件与调用图"></a>
+
+**向下交办。** 公子和云端Dot是需求与汇报终端。下游分协调组织与执行两层。协调员统筹各项目；现任负责人决定本项目怎么做、派给谁、怎样验。图中的机器名表示 Worker 的运行位置，同一机器可有多个按任务绑定的 Agent。当前有哪些环境、各自验证过哪些工具和模型，查 [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)；新增同类宿主沿用该入口。
+
+```mermaid
+graph TD
+    subgraph 第一层 需求与决策入口
+        U["公子"] -->|"目标、授权与取舍"| D["云端Dot<br/>验证需求、指派验收者、发起委派"]
+    end
+    subgraph 第二层 协调组织 Mac Herdr
+        C["项目协调员<br/>统筹负责人、资源与路线"] -->|"联系现任者，核接手"| O["项目负责人<br/>分工、组织复核、默认验收"]
+    end
+    subgraph 第三层 Worker 执行
+        M["Mac 本机 Herdr<br/>绑定的本地 Agent"]
+        W["Win Herdr<br/>目标 Agent 或命令 pane"]
+        X["Codex Cloud 作业<br/>原生 task ID"]
+    end
+    D -->|"一次交付目标与验收标准"| C
+    O -->|"原生派发"| M
+    O -->|"saved-machine / LAN SSH"| W
+    O -.->|"已审项目包，协调员安排路线"| R("唯一 Codex 路由<br/>由获准的参与者承担")
+    D -.->|"获准直派独立小迭代"| R
+    R -->|"单次原生提交"| X
+```
+
+虚线是有条件的 Cloud 路线，每单只选一个实际提交者。项目包由负责人审定，协调员可安排获准的云端Dot代建；**协调员自动触发 Cloud 尚未验证**。若路由职责由协调层 Agent 承担，其本体仍在 Herdr，唯一转到云端的是具体 Cloud 作业。提交者沿原生 task ID 拉回状态、版本或 PR。已发布 Cloud 环境、Mac 显式调用既有 Codex Agent 的工程样本、Win 定向只读回读分别在[状态总表](status.md#当前结论)记录。[角色、宿主和调用示例](agent-hosts.md) · [小迭代和 Cloud 路由](coordination-policy.md#4-协调员指挥-cloud-路由)
+
+**向上异步回收。** Worker 将版本、产物、自检和未决项交负责人。需独立复核时，审查者直接交核验范围与发现；流程审计者按需核遗漏和整改。项目成果由现任负责人默认验收，另有指定时从原任务；非项目成果须指定其他验收者。云端Dot可核自己是否完成传递，但业务成果的验收结论由本单验收者给出。
+
+```mermaid
+graph TD
+    W["Worker"] -->|"原生回执、版本与自检"| O["项目负责人"]
+    Q["独立审查核版本<br/>流程审计核追溯与整改"] -.->|"按需提供独立证据"| O
+    O -->|"提交本次版本和证据"| A["本单验收者<br/>项目默认由现任负责人验收"]
+    O -->|"单件接手、进展或跨项目阻塞"| C["协调员"]
+    C -->|"原桥入队，联网补传"| M["Task Mailbox<br/>原 job ID 与结果版本"]
+    O -->|"里程碑、阻塞、处置与解除"| P["GitHub Project 与关联 Issue<br/>原项目条目"]
+    A -->|"项目验收结论"| P
+    M -->|"按原单查进展"| D["云端Dot<br/>回收进展与验收者结论"]
+    P -->|"查项目里程碑与验收结论"| D
+    C -.->|"紧急风险或需上游决定"| D
+    D -->|"汇报重要进展、结果或待决定事项"| U["公子"]
+```
+
+云端Dot交办可使用获准的信箱目标合同，已经从原 Issue 正式交办的项目沿原条目继续。两种回收入口各回答一个问题：**Task Mailbox 查这一单，Project／Issue 查这个项目**。只选项目入口的任务无需补造信箱单；离线先存证据，联网补传，日常推进无需等待已读 ACK。执行层能解决的问题就地验证，影响承诺或跨项目资源的阻塞由负责人报协调员；需要新授权或目标取舍的事项再由云端Dot提请公子决定，原任务保留责任人、影响和下次检查点。[弱连接下的进度与迭代](coordination-policy.md#弱连接下的进度与迭代) · [单件目标合同](goal-handoff.md)
+
+| 角色／对象 | 负责什么 | 权威记录 |
+| --- | --- | --- |
+| 公子／用户 | 总体目标、有效授权及超出既定范围的取舍 | 原指令及对应正式任务 |
+| 云端Dot | 调研需求、拆分成果、发起委派、指派验收者及汇总结果；条件成立时直派独立小迭代 | 原聊天、原任务及正式项目记录 |
+| 项目协调员 | 授权内统筹各项目负责人、跨项目资源、调度顺序及 Cloud／本地路线，主动识别风险、推进未完事项与提出改进；重要影响按既有授权决定或升级，实际访问、预算及审批权限另核 | 组织职责与决定追溯见[协作约定](coordination-policy.md)；已实现接口见[协调入口](project-coordinator.md#7-本机交付与运行) |
+| 项目负责人／Lead | 业务拆解、核输入／权限、组织执行与独立复核、集成，默认负责项目验收；与协调员固定唯一路由 | 任务包、原生执行引用与原项目记录 |
+| Cloud 路由执行者 | 按已审任务包承担唯一原生调用、状态与产物回传，不重复决定业务或自行扩大预算 | 原生执行与原任务关联；协调员指挥路线仍待实现／验证 |
+| 执行者／独立审查者／流程审计者 | 执行者交付版本和自检；审查者独立核指定版本；审计者按需核跨来源记录、遗漏和整改。业务验收由本单验收者作出 | 原任务、执行或审查回执、审计发现及验收决定 |
+| Worker／角色库 | 描述宿主、harness、后端、职责和验收要求；生成离线准备稿 | [双库入口](worker-library/README.md)；`active` 不等于实时可用 |
+| 执行适配器 | 确定地执行 Lead 明确批准的单次请求，保全 UNKNOWN 与产物关联 | [适配器规范](herdr-executor.md)及独立 journal |
+| 信箱／Mac 协调桥 | 持久传输数据、会话观察、结果补传 | 服务原 job／event／版本／摘要及桥台账 |
+| Herdr／执行机 | 原生 session／pane／Agent、实际进程与本机资产 | 原生引用、固定产物和宿主证据 |
+
+每项目有责任边界，不要求每项目常驻一个进程。现有 Cloud 或旧 Lody 任务沿原入口收尾；同一执行和待写资产只能有一个实际控制入口及当前写者，UNKNOWN 不换池重做。
+
+源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
+
 <a id="当前部署与待评估简化"></a>
 
 ## 当前机器主链路与既有支路
@@ -18,76 +85,19 @@
 | Mac 本地 Herdr saved-machine／`--machine` → LAN SSH → Win `collab` | 选定的远端机器主链。连接与原生只读查询已验；适配器首版未扩展到 Win，Win Herdr 模型及业务回收另验 |
 | Mac → LAN → Win 网关 → EasyTier → VPS 内网地址 | VPS 管理路径；Mac 不装 VPN，Win 仅代理指定 Mac 主机 `/32`，Mac 仅路由 VPS 虚拟主机 `/32` |
 | VPS 旧 Herdr profile → EasyTier／SSH → 原执行机 | 仅保留原任务查询和收尾，不作为新机器任务必经层；未知执行沿原入口，不双发或静默迁移写权 |
-| Dot 原生 Mac 任务／Codex Cloud 原生任务 | 各沿实际获准的平台入口运行，任务生命周期与信箱、Herdr 分开；不从另一客户端或会话推定继承权限 |
+| Codex 路由 → Codex Cloud 原生任务 | 仅已获准的具体作业转到云端，以平台返回的 task ID 取回状态和产物；承担路由的协调层 Agent 仍在 Herdr |
 
 [执行适配器规范](herdr-executor.md)拥有其接口、安装和限定验收；[试点指引](pilot.md)拥有原生目标选择、等待与恢复语义；[网络方案](networking-plan.md)拥有路由、SSH 和固定版本风险。本页不重复维护这些合同或逐次回执。
 
 ### Task Mailbox：持久收发与本地承接
 
-**VPS Task Mailbox 传数据，Mac 协调桥收件和补传，项目 Lead 决策，独立适配器执行明确请求。** 桥已常驻主动轮询、感知配置范围内的会话并补传显式结果；提交信箱本身不执行 Herdr／模型，不自动唤醒 Dot。信箱自动消费到业务派发的路径尚未实现。
+**VPS Task Mailbox 持久收发，Mac 原桥轮询和补传，协调员及项目负责人按单件授权办理。** 部署的目标合同可在完整原件、可信主体、现任负责人及单件授权都已绑定时沿原生入口交办。桥收件、后台轮询和 Herdr Agent 接手分别有回执。发送信箱消息不会自行启动模型、Cloud 作业或唤醒云端Dot。
 
 Lead 从获准入口取得完整 job、核原任务授权与固定输入后，显式调用适配器。桥 jobs 台账保存身份、路由和状态摘要，不能据此重建完整任务正文；摘要一致只证明内容关联。适配器的 journal 不接管桥的 SQLite、OAuth、collector 或 hook，结果按已有获准报告接口回传。
 
 服务和 Mac 桥的唯一维护仓为 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人 `create-network-sh` 仅保留历史整合来源。契约、部署和运行证据分别由其 [SPEC](https://github.com/CF-FE/task-mailbox-mcp/blob/main/SPEC.md)、[部署说明](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/deployment.md)、[验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)维护。本仓引用这些权威，不复制服务或共享运行库。信箱与 Gitee 保持独立认证；示例端点为 `https://mcp.example.com/mailbox/mcp`。
 
 Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动作权限时直接收发同一 HTTPS 端点，不经 Mac 中转、不加入 VPN；这条条件路径仍未验，信箱提交也不会创建或唤醒 Cloud 任务。原数据任务、指定 Dot 读取、本次桌面 Lead／原 review 显式闭环的证据归属见[当前状态](status.md)，不合并为“所有客户端双向业务通过”。
-
-<a id="整套候选分工"></a>
-
-## 整套协作分工
-
-<a id="三机组件与调用图"></a>
-
-```mermaid
-flowchart TD
-    U["公子／用户"] -->|"目标、约束与取舍"| D["云端Dot<br/>调研、优化、拆分可交付成果"]
-    D -->|"主动汇报进展、影响和结果"| U
-    R["GitHub Project 及关联 Issue<br/>项目里程碑、负责人、验收结论"]
-    D -->|"一次交付实施方案或任务清单"| CO["项目协调员<br/>授权内统筹负责人、资源与路线"]
-    CO -->|"联系现任负责人、落实承接"| L["项目负责人／Lead<br/>业务拆解、执行组织与验收"]
-    D -.->|"获准信箱工具<br/>单件首发已验，通用执行未验"| HTTPS["ngrok HTTPS → Caddy"]
-    HTTPS <--> MB["VPS · Task Mailbox<br/>持久任务／事件／小结果"]
-    HTTPS <--> GT["VPS · Gitee MCP<br/>独立认证与原入口"]
-    B["Mac 协调桥<br/>常驻收件／会话感知／补传"] <--> HTTPS
-    B -.->|"Lead 显式核取，非自动派发"| L
-    K["Worker 库＋角色库<br/>离线选型与固定任务包"] -.-> L
-    L --> E["独立 HerdrExecutionAdapter<br/>显式调用、journal、结果核验"]
-    E -->|"首版限定通过"| A["Mac 既有 Herdr Agent"]
-    L -->|"原生 saved-machine／LAN SSH<br/>连接与只读已验"| W["Win · collab／执行资产"]
-    L -.->|"仅原任务对账"| V["VPS · 旧 Herdr profile"]
-    V -.->|"旧入口保留，不双发"| W
-    D -.->|"独立小迭代／已审任务代建<br/>获准原生入口"| C["Codex Cloud Worker"]
-    CO -.->|"指挥 Cloud 路由<br/>目标设计，链路未验"| C
-    C -.->|"具备 MCP／OAuth 时，未验"| HTTPS
-    A --> F["固定产物与执行证据"]
-    W -.-> F
-    C -.-> F
-    F --> Q["自检、独立复核 → 指定验收者验收（默认项目负责人）"]
-    Q -->|"项目交付完成"| R
-    L -.->|"关键项目成果或跨项目阻塞"| CO
-    CO -->|"已受理任务的摘要／待决定事项"| B
-    MB -->|"回收单件进展与结果"| D
-    R -->|"感知项目里程碑与验收结论"| D
-```
-
-图中实线表达已采用的职责或路径，不代表所有业务已验；虚线标注目标合同、条件接入、人工承接或旧入口。云端Dot的完整目标交办、小迭代直派及协调员的广泛调度职责按[协作约定](coordination-policy.md)执行。协调核心支持查询及独立目标合同；原线程和受限组织工具的实现见[目标运行入口](goal-runtime.md)，实际启用另核。协调员指挥 Cloud 的箭头仍是目标设计，信箱不创建 Cloud。Herdr执行适配器当前仅支持其原项目 Mac 本地已有 Agent；一次合成回合通过不扩展为自动消费、Win／Cloud、生产业务或长期稳定性通过。
-
-| 角色／对象 | 负责什么 | 权威记录 |
-| --- | --- | --- |
-| 公子／用户 | 总体目标、有效授权及超出既定范围的取舍 | 原指令及对应正式任务 |
-| 云端Dot | 调研需求、拆分成果、发起委派、指派验收者及汇总结果；条件成立时直派独立小迭代 | 原聊天、原任务及正式项目记录 |
-| 项目协调员 | 授权内统筹各项目负责人、跨项目资源、调度顺序及 Cloud／本地路线，主动识别风险、推进未完事项与提出改进；重要影响按既有授权决定或升级，实际访问、预算及审批权限另核 | 组织职责与决定追溯见[协作约定](coordination-policy.md)；已实现接口见[协调入口](project-coordinator.md#7-本机交付与运行) |
-| 项目负责人／Lead | 业务拆解、核输入／权限、组织执行与独立复核、集成，默认负责项目验收；与协调员固定唯一路由 | 任务包、原生执行引用与原项目记录 |
-| Cloud 路由执行者 | 按已审任务包承担唯一原生调用、状态与产物回传，不重复决定业务或自行扩大预算 | 原生执行与原任务关联；协调员指挥路线仍待实现／验证 |
-| 执行者／独立审查者 | 按负责人交付的任务实施或独立复核，将产物、覆盖范围和问题直接交给负责人 | 原项目任务、执行或审查回执 |
-| Worker／角色库 | 描述宿主、harness、后端、职责和验收要求；生成离线准备稿 | [双库入口](worker-library/README.md)；`active` 不等于实时可用 |
-| 执行适配器 | 确定地执行 Lead 明确批准的单次请求，保全 UNKNOWN 与产物关联 | [适配器规范](herdr-executor.md)及独立 journal |
-| 信箱／Mac 协调桥 | 持久传输数据、会话观察、结果补传 | 服务原 job／event／版本／摘要及桥台账 |
-| Herdr／执行机 | 原生 session／pane／Agent、实际进程与本机资产 | 原生引用、固定产物和宿主证据 |
-
-每项目有责任边界，不要求每项目常驻一个进程。现有 Cloud 或旧 Lody 任务沿原入口收尾；同一执行和待写资产只能有一个实际控制入口及当前写者，UNKNOWN 不换池重做。
-
-源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
 
 ## 各端组件清单
 
@@ -97,7 +107,7 @@ flowchart TD
 
 | 组件 | mac-work | VPS | win-work |
 | --- | --- | --- | --- |
-| Herdr TUI／`herdr` | 托管项目 Lead 与本地 Agent，原生连接 Win | 保留旧 CLI／profile；无本地 pane 用途时不启本地 server | 既有 `collab`、完整 Windows 包及 ConPTY 附属文件 |
+| Herdr TUI／`herdr` | 托管协调层 Agent 和 Mac 执行者，原生连接 Win | 保留旧 CLI／profile；无本地 pane 用途时不启本地 server | 既有 `collab`、完整 Windows 包及 ConPTY 附属文件 |
 | Agent CLI | 复用既有 Codex／Kimi | 不部署项目 Lead、模型或桌面 Agent | 本轮候选 OMP／Hermes／Kimi；Windows Codex 暂不纳入 |
 | HerdrExecutionAdapter | 独立安装，显式控制获准 Mac 既有 Agent | 不部署 | 首版不支持 |
 | Task Mailbox／Mac 协调桥 | 专用桥及其 OAuth／台账／collector／hook | 独立信箱、SQLite、OAuth；保留原 Gitee 服务 | 不作为本轮执行接入前置 |
@@ -117,7 +127,7 @@ flowchart TD
 
 ### mac-work：项目协调
 
-Mac 承载 Herdr 内的项目 Lead、独立执行适配器、Mac 协调桥与 CLI Proxy。Codex 复用应用内 CLI 和已有用户入口，Kimi 复用自身安装／配置；桥的专用 OAuth 不代验 Codex／Kimi 的直接 MCP 认证。官方 Herdr skill 的宿主与 `HERDR_ENV=1` 条件见[原生技能边界](pilot.md#官方操作技能与外部协调)。
+协调员、项目负责人和 Mac 执行者按原任务绑定到 Mac Herdr。Mac 另运行显式执行适配器、协调桥与 CLI Proxy。Codex 复用应用内 CLI 和已有用户入口，Kimi 复用自身安装／配置；桥的专用 OAuth 不代验 Codex／Kimi 的直接 MCP 认证。官方 Herdr skill 的宿主与 `HERDR_ENV=1` 条件见[原生技能边界](pilot.md#官方操作技能与外部协调)。
 
 桌面 Lead 显式调用 Mac Codex 的首版工程闭环已验；这不等于任意 Dot 原生任务都能定向操作 Lead，也不代验 Kimi。现有 LAN、SSH 身份、到 VPS 的主机路由及默认出口／DNS 保留，Mac 不新增 VPN 或 sshd。
 

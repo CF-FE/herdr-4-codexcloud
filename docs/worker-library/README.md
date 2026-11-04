@@ -1,8 +1,8 @@
 # Worker 与角色库
 
-版本：Worker 库 **1.0.0**，角色库 **1.0.1**；更新日期：2026-11-03。
+Worker 库 **1.0.0**，角色库 **1.0.1**。本指引更新于 2026-11-04。
 
-供云端Dot与 Mac 项目协调层按任务选择执行端、组装角色与任务包，再沿获准原生入口创建 Worker、派发和回收。当前包含 **7 个 Worker 模板、9 个后端配置、13 个角色定义，其中 11 个专业角色可参与选型，2 个仅供组织导航**。
+供云端Dot与 Mac 项目协调层按任务选择执行端、组装角色与任务包，再沿获准原生入口创建 Worker、派发和回收。本版包含 **7 个 Worker 模板、9 个后端配置、13 个角色定义，其中 11 个专业角色可参与选型，2 个仅供组织导航**。
 
 选型关系为：**Worker 模板 + 明确后端 + 专业角色 + 必要项目合同 + 本次任务／权限／原生目标**。库维护定义；实际实例、在途执行、写者和验收仍归原任务。源码与 JSON 均随本仓读取，无网络服务、运行数据库、模型调用或跨仓导入依赖。
 
@@ -23,7 +23,8 @@
 
 | 内容 | 维护位置 |
 | --- | --- |
-| Worker 模板、后端、声明能力、依赖与验证快照 | [workers.json](workers.json) |
+| 环境现有哪些工具、模型和可用能力，何时核过 | [CF-FE Project 的环境能力台账入口](#environment-capabilities)，由环境维护者或获授权的记录者更新 |
+| 本版可执行 Worker 模板、后端、选型标签、固定依赖与发布时证据快照 | [workers.json](workers.json) |
 | 角色元数据、版本、生命周期、项目和可选方法 | [roles/index.json](roles/index.json) |
 | 通用专业合同 | [roles/common.md](roles/common.md) |
 | 每项专业职责的唯一正文 | `roles/workspace/` 与 `roles/projects/`，按索引精确读取 |
@@ -31,25 +32,24 @@
 | 两库的版本变化与采用记录 | [CHANGELOG.md](CHANGELOG.md) |
 | 本次任务的完整字段示例 | [示例任务](examples/review-task.json)，是假数据，不是授权 |
 | 实际创建／派发／回读约定 | [试点指引](../pilot.md) · [任务模板](../templates/pilot-task.md) |
-| 当前环境、信箱接入与真实证据 | [本仓状态](../status.md) · [盘点快照](../local-agent-inventory.md) |
+| 本仓部署、专项验收与历史宿主盘点 | [本仓状态](../status.md) · [盘点快照](../local-agent-inventory.md) |
 
 组织岗位及责任复用[组织协议](../../skill/organization-collaboration/SKILL.md)。专业角色不授予组织职位、工具访问、写权、生产、安装或发布权限。外部方法的 `bundled: false` 表示未随库交付，不声明目标 Worker 已安装。
 
-## Worker 初始目录
+<a id="worker-初始目录"></a>
+<a id="environment-capabilities"></a>
 
-| 模板 ID | 位置与入口 | 选用条件与当前证据 |
+## 执行环境与能力台账
+
+**查最近登记的环境能力，到 [CF-FE Project #6「环境能力」](https://github.com/orgs/CF-FE/projects/6/views/3)；判断本单能否执行，到目标宿主核准入。** 每个实际接入的环境一张卡，按工具或模型注明截至观察日的版本、验证范围、证据和限制。同一环境验证过 FFmpeg 转码，不能据此推定某个模型能听辨音频。本仓维护可版本化的 Worker 模板和原生调用合同。下表说明哪类入口能承接这件事，以及现场要核什么。
+
+| 环境 | 本仓的宿主与运行合同 | 接单前沿 Project 证据和原任务核对 |
 | --- | --- | --- |
-| `codex-cloud` | 原生 Cloud 任务，目标已发布环境 | 输入／依赖适合云端的实现、测试、文档、复核候选；具体环境、模型、权限与调用未由本库验证，不默认具备任意 MCP／Space |
-| `mac-codex` | Mac Herdr 内的现有 Codex CLI | 本机代码、文档、研究、复核候选；安装与类型识别已验，模型、工具和业务回合另验，默认模型不在库内猜测 |
-| `mac-kimi` | Mac Herdr 内的现有 Kimi CLI | 复用该端现有模型与认证；本机识别不继承 Win 的模型回合证据 |
-| `win-omp` | Mac 原生 Herdr → Win，`omp` | `cli-proxy-chat`／`cli-proxy-responses` 两个显式入口，模型均为已报告的 `gpt-6-luna`；文本回合为旁支报告，Herdr 回收未验 |
-| `win-hermes` | 同一机器主链，`hermes` | 复用公子指定的新默认 CLI Proxy／`gpt-6-luna`，不保留旧默认或自动回退；原生文本回合已有执行侧报告 |
-| `win-kimi` | 同一机器主链，`kimi` | `official` 与 `local-gpt` 分列；两者文本回合已有执行侧报告，凭据与模型入口不混用 |
-| `win-command` | 同一机器主链的获准 shell pane | 已有 PowerShell／Python／FFmpeg 等确定性处理候选；无需为工具变换额外开模型，不据安装记录宣称生产模型或媒体感知已就绪 |
+| **Codex Cloud 路由** | `host=codex-cloud`，`runtime=codex-cloud-native`。获准的唯一调用者提交具体 Cloud 作业，按原生 task ID 回收。 | 仓库、分支、已发布环境、账号可用工具、输入与依赖是否可达，谁能创建和取回结果。环境已发布和协调员有权自动触发 Cloud 分别核对。 |
+| **Mac Herdr** | `host=mac-work`，`runtime=herdr-agent`。在真实 Herdr pane 内定位并复用获准的本地 Agent。 | 原生身份、项目工作区、实际模型与允许的工具。任务若要求图像等实际感知，查对应宿主、后端和输入类型的验证记录。 |
+| **Win Herdr** | `host=win-work`，经 saved-machine／LAN SSH 定向到 Win。交互 Worker 用 `herdr-agent`，已定义的脚本和文件处理可用 `herdr-pane`。 | 保存的机器与原生 Agent／pane、目标端目录和输入、后端与代理依赖。命令可运行、模型可回话、能够检查具体媒体各需对应证据。 |
 
-Mac 持续在线，OMP／Hermes／Kimi 代理分支可以依赖 Mac CLI Proxy；Kimi 官方分支不强加该依赖。Mac → Win 仍经本地 saved-machine／LAN SSH，VPS 信箱不是机器中转。Windows Codex、ZCode、DeepSeek Harness 本轮不进入选型；VPS、MCP 服务和专业角色也不当作 Worker 实例。
-
-`capabilities` 是用于初筛的**声明能力**，包括 `text-reasoning`、`repository-read`、`repository-edit`、`shell`、`artifact-review`、`research`、`file-transform`、`visual-inspection`、`audio-tools`。命中标签后仍须核所选后端的工具、依赖、权限和真实输入；例如 FFmpeg 存在不证明 Qwen、声线或听觉审查可用。各角色正文与项目合同中的额外条件不会因标签命中而消失。
+库内 `workers[].capabilities` 是该版本的粗筛标签。`backends[].evidence` 区分安装、识别、原生文本回合、Herdr 回合、工具和业务验收六项。结合 `observed_on`、`evidence_owner`、`evidence_refs` 看其时点与覆盖；`REPORTED_PASS` 表示执行侧报告，`NOT_RUN` 表示未测试，`UNKNOWN` 表示未知。CLI 只读固定库，不查询 Project 或探测宿主。新能力即使已在 Project 登记，也须绑定获准的实际入口才能执行。[具体模板与后端](workers.json) · [本仓部署回执](../status.md#当前结论)
 
 <a id="角色初始目录"></a>
 
@@ -76,6 +76,7 @@ python3 scripts/worker_library.py roles --project fanren-work
 python3 scripts/worker_library.py role workspace_quality --render
 python3 scripts/worker_library.py role fanren_audio_production --project fanren-work --render
 python3 scripts/worker_library.py select --role software_implementation --host win-work
+python3 scripts/worker_library.py select --role workspace_visual --host mac-work --capability visual-inspection
 python3 scripts/worker_library.py select --role artifact_processing --worker win-command
 python3 scripts/worker_library.py prepare --worker win-omp --backend cli-proxy-responses --role workspace_quality --task-file docs/worker-library/examples/review-task.json
 ```
@@ -102,17 +103,23 @@ Win Kimi 代理分支的原生文本结果不提供精确 CLI 别名证据，因
 
 ## 维护与迭代
 
+**日常登记在 Project。** 新环境、新工具或模型、能力范围调整、暂停、恢复、退役，均由环境维护者或获授权的记录者在 Project 查重后新增或更新原条目。包含可检索的环境／能力名称、适用宿主与入口、维护责任人、状态、证据的日期与来源、限制及复查条件。公开条目只放可公开的摘要与证据引用，凭据、私有地址和原生会话标识留在受控宿主。目标宿主的受权执行者核实际动作；安装、连接和单次任务验证分别记证。项目负责人据本单需求决定采用，由指定验收者验收成果。影响入口、后端、依赖或权限的变化发生后复查受影响的能力。日常盘点无需发仓库 PR。
+
+**横向新增举例。** 拟引入 **Linux Herdr**（`linux-herdr`）时，拟议阶段留在原接入任务；宿主实际接入后，查重并新建环境卡，逐项记录能力与验证责任。此例只示范扩展方法。环境显示名与 CLI 的 `--host` 可不同；后者精确匹配 `workers[].host`。若后续确定需要可执行模板，可约定 `host=linux-work`，给同一宿主添加 `linux-codex`（`herdr-agent`）或独立的命令模板（`herdr-pane`）。现有制稿器将非 `mac-work` 的交互 Agent 定向到 saved-machine，适用于从 Mac 控制的远端；若需本机控制或全新 runtime，先修改并验证调用合同。环境或能力扩展不改变组织岗位。
+
+**何时改仓库中的环境定义。** 需要发布、变更或停用可执行模板，或者更改离线选型与调用合同，才在本仓改对应定义。新增宿主模板先用隔离库副本及 `--root` 走 `check → list --host → select → prepare`，核新宿主只匹配本身、产出预期路由且未派发。仅某个后端支持的特性不要填成整台 Worker 的共同能力；若确需按该特性离线筛选，可独立登记模板。
+
 | 变化 | 修改位置与版本规则 |
 | --- | --- |
-| Worker 的入口、模型、依赖或适用能力改变 | 改对应 `workers[]`，递增模板 `version` 和 Worker `library_version`；不复用同 ID／同版本表达不同语义 |
+| 可执行 Worker 模板增改后端、固定依赖、参数或离线选型标签 | 改对应 `workers[]`，递增模板 `version` 和 Worker `library_version`；发布时在 Project 的环境条目关联采用的版本 |
 | 角色职责、验收要求或可用状态改变 | 改唯一正文／角色条目，递增 `definition_version` 与角色 `library_version`；保留 ID，破坏性替换用新 ID 或主版本 |
 | 所有角色共用合同改变 | 改 `common.md`，递增 `common.version` 与角色库版本；按影响记录采用范围 |
 | 项目合同改变 | 改该项目唯一合同并递增项目／角色库版本；必须有对应项目权威与替代依据，不能静默删硬要求 |
-| 新增／退役 | 新条目独立 ID；`lifecycle` 为 `active / paused / retired`，停用不等于停止已运行实例，在途仍按已固定任务包处理 |
-| 新验收证据 | 对应后端更新证据状态、归属、观察日和引用，并记本次覆盖；不把别端或旧路径结果升级为主线通过 |
+| 新增／停用可执行模板 | 新模板使用独立 ID；用 `lifecycle` 的 `active / paused / retired` 控制新选择，在途仍按已固定任务包处理。宿主某项能力日常下线在 Project 原条目标记 |
+| 随模板发行的基线证据 | 发布时可固定对应后端证据的归属、观察日与引用。后续现场回执更新 Project 原条目，按对应宿主、后端和任务范围使用 |
 | 公共 JSON／查询接口不兼容 | 更新 `schema_version` 与 CLI／测试；不要让旧消费者静默按新字段执行 |
 
-每次变更在 [CHANGELOG](CHANGELOG.md)记录：对象、前后版本、理由、影响、证据和未验范围。定义更新只供后续明确接手点采用，不能给运行中 Worker 热换角色或替换原模型。准备稿内保留完整提示词与摘要；发布时再关联本仓固定提交。未提交的工作区不能称已发布版本。
+模板或合同变更在 [CHANGELOG](CHANGELOG.md)记录：对象、前后版本、理由、影响、证据和未验范围。定义更新只供后续明确接手点采用，不能给运行中 Worker 热换角色或替换原模型。准备稿内保留完整提示词与摘要；发布时再关联本仓固定提交。未提交的工作区不能称已发布版本。
 
 初始来源清单保留首次源字节和本仓初版改编摘要，不随日常正文修改重写；后续采用外部增量须另留版本与摘要记录，不自动同步。角色库来自专业职责闭包，未接收 Lody 代码、队列、运行身份、执行规范或第三方方法全文。角色定义完整不等于外部项目依赖／模型／生产能力已具备。
 
@@ -122,4 +129,4 @@ python3 scripts/check_repository.py
 python3 -m unittest discover -s tests -v
 ```
 
-检查覆盖结构、精确选择、版本／资源、准备稿与失败行为；不会 SSH、启动 Agent、调用模型或写外部应用。真实可调用性和业务采用仍沿[当前状态](../status.md)和对应原任务验收。
+检查覆盖结构、精确选择、版本／资源、准备稿与失败行为；不会 SSH、启动 Agent、调用模型或写外部应用。已验证的能力范围查 [Project 环境台账](#environment-capabilities)，当前能否执行查目标宿主，业务采用与验收沿原项目任务记录。

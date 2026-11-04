@@ -24,7 +24,7 @@
 | 凡人项目专用（3） | `fanren_canon_story` 原著考据与剧情策划、`fanren_script_performance` 演义编剧与人物表演、`fanren_audio_production` 声音生产与字幕后期。选用时显式绑定 `--project fanren-work` 和本次项目合同。 |
 | 仅供查阅的组织导航（2） | `cloud_dot_organization_lead` 云端Dot（组织总负责人导航）、`fanren_owner` 凡人项目负责人。实际联系上表的在任者，库不接受用这两项派发 Worker。 |
 
-后端 ID 在所属 Worker 下解释。七个模板共有九个后端组合。
+后端 ID 在所属 Worker 下解释。七个模板共有九个后端组合。查环境当前能力、证据和维护入口，沿[环境能力台账与宿主说明](worker-library/README.md#environment-capabilities)进入 CF-FE Project；下表只列本版的执行模板。
 
 | Worker 模板 ID 与名称 | 后端 ID | 运行与调用 |
 | --- | --- | --- |

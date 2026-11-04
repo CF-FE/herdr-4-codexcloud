@@ -1,6 +1,6 @@
 # herdr-4-codexcloud
 
-面向 Dot、Mac 项目 Lead 与机器／Cloud Worker 的协作工具与文档。提供 Worker／角色库、组织与 Projects 技能，以及由 Lead 显式调用的 Herdr 执行适配器。
+Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协调层和 Worker 执行层。云端Dot交办和汇报，项目负责人或另行指定的验收者决定成果是否放行。[全局架构图](docs/architecture.md#整套协作分工) · [协作规范](docs/coordination-policy.md#1-默认分工与取舍)
 
 ## 使用入口
 
@@ -10,6 +10,7 @@
 | 决定云端Dot直派还是协调层承接 | [分工与取舍](docs/coordination-policy.md#1-默认分工与取舍) · [小迭代边界](docs/coordination-policy.md#3-云端dot小迭代直派) · [协调员指挥 Cloud 的目标合同](docs/coordination-policy.md#4-协调员指挥-cloud-路由) |
 | 核对角色称呼 | [云端Dot与历史称呼](docs/coordination-policy.md#全局角色名称映射) |
 | 查每个角色在哪里运行、怎样创建和调用 | [组织岗位、专业角色与 Worker 的宿主和调用示例](docs/agent-hosts.md) |
+| 查各环境最近验证过的工具、模型与限制 | [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3) · [动态信息由谁维护](docs/coordination-policy.md#dynamic-records) |
 | 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |
 | 交办完整目标并沿原任务回报 | [目标交办合同与准入](docs/goal-handoff.md) |
 | 保留原线程并使用受限组织工具 | [目标运行入口](docs/goal-runtime.md) · [组织 MCP](mcp/project-coordinator-tools/README.md) |
