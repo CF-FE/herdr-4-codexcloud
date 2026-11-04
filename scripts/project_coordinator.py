@@ -186,7 +186,27 @@ CREATE TABLE IF NOT EXISTS goal_updates(
  PRIMARY KEY(project_id,request_id,seq),
  FOREIGN KEY(project_id,request_id) REFERENCES requests,
  FOREIGN KEY(project_id,request_id,result_version) REFERENCES results(project_id,request_id,version));
+CREATE TABLE IF NOT EXISTS github_records(
+ seq INTEGER PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects, record_key TEXT NOT NULL,
+ issue_url TEXT NOT NULL, public_summary TEXT NOT NULL, source_ref TEXT NOT NULL, request_id TEXT,
+ authorization_ref TEXT NOT NULL, input_hash TEXT NOT NULL, state TEXT NOT NULL,
+ revision INTEGER NOT NULL DEFAULT 0, writer_login TEXT, comment_url TEXT, last_report_hash TEXT,
+ UNIQUE(project_id,record_key), UNIQUE(project_id,issue_url,source_ref,public_summary),
+ FOREIGN KEY(project_id,request_id) REFERENCES requests);
+CREATE INDEX IF NOT EXISTS project_github_queue ON github_records(project_id,state,seq);
 """
+
+
+GITHUB_STATES = {"PENDING", "WAITING_CONFIRMATION", "INTENT", "UNKNOWN", "RECORDED", "CANCELLED"}
+
+
+def _github_item(row):
+    """Only comment_body is intended for publication. Authority and evidence references stay local."""
+    item = dict(row)
+    del item["input_hash"], item["last_report_hash"]
+    marker = canonical_hash([item["project_id"], item["issue_url"], item["record_key"]])
+    item["comment_body"] = f"{item['public_summary']}\n\n<!-- coordinator-record:{marker} -->"
+    return item
 
 
 class Coordinator:
@@ -1000,8 +1020,115 @@ class Coordinator:
         """Privileged local operations. Never map inbound message.operation to this method."""
         require(operation in ADMIN_OPERATIONS, "ADMIN_OPERATION_NOT_ALLOWED")
         canonical(data)
-        with self._db(operation not in ("notifications", "events")) as db:
+        with self._db(operation not in ADMIN_READS) as db:
             return getattr(self, "_admin_" + operation)(db, data)
+
+    def _github_row(self, db, data):
+        row = db.execute("SELECT * FROM github_records WHERE project_id=? AND record_key=?",
+                         (identifier(data["project_id"]), identifier(data["record_key"]))).fetchone()
+        require(row is not None, "GITHUB_RECORD_NOT_FOUND")
+        return row
+
+    def _admin_github_enqueue(self, db, data):
+        fields(data, "project_id record_key issue_url public_summary source_ref authorization_ref needs_confirmation",
+               "request_id")
+        p, key = identifier(data["project_id"]), identifier(data["record_key"])
+        project = self._project(db, p)
+        issue = text(data["issue_url"])
+        require(re.fullmatch(r"https://github\.com/" + re.escape(project["repository"]) + r"/issues/[1-9][0-9]*", issue),
+                "GITHUB_ISSUE_MISMATCH")
+        if "request_id" in data:
+            request = self._request(db, p, data["request_id"])
+            require(json.loads(request["body"])["task_ref"] == issue, "GITHUB_ISSUE_MISMATCH")
+        summary = text(data["public_summary"], 16384)
+        require("\r" not in summary and "<!-- coordinator-record:" not in summary, "INVALID_PUBLIC_SUMMARY")
+        source, authority = text(data["source_ref"]), text(data["authorization_ref"])
+        require(type(data["needs_confirmation"]) is bool, "INVALID_CONFIRMATION")
+        digest = canonical_hash(data)
+        row = db.execute("SELECT * FROM github_records WHERE project_id=? AND record_key=?", (p, key)).fetchone()
+        if row is not None:
+            require(row["input_hash"] == digest, "GITHUB_RECORD_CONFLICT")
+            return _github_item(row)
+        require(not db.execute("SELECT 1 FROM github_records WHERE project_id=? AND issue_url=?"
+                               " AND source_ref=? AND public_summary=?", (p, issue, source, summary)).fetchone(),
+                "GITHUB_RECORD_DUPLICATE")
+        state = "WAITING_CONFIRMATION" if data["needs_confirmation"] else "PENDING"
+        db.execute("INSERT INTO github_records(project_id,record_key,issue_url,public_summary,source_ref,request_id,"
+                   " authorization_ref,input_hash,state) VALUES(?,?,?,?,?,?,?,?,?)",
+                   (p, key, issue, summary, source, data.get("request_id"), authority, digest, state))
+        self._event(db, p, data.get("request_id"), "GITHUB_RECORD_QUEUED", self.coordinator_id,
+                    {"record_key": key, "issue_url": issue, "input_hash": digest, "state": state})
+        return _github_item(self._github_row(db, data))
+
+    def _admin_github_list(self, db, data):
+        fields(data, "project_id", "state record_key after limit")
+        p = self._project(db, data["project_id"])["project_id"]
+        after, limit = data.get("after", 0), data.get("limit", 25)
+        require(type(after) is int and 0 <= after < 2**63 and type(limit) is int and 1 <= limit <= 100,
+                "INVALID_PAGE")
+        state = data.get("state")
+        if "state" in data:
+            require(isinstance(state, str) and state in GITHUB_STATES, "INVALID_GITHUB_STATE")
+        key = identifier(data["record_key"]) if "record_key" in data else None
+        # Read-only CLI callers may still be inspecting the preceding release's unmodified database.
+        rows = []
+        if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='github_records'").fetchone():
+            rows = db.execute("SELECT * FROM github_records WHERE project_id=? AND seq>? AND (? IS NULL OR state=?)"
+                              " AND (? IS NULL OR record_key=?) ORDER BY seq LIMIT ?",
+                              (p, after, state, state, key, key, limit)).fetchall()
+        return {"records": [_github_item(row) for row in rows], "next": rows[-1]["seq"] if rows else after}
+
+    def _admin_github_claim(self, db, data):
+        fields(data, "project_id record_key expected_revision writer_login")
+        row = self._github_row(db, data)
+        revision = _generation(data["expected_revision"])
+        writer = text(data["writer_login"], 128)
+        require(canonical_ref(writer), "INVALID_WRITER_LOGIN")
+        if row["state"] != "PENDING" or revision != row["revision"]:
+            return {**_github_item(row), "send": False}
+        # Commit the intent before the authorized recorder uses its own GitHub tool outside this process.
+        db.execute("UPDATE github_records SET state='INTENT',revision=revision+1,writer_login=?,last_report_hash=NULL"
+                   " WHERE seq=?", (writer, row["seq"]))
+        self._event(db, row["project_id"], row["request_id"], "GITHUB_RECORD_INTENT", "local:recorder",
+                    {"record_key": row["record_key"], "revision": revision + 1, "writer_login": writer})
+        return {**_github_item(self._github_row(db, data)), "send": True}
+
+    def _admin_github_record(self, db, data):
+        outcome = data.get("outcome") if isinstance(data, dict) else None
+        transitions = {
+            "AUTHORIZE": (("WAITING_CONFIRMATION",), "PENDING", ""),
+            "HOLD_UNSENT": (("INTENT",), "WAITING_CONFIRMATION", ""),
+            "CANCEL_UNSENT": (("PENDING", "WAITING_CONFIRMATION"), "CANCELLED", ""),
+            "UNKNOWN": (("INTENT",), "UNKNOWN", ""),
+            "READ_BACK": (("INTENT", "UNKNOWN"), "RECORDED", "comment_url observed_body author_login"),
+            "RECONCILED_ABSENT": (("INTENT", "UNKNOWN"), "PENDING", "closed_attempt_ref"),
+        }
+        require(isinstance(outcome, str) and outcome in transitions, "INVALID_GITHUB_OUTCOME")
+        allowed, state, extra = transitions[outcome]
+        fields(data, "project_id record_key expected_revision outcome evidence_ref " + extra)
+        row = self._github_row(db, data)
+        revision = _generation(data["expected_revision"])
+        evidence = text(data["evidence_ref"])
+        digest = canonical_hash(data)
+        if digest == row["last_report_hash"]:
+            return _github_item(row)
+        require(revision == row["revision"] and row["state"] in allowed, "GITHUB_STATE_CONFLICT")
+        proof = {"record_key": row["record_key"], "revision": revision + 1, "outcome": outcome,
+                 "evidence_ref": evidence}
+        if outcome == "READ_BACK":
+            url = text(data["comment_url"])
+            require(re.fullmatch(re.escape(row["issue_url"]) + r"#issuecomment-[1-9][0-9]*", url)
+                    and data["observed_body"] == _github_item(row)["comment_body"]
+                    and text(data["author_login"], 128).casefold() == row["writer_login"].casefold(),
+                    "GITHUB_READBACK_MISMATCH")
+            proof.update(comment_url=url, author_login=data["author_login"])
+        elif outcome == "RECONCILED_ABSENT":
+            # An empty comment listing alone does not exclude a late commit by the previous writer.
+            proof["closed_attempt_ref"] = text(data["closed_attempt_ref"])
+        db.execute("UPDATE github_records SET state=?,revision=revision+1,last_report_hash=?,comment_url=?"
+                   " WHERE seq=?", (state, digest, proof.get("comment_url"), row["seq"]))
+        self._event(db, row["project_id"], row["request_id"], "GITHUB_RECORD_OUTCOME", "local:recorder", proof)
+        return _github_item(self._github_row(db, data))
 
     def _admin_register_project(self, db, data):
         fields(data, "project_id repository project_ref cloud_dot_principal report_route")
@@ -1258,8 +1385,10 @@ class Coordinator:
                 "next": rows[-1]["seq"] if rows else after}
 
 
+ADMIN_READS = {"notifications", "events", "github_list"}
 ADMIN_OPERATIONS = {"register_project", "activate_owner", "confirm_vacancy", "begin_creation", "record_creation",
-                    "recover", "retarget", "record_stop", "set_wait", "report_wait", "tick", "notifications", "events"}
+                    "recover", "retarget", "record_stop", "set_wait", "report_wait", "tick",
+                    "github_enqueue", "github_claim", "github_record"} | ADMIN_READS
 CLI_READS = {"inspect": "inspect", "health": "local_health", "route": "route", "delivery": "delivery"}
 
 
@@ -1285,7 +1414,7 @@ def main(argv=None):
         data = json.loads(raw.decode("utf-8"), object_pairs_hook=unique)
         require(isinstance(data, dict), "INVALID_FIELDS")
         canonical(data)
-        c = Coordinator(args.state_dir, read_only=args.operation in CLI_READS or args.operation in ("events", "notifications"))
+        c = Coordinator(args.state_dir, read_only=args.operation in CLI_READS or args.operation in ADMIN_READS)
         result = (c.manage(args.operation, data) if args.operation in ADMIN_OPERATIONS
                   else getattr(c, CLI_READS[args.operation])(**data))
         print(json.dumps(result, ensure_ascii=False, allow_nan=False))

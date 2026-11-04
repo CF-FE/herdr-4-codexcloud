@@ -361,6 +361,43 @@ python3 -I -B "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state"
 python3 -I -B "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" inspect --input "$REQUEST_LOOKUP"
 ```
 
+<a id="nonblocking-contact"></a>
+
+### 转交私信、恢复负责人和暂存 GitHub 评论
+
+协调员接到已授权的普通转交后，沿现任负责人绑定办理。对方按需回执，私有路径和原话留在受控通道。本工具覆盖同一 Mac Herdr 会话内的 Codex 只读联络。首次绑定或换任时，宿主维护者将已核实的主体、代次、原线程、工作目录、窗格定位、恢复参数及回执证据写入私有 `handoffs/herdr-project-coordinator/owners/<project_id>.json`（0600）。字段取自本次原生接手，工具每次与协调台账的在任记录交叉核对。[定位文件与核验](../scripts/herdr_role_contact.py)
+
+```sh
+python3 "$RELEASE/scripts/herdr_role_contact.py" show "$PROJECT_ID"
+# 以下命令由真实 Herdr 的现任协调员执行
+python3 "$RELEASE/scripts/herdr_role_contact.py" resolve "$PROJECT_ID"
+python3 "$RELEASE/scripts/herdr_role_contact.py" prepare-resume "$PROJECT_ID"
+```
+
+`show` 提供登记资料。`resolve` 定向核验原生入口。目标可用时协调员即可沿原联系传话。需要恢复时，先读指定的原线程和末次回合，核目标文件的占用与未决投递，再执行 `prepare-resume` 给出的原配置启动命令，并用 `resolve` 复核。原窗格已退出且已有分配窗格的权限时，可在同一 Herdr 环境准备专用空窗格，以 `--replacement-pane <pane-id>` 取得本次恢复命令。若同一负责人已在替换窗格就绪，`resolve` 会核验并返回新地址，可先转交，再由有权的宿主维护者用 `bind-replacement` 更新持久定位。启动结果未知时沿原窗格和原线程对账。业务接手或收件由接收者的原生答复证明。
+
+首次投递前在原私有任务保存联系编号和发送意图。仅当 `resolve` 返回 `READY_FOR_CONTACT` 且原意图尚未投递，才以该结果中的 `session` 和 `agent` 调用一次 `herdr --session "$SESSION" agent prompt "$AGENT" "$MESSAGE"`。要求回执时，核对应原生回合及实际答复。
+
+**GitHub 评论先在接单窗格可写的本地目录暂存。** Mac 协调员的工作区沙箱可写本仓的 `local/`，该目录已被 Git 忽略。使用其中专用的私有目录 `local/github-comments/` 存入可公开的摘要。接单窗格随即继续处理其他消息。既有等待观察器按原周期收取草稿，在协调台账登记为待确认。记录者核实原任务已有的发布权限即可在独立执行通道继续，需要新批准时只挂这一条。
+
+```sh
+# 接单窗格。INBOX 是安装时登记的绝对路径
+python3 "$RELEASE/scripts/coordinator_comment_intake.py" stage --inbox "$INBOX" --input "$COMMENT_JSON"
+# 获授权的独立记录者，查看原记录的当前状态
+python3 "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" github_list --input "$LOOKUP_JSON"
+```
+
+入队文件使用 `project_id, issue_url, record_key, public_summary, source_ref, authorization_ref, needs_confirmation`。前台暂存用 `needs_confirmation: true`。记录键标识原项目的这一条回填，私有来源和权限依据只供本机核对。可信本机管理者也可经 `github_enqueue` 直接入库。每轮记录工作从头筛选待办，只在当轮分页使用游标，以便捡起刚恢复的旧项。
+
+| 记录者看到的情况 | 原记录上的动作 |
+| --- | --- |
+| 写入前已知需要确认 | 入队时设置 `needs_confirmation: true`。单件确获批准后用 `github_record` 记 `AUTHORIZE`，待记录者办理 |
+| 获准写入 | `github_claim` 带上当前版本和实际写入账号。仅在返回本次可发送时，向绑定的原 Issue 提交冻结的正文和记录标记 |
+| 写操作弹窗、超时或被取消 | 记录者负责核原调用和原 Issue。原写入仍可能生效时保留未决意图或 `UNKNOWN`。能证明未送出且无在途时按 `HOLD_UNSENT` 挂起，仅影响本项 |
+| 核到原评论或确定旧调用已终止 | 读回作者、冻结正文和永久链接，用 `READ_BACK` 核销。原调用已终止且已充分核对原 Issue 没有该条评论，才可用 `RECONCILED_ABSENT` 记录依据并按有效授权办理 |
+
+安装时用 `install_project_coordinator.py --revision "$SHA" --github-inbox "$INBOX"` 将已有的、由当前用户拥有的 0700 私有目录交给等待观察器。启用新版观察器按下文的固定版本切换流程办理。回滚时保留本地草稿和 SQLite 队列；恢复带收件功能的观察器后沿原键继续。
+
 ### 升级、恢复和回滚
 
 1. 暂停新准入与外部发送，核现有动作／写者和已发布结果。已加载的本机定时器用 `launchctl bootout "gui/$(id -u)/io.projectcoordinator.waits"` 停止；该命令只停等待观察器，须分别确认实际调用端与发送端已停写。保存 SQLite 一致性备份、各项目最高代次和未决关联到已批准的私有落点。
