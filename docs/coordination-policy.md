@@ -1,6 +1,6 @@
 # 云端Dot、项目协调层与 Cloud 路由协作约定
 
-版本 1.4 · 2026-11-04。本文维护本组织的决策、路由和交接规则。分层与回收路径见[全局架构图](architecture.md#整套协作分工)，通用岗位定义见[组织技能](../skill/organization-collaboration/SKILL.md)，实际部署见[状态页](status.md)。
+版本 1.5 · 2026-11-04。本文维护本组织的决策、路由和交接规则。分层与回收路径见[全局架构图](architecture.md#整套协作分工)，通用岗位定义见[组织技能](../skill/organization-collaboration/SKILL.md)，实际部署见[状态页](status.md)。
 
 主动汇报、暴露并逐级冒泡问题与风险是**全局协作责任**，适用于全部项目、协调层和执行层的所有角色，凡人仅是边界示例。通用权威条款维护在组织技能的[共同边界](../skill/organization-collaboration/SKILL.md#共同边界)与[共同汇报规则](../skill/organization-collaboration/references/context-and-reporting.md#回报与证据)；本页明确本组织的默认责任链，不以角色模板或通道尚未自动化免除报告与承接义务。
 
@@ -26,6 +26,14 @@ Super-Agent 对公子提供一个需求与决策入口，下游分为项目协�
 **凡人听检。** 负责人已采纳首批 22 段原音候选。可选人工听审按[成品人工介入清单](../skill/organization-collaboration/references/context-and-reporting.md#成品人工介入清单)办理。公子可按自己的时间听，疑点记在片段旁，整批听完勾一次。负责人据反馈处置并决定验收。云端Dot可从原项目获知实质进展。[本批清单](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6625500276)
 
 Mac 接手后，项目负责人在授权范围内推进。云端暂时离线时，本地保存进展和验收结论，恢复连接后按原任务补传。云端Dot通过既有定时查信或项目看板获知实质变化并主动向公子汇报。
+
+### 项目主仓与项目级规范
+
+正式项目默认在 `CF-FE` 绑定一个主仓。现任负责人按[岗位规范](../skill/organization-collaboration/references/project-owner.md#项目主仓与项目级规范)复用或创建主仓，协调员处理项目归属冲突和权限缺口。首次纳入协调层时，由有登记权限的人绑定已核实的仓库，负责人在原 Project／Issue 留入口。关联组件可沿用各自仓库，由主仓列出用途和链接。
+
+**项目级规范由负责人在主仓制定和维护。** 优先沿用已有的规范入口。仓库根 `AGENTS.md` 可放执行者开工前必读的约定，README 链到具体文档。项目可在既定目标和授权内细化工作方法、产物格式、质量标准、验收证据及交接办法。代码、项目文档、Skill、插件与配置模板按实际需要归档。影响在途任务的修订要注明适用版本和切换点，由负责人告知受影响的执行者及验收者。涉及其他项目的共同约定由协调员找相应维护者对齐，涉及公子已定的目标、验收条件或新增授权则沿原任务取得决定。
+
+例如，凡人旁白的术语读音、听检方法和交付格式属于凡人主仓。哪一批待听、谁跟进、哪一版已验收，记在凡人的原 Project／Issue。Win 上哪种模型已验证能听辨，记在[组织环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)。
 
 ### 云端Dot作为发起者
 

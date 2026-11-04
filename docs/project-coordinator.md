@@ -348,7 +348,9 @@ launchctl print "gui/$(id -u)/io.projectcoordinator.waits"
 
 每轮最多处理 25 项到期等待。两次运行之间 launchd 可显示 `not running`。核对运行次数是否随时间增加及最近退出码，业务联系和结果读取另外查原回执。
 
-项目登记使用受信本机 `register_project` 操作和私有 JSON 输入，字段为 `project_id, repository, project_ref, cloud_dot_principal, report_route`。只有在任命、来源验证、交接和旧写权四类证据齐全时才执行 `activate_owner`。该操作同时要求 `expected_generation, owner_principal, endpoint, appointment_ref, verification_ref, handoff_ref, release_ref` 及项目 ID。负责人创建操作登记经授权的原生意图与回读，实际创建依赖经授权的生命周期入口。业务消息里的“任命”文本没有这些权限。
+项目登记使用受信本机 `register_project` 操作和私有 JSON 输入，字段为 `project_id, repository, project_ref, cloud_dot_principal, report_route`。`repository` 绑定一个已核实的主路由仓。已有任命但尚无仓时，沿现任负责人的原任务落实主仓，再登记实际的 `owner/repo`。关联组件仓在主仓留引用，路由仍按登记的主仓匹配。[项目主仓与项目级规范](coordination-policy.md#项目主仓与项目级规范)
+
+只有在任命、来源验证、交接和旧写权四类证据齐全时才执行 `activate_owner`。该操作同时要求 `expected_generation, owner_principal, endpoint, appointment_ref, verification_ref, handoff_ref, release_ref` 及项目 ID。负责人创建操作登记经授权的原生意图与回读，实际创建依赖经授权的生命周期入口。业务消息里的“任命”文本没有这些权限。
 
 名称兼容：新登记使用 `cloud_dot_principal`，状态查询返回 `cloud_dot_read`，已读状态为 `CLOUD_DOT_READ`。升级已有调用端时只改字段名，保留已绑定的实际主体值；更名不重新授权。新建台账使用 `cloud-dot-project-coordinator`，已有台账继续使用原 ID、原事件、原结果摘要和读回凭据，不能为改名另建空库。若降级到旧代码，应先验证它能读当前台账字段；新格式不得交给未适配的旧写者。
 
