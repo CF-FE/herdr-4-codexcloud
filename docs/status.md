@@ -4,6 +4,8 @@
 
 ## 当前结论
 
+维护候选新增独立 `DELEGATE_GOAL` 合同、接手/进度状态与原任务多版回报，见[完整目标交办](goal-handoff.md)。这些源码变更不修改下列既有宿主回执；正式部署、精确业务准入和真实项目接手仍须分别取证。
+
 | 对象 | 已取得的证据 | 尚不包含 |
 | --- | --- | --- |
 | Lead 显式 Mac 执行适配器 | 源码已发布、独立安装；已有 Mac Codex Agent 的一次合成执行、产物核验、结果回传及独立工程验收通过；[Herdr #1](https://github.com/CF-FE/herdr-4-codexcloud/issues/1) Closed/completed，原 Project 条目 Done | 自动收件派发、Win／Cloud 执行扩展、任意业务任务、长期稳定性 |
