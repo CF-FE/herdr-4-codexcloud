@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts import herdr_role_contact as contact
+from scripts.project_coordinator import Coordinator
 
 
 class RoleContactTests(unittest.TestCase):
@@ -33,11 +34,14 @@ class RoleContactTests(unittest.TestCase):
         for p, data in ((roles / "binding.json", coordinator), (self.route_file, route)):
             p.write_text(json.dumps(data))
             p.chmod(0o600)
-        self.db = self.root / "state/project-coordinator.sqlite3"
-        self.db.parent.mkdir()
-        with sqlite3.connect(self.db) as db:
-            db.execute("CREATE TABLE projects(project_id,owner_principal,endpoint,generation,assignment_state)")
-            db.execute("INSERT INTO projects VALUES('test','owner:test',?,1,'BOUND')", ("codex-cli:mac:" + self.thread,))
+        self.core = Coordinator(self.root / "state")
+        self.db = self.core.path
+        self.core.manage("register_project", {"project_id": "test", "repository": "CF-FE/test", "project_ref": "p",
+                         "cloud_dot_principal": "dot", "report_route": "local"})
+        self.core.manage("activate_owner", {"project_id": "test", "expected_generation": 0,
+                         "owner_principal": route["owner_principal"], "endpoint": "codex-cli:mac:" + self.thread,
+                         "appointment_ref": "appoint", "verification_ref": "verify",
+                         "handoff_ref": "handoff", "release_ref": "release"})
         self.owner = dict(self.loc, agent="codex", name="owner", cwd=self.cwd, foreground_cwd=self.cwd,
                           agent_status="idle", interactive_ready=True)
         self.panes = [dict(self.owner)]
@@ -65,7 +69,7 @@ class RoleContactTests(unittest.TestCase):
             return {"panes": self.panes}
         if cmd == ("agent", "list"):
             return {"agents": self.agents}
-        if cmd == ("pane", "process-info", self.proc["pane_id"]):
+        if cmd == ("pane", "process-info", "--pane", self.proc["pane_id"]):
             return {"process_info": self.proc}
         self.fail(f"Unexpected Herdr operation: {cmd}")
 
@@ -81,6 +85,19 @@ class RoleContactTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "STALE_APPOINTMENT"):
             self.run_op("resolve")
         self.assertEqual(self.calls, [])
+
+    def test_recovered_native_identity_sees_original_unclosed_work_without_replaying(self):
+        key = {"project_id": "test", "generation": 1, "followup_key": "check-original"}
+        item = self.core.manage("role_followup_put", dict(key, task_ref="issue:1", receipt_ref="native:initial",
+                                next_action="read prior receipt", action_owner="coordinator",
+                                next_check_at="2026-11-05T15:00:00Z"))
+        self.assertEqual(self.run_op("show")["role_followups"]["items"], [item])
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.run_op("resolve")["role_followups"]["items"], [item])
+        self.assertIn(("pane", "process-info", "--pane", self.loc["pane_id"]), self.calls)
+        self.core.manage("role_followup_record", dict(key, expected_revision=0, outcome="CLOSED",
+                         evidence_ref="native:handling-turn"))
+        self.assertFalse(self.run_op("resolve")["role_followups"]["items"])
 
     def test_actor_mismatch_denied_before_native_calls(self):
         with patch.dict(os.environ, {"HERDR_PANE_ID": self.loc["pane_id"]}):

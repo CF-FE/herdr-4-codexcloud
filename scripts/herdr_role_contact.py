@@ -13,8 +13,15 @@ import re
 import shlex
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import uuid
+
+if not __package__:
+    sys.path.insert(0, str(Path(__file__).resolve().parent))  # fixed release sibling under python -I
+    from project_coordinator import role_followup_page
+else:
+    from .project_coordinator import role_followup_page
 
 
 ROOT = Path.home() / "Library/Application Support/ProjectCoordinator"
@@ -47,16 +54,19 @@ def read_route(root, project):
     # Never accept a user-supplied database, endpoint or generation as authority.
     database = root / "state/project-coordinator.sqlite3"
     with closing(sqlite3.connect(database.as_uri() + "?mode=ro", uri=True)) as db:
+        db.execute("BEGIN")
         row = db.execute("SELECT owner_principal, endpoint, generation, assignment_state FROM projects "
                          "WHERE project_id=?", (project,)).fetchone()
-    thread = route["thread_id"]
-    require(str(uuid.UUID(thread)) == thread and row == (route["owner_principal"], "codex-cli:mac:" + thread,
-                                                         route["generation"], "BOUND"), "STALE_APPOINTMENT")
+        thread = route["thread_id"]
+        require(str(uuid.UUID(thread)) == thread and row == (route["owner_principal"], "codex-cli:mac:" + thread,
+                                                             route["generation"], "BOUND"), "STALE_APPOINTMENT")
+        db.row_factory = sqlite3.Row
+        followups = role_followup_page(db, {"project_id": project, "generation": route["generation"]})
     args = route["resume_argv"]
     require(isinstance(args, list) and all(isinstance(a, str) and a and "\0" not in a for a in args)
             and args[:7] == ["--no-daemon", "-a", "never", "-s", "read-only", "-C", route["cwd"]]
             and args[-2:] == ["resume", thread], "RESUME_POLICY_MISMATCH")
-    return path, route, caller
+    return path, route, caller, followups
 
 
 def native(session, *command):
@@ -90,7 +100,7 @@ def check_owner(route, locator, owner, query, *, relocated=False):
                 and identity.get("value") == route["thread_id"], "OWNER_THREAD_MISMATCH")
         method = "HERDR_AGENT_SESSION"
     if identity is None or relocated:
-        processes = query(session, "pane", "process-info", locator["pane_id"])["process_info"]
+        processes = query(session, "pane", "process-info", "--pane", locator["pane_id"])["process_info"]
         require(processes["pane_id"] == locator["pane_id"], "OWNER_PANE_MISMATCH")
         group = processes["foreground_process_group_id"]
         matching = [p for p in processes["foreground_processes"] if p.get("pid") == group and
@@ -104,11 +114,12 @@ def check_owner(route, locator, owner, query, *, relocated=False):
 
 
 def operate(action, project, *, replacement=None, root=ROOT, query=native):
-    path, route, caller = read_route(root, project)
+    path, route, caller, followups = read_route(root, project)
     locator = route["locator"]
     result = {k: route[k] for k in ("project_id", "generation", "owner_principal", "thread_id", "cwd",
                                    "session", "agent", "last_confirmed_contact")}
     result["locator"] = locator
+    result["role_followups"] = followups
     if action == "show":
         return dict(result, state="REGISTERED_ROUTE_ONLY")
     check_caller(caller, query)
@@ -162,7 +173,7 @@ def operate(action, project, *, replacement=None, root=ROOT, query=native):
     require(all(a.get("name") != route["agent"] and a.get("pane_id") != chosen and
                 (a.get("agent_session") or {}).get("value") != route["thread_id"] for a in agents),
             "EXISTING_AGENT_OR_UNCERTAIN_LAUNCH")
-    processes = query(route["session"], "pane", "process-info", chosen)["process_info"]
+    processes = query(route["session"], "pane", "process-info", "--pane", chosen)["process_info"]
     shell = processes["shell_pid"]
     foreground = processes["foreground_processes"]
     require(not pane.get("launch_pending") and processes["pane_id"] == chosen and type(shell) is int and shell > 0

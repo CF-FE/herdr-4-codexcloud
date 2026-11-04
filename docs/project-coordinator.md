@@ -398,6 +398,28 @@ python3 "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" githu
 
 安装时用 `install_project_coordinator.py --revision "$SHA" --github-inbox "$INBOX"` 将已有的、由当前用户拥有的 0700 私有目录交给等待观察器。启用新版观察器按下文的固定版本切换流程办理。回滚时保留本地草稿和 SQLite 队列；恢复带收件功能的观察器后沿原键继续。
 
+<a id="native-followups"></a>
+### 日常 Herdr 原任务待办
+
+协调员派出需要收回结果的工作前，登记原任务、回执或派发依据、现任负责人代次、下一动作、责任岗位和最迟复查时间。收到部分回执、需要负责人决定或暂时联系不上时，已有项继续跟进，漏登的沿原单补录。先留待办，再写 GitHub 摘要。协调员换事、恢复绑定或接到内部提醒时，读取该项目未结项，按原生记录判断原件是否已经送达。
+
+**协调员在本人的原生会话使用一条独立消息登记。** 整条消息只有一行：`COORD_FOLLOWUP ` 后接 JSON，无引号包裹、代码围栏或说明段。仅在确实作出这个决定时发出该格式。用户输入、转发材料、工具输出和其他会话不能登记。正文与证据引用是待审数据，登记只产生内部跟进责任。首次登记或更新后可用 `herdr_role_contact.py show PROJECT` 回读 `role_followups`，私有原始材料保留在原端。
+
+| op | 必填字段与时机 |
+|---|---|
+| `put` | `project_id, followup_key, generation, task_ref, receipt_ref, next_action, action_owner, next_check_at`。同一原任务里的同一动作使用稳定键，时间须带时区。每个不同的决定可单列下一项。 |
+| `record` | `project_id, followup_key, generation, expected_revision, outcome, evidence_ref`。读原项取当前修订号。已有对应决定或办结回执用 `CLOSED`；接到提醒后仍需等条件，用 `RECHECK` 并给新的处置依据和未来 `next_check_at`；尚未发提醒可用 `DEFER` 调整检查点。投递结果未知先在原线程对账。 |
+
+协调员读待办和定位现任负责人时，用**当前观察器同一发布目录**内的工具。Mac 可从已加载的 `~/Library/LaunchAgents/io.projectcoordinator.waits.plist` 的 `ProgramArguments` 找到脚本目录。仅看到提醒或 GitHub 评论不结单，保留原项目的生产授权、唯一写者与验收责任。逾期但已送达的提醒仍在未结列表；下一次提醒须有明确复查决定。
+
+**安装与恢复。** 固定发布包含[收件器](../scripts/coordinator_followup_intake.py)和[原生提醒程序](../scripts/coordinator_followup_wake.py)。维护者先用 `coordinator_followup_intake.py bind-source --root "$APP" --transcript "$ORIGINAL"` 绑定已核的协调员原线程文件；首次从启用位置起读，再次绑定同一文件保留游标。只消费该原线程中新产生的显式动作。以前的未结事项由协调员按原回执补登。随后在原 Herdr 会话的专用空闲 shell 前台运行以下命令：
+
+```sh
+python3 -I -B "$RELEASE/scripts/coordinator_followup_wake.py" watch --root "$APP"
+```
+
+程序每 60 秒处理一次。它核实自己的真实 Herdr 窗格、协调员身份与前台状态，只向空闲的原协调员发内部提醒。登记和提醒不向负责人派生产。独占锁拒绝第二个运行者；发送前记录意图，回执不明时保留原动作。宿主或专用窗格退出后，由维护者在原生宿主恢复该命令，沿旧游标和台账继续。更换原线程或日志文件时先核任命与未决动作。回滚时先正常停止专用前台程序，再按下文回切观察器，保留待办表、来源游标和原生回执。
+
 ### 升级、恢复和回滚
 
 1. 暂停新准入与外部发送，核现有动作／写者和已发布结果。已加载的本机定时器用 `launchctl bootout "gui/$(id -u)/io.projectcoordinator.waits"` 停止；该命令只停等待观察器，须分别确认实际调用端与发送端已停写。保存 SQLite 一致性备份、各项目最高代次和未决关联到已批准的私有落点。
