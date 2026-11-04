@@ -194,6 +194,13 @@ CREATE TABLE IF NOT EXISTS github_records(
  UNIQUE(project_id,record_key), UNIQUE(project_id,issue_url,source_ref,public_summary),
  FOREIGN KEY(project_id,request_id) REFERENCES requests);
 CREATE INDEX IF NOT EXISTS project_github_queue ON github_records(project_id,state,seq);
+CREATE TABLE IF NOT EXISTS role_followups(
+ seq INTEGER PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects, followup_key TEXT NOT NULL,
+ generation INTEGER NOT NULL, owner_principal TEXT NOT NULL, task_ref TEXT NOT NULL, receipt_ref TEXT NOT NULL,
+ next_action TEXT NOT NULL, action_owner TEXT NOT NULL, next_check_at TEXT NOT NULL, input_hash TEXT NOT NULL,
+ state TEXT NOT NULL DEFAULT 'PENDING', revision INTEGER NOT NULL DEFAULT 0, action_id TEXT,
+ evidence_ref TEXT, last_report_hash TEXT, UNIQUE(project_id,followup_key));
+CREATE INDEX IF NOT EXISTS role_followups_due ON role_followups(next_check_at,seq) WHERE state='PENDING';
 """
 
 
@@ -207,6 +214,49 @@ def _github_item(row):
     marker = canonical_hash([item["project_id"], item["issue_url"], item["record_key"]])
     item["comment_body"] = f"{item['public_summary']}\n\n<!-- coordinator-record:{marker} -->"
     return item
+
+
+ROLE_FOLLOWUP_SELECT = """SELECT f.*, (p.assignment_state='BOUND' AND p.generation=f.generation
+ AND p.owner_principal=f.owner_principal) AS generation_current FROM role_followups f
+ JOIN projects p ON p.project_id=f.project_id"""
+
+
+def _role_followup_item(row):
+    item = dict(row)
+    del item["input_hash"], item["last_report_hash"]
+    item["generation_current"] = bool(item["generation_current"])
+    return item
+
+
+def role_followup_page(db, data, now=None):
+    """Read the same bounded view for the private administrative CLI and the bound Herdr role."""
+    fields(data, "", "project_id followup_key generation due_only after limit")
+    after, limit = data.get("after", 0), data.get("limit", 25)
+    require(type(after) is int and 0 <= after < 2**63 and type(limit) is int and 1 <= limit <= 100, "INVALID_PAGE")
+    due = data.get("due_only", False)
+    require(type(due) is bool and (not due or now is not None), "INVALID_DUE_FILTER")
+    clauses, args = ["f.seq>?"], [after]
+    if "project_id" in data:
+        clauses.append("f.project_id=?")
+        args.append(identifier(data["project_id"]))
+    if "generation" in data:
+        clauses.append("f.generation=?")
+        args.append(_generation(data["generation"]))
+    if "followup_key" in data:
+        require("project_id" in data, "PROJECT_REQUIRED")
+        clauses.append("f.followup_key=?")
+        args.append(identifier(data["followup_key"]))
+    else:
+        clauses.append("f.state<>'CLOSED'")
+    if due:
+        clauses.extend(["f.state='PENDING'", "generation_current=1", "f.next_check_at<=?"])
+        args.append(now.isoformat())
+    rows = []
+    if db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='role_followups'").fetchone():
+        rows = db.execute(ROLE_FOLLOWUP_SELECT + " WHERE " + " AND ".join(clauses) + " ORDER BY f.seq LIMIT ?",
+                          (*args, limit + 1)).fetchall()
+    items = [_role_followup_item(row) for row in rows[:limit]]
+    return {"items": items, "next_after": items[-1]["seq"] if items else after, "more": len(rows) > limit}
 
 
 class Coordinator:
@@ -1023,6 +1073,99 @@ class Coordinator:
         with self._db(operation not in ADMIN_READS) as db:
             return getattr(self, "_admin_" + operation)(db, data)
 
+    def _followup_row(self, db, data):
+        row = db.execute(ROLE_FOLLOWUP_SELECT + " WHERE f.project_id=? AND f.followup_key=?",
+                         (identifier(data["project_id"]), identifier(data["followup_key"]))).fetchone()
+        require(row is not None, "FOLLOWUP_NOT_FOUND")
+        require(row["generation"] == _generation(data["generation"]), "STALE_GENERATION")
+        return row
+
+    def _admin_role_followup_put(self, db, data):
+        fields(data, "project_id followup_key generation task_ref receipt_ref next_action action_owner next_check_at")
+        project = self._project(db, identifier(data["project_id"]))
+        key, generation = identifier(data["followup_key"]), _generation(data["generation"])
+        for field in ("task_ref", "receipt_ref", "action_owner"):
+            require(canonical_ref(text(data[field])), "INVALID_FOLLOWUP_REFERENCE")
+        text(data["next_action"])
+        due = timestamp(data["next_check_at"]).isoformat()
+        digest = canonical_hash({**data, "next_check_at": due})
+        existing = db.execute("SELECT input_hash FROM role_followups WHERE project_id=? AND followup_key=?",
+                              (project["project_id"], key)).fetchone()
+        if existing:
+            require(existing["input_hash"] == digest, "FOLLOWUP_INPUT_CONFLICT")
+        else:
+            require(project["assignment_state"] == "BOUND" and project["generation"] == generation
+                    and project["owner_principal"], "STALE_GENERATION")
+            db.execute("INSERT INTO role_followups(project_id,followup_key,generation,owner_principal,task_ref,"
+                       "receipt_ref,next_action,action_owner,next_check_at,input_hash) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                       (project["project_id"], key, generation, project["owner_principal"], data["task_ref"],
+                        data["receipt_ref"], data["next_action"], data["action_owner"], due, digest))
+            self._event(db, project["project_id"], None, "ROLE_FOLLOWUP_REGISTERED", "local:coordinator",
+                        {"followup_key": key, "generation": generation, "input_hash": digest})
+        return _role_followup_item(self._followup_row(db, data))
+
+    def _admin_role_followup_list(self, db, data):
+        return role_followup_page(db, data, self._now())
+
+    def _admin_role_followup_claim(self, db, data):
+        """Reserve one reminder for the local coordinator; it is never an owner/production dispatch."""
+        fields(data, "project_id followup_key generation expected_revision")
+        row = self._followup_row(db, data)
+        revision = _generation(data["expected_revision"])
+        require(row["generation_current"], "STALE_GENERATION")
+        if (row["state"] != "PENDING" or row["revision"] != revision
+                or timestamp(row["next_check_at"]) > self._now()):
+            return {**_role_followup_item(row), "send": False}
+        action = "reminder-" + uuid.uuid4().hex
+        db.execute("UPDATE role_followups SET state='INTENT',action_id=?,revision=revision+1,last_report_hash=NULL"
+                   " WHERE seq=?", (action, row["seq"]))
+        self._event(db, row["project_id"], None, "ROLE_FOLLOWUP_INTENT", "local:coordinator",
+                    {"followup_key": row["followup_key"], "generation": row["generation"],
+                     "revision": revision + 1, "action_id": action})
+        return {**_role_followup_item(self._followup_row(db, data)), "send": True}
+
+    def _admin_role_followup_record(self, db, data):
+        outcome = data.get("outcome") if isinstance(data, dict) else None
+        transitions = {
+            "DEFER": (("PENDING",), "PENDING", "next_check_at"),
+            "NOT_SENT": (("INTENT", "UNKNOWN"), "PENDING", "action_id next_check_at"),
+            "RECHECK": (("SUBMITTED",), "PENDING", "next_check_at"),
+            "SUBMITTED": (("INTENT", "UNKNOWN"), "SUBMITTED", "action_id"),
+            "UNKNOWN": (("INTENT",), "UNKNOWN", "action_id"),
+            "CLOSED": (("PENDING", "INTENT", "SUBMITTED", "UNKNOWN"), "CLOSED", ""),
+        }
+        require(isinstance(outcome, str) and outcome in transitions, "INVALID_FOLLOWUP_OUTCOME")
+        allowed, state, extra = transitions[outcome]
+        fields(data, "project_id followup_key generation expected_revision outcome evidence_ref " + extra)
+        row = self._followup_row(db, data)
+        revision, evidence = _generation(data["expected_revision"]), text(data["evidence_ref"])
+        require(canonical_ref(evidence), "INVALID_FOLLOWUP_REFERENCE")
+        digest = canonical_hash(data)
+        if row["last_report_hash"] == digest:
+            return _role_followup_item(row)
+        require(row["revision"] == revision and row["state"] in allowed, "FOLLOWUP_STATE_CONFLICT")
+        if "action_id" in data:
+            require(row["action_id"] == identifier(data["action_id"]), "ACTION_MISMATCH")
+        next_check = row["next_check_at"]
+        if "next_check_at" in data:
+            at = timestamp(data["next_check_at"])
+            require(at > self._now(), "INVALID_CHECKPOINT")
+            next_check = at.isoformat()
+        if outcome in ("CLOSED", "RECHECK"):
+            # The trusted recorder verifies a distinct native handling receipt. Enqueue/send is not handling.
+            require(row["generation_current"], "STALE_GENERATION")
+            used = db.execute("SELECT 1 FROM events WHERE project_id=? AND kind GLOB 'ROLE_FOLLOWUP_*'"
+                              " AND json_extract(body,'$.followup_key')=? AND (json_extract(body,'$.evidence_ref')=?"
+                              " OR json_extract(body,'$.action_id')=?) LIMIT 1",
+                              (row["project_id"], row["followup_key"], evidence, evidence)).fetchone()
+            require(evidence != row["receipt_ref"] and not used, "HANDLING_RECEIPT_REQUIRED")
+        db.execute("UPDATE role_followups SET state=?,revision=revision+1,evidence_ref=?,next_check_at=?,"
+                   "action_id=?,last_report_hash=? WHERE seq=?",
+                   (state, evidence, next_check, None if state == "PENDING" else row["action_id"], digest, row["seq"]))
+        self._event(db, row["project_id"], None, "ROLE_FOLLOWUP_" + outcome, "local:coordinator",
+                    {**data, "revision": revision + 1})
+        return _role_followup_item(self._followup_row(db, data))
+
     def _github_row(self, db, data):
         row = db.execute("SELECT * FROM github_records WHERE project_id=? AND record_key=?",
                          (identifier(data["project_id"]), identifier(data["record_key"]))).fetchone()
@@ -1385,10 +1528,11 @@ class Coordinator:
                 "next": rows[-1]["seq"] if rows else after}
 
 
-ADMIN_READS = {"notifications", "events", "github_list"}
+ADMIN_READS = {"notifications", "events", "github_list", "role_followup_list"}
 ADMIN_OPERATIONS = {"register_project", "activate_owner", "confirm_vacancy", "begin_creation", "record_creation",
                     "recover", "retarget", "record_stop", "set_wait", "report_wait", "tick",
-                    "github_enqueue", "github_claim", "github_record"} | ADMIN_READS
+                    "github_enqueue", "github_claim", "github_record",
+                    "role_followup_put", "role_followup_claim", "role_followup_record"} | ADMIN_READS
 CLI_READS = {"inspect": "inspect", "health": "local_health", "route": "route", "delivery": "delivery"}
 
 
