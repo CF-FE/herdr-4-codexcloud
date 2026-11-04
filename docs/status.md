@@ -12,7 +12,7 @@
 | Mac → Win Herdr | TUI 0.9.5 原生 saved-machine／LAN SSH 的保存连接、reachable 及定向 Agent 清单回读通过 | Win Herdr 内模型派发、业务产物回收与生产写权切换 |
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
-| 本仓技能与协作规范 | 组织协作源码 1.6.0（本仓修订）、Projects 1.1.0；[协作约定](coordination-policy.md)明确 G8 上游定位、协调员广泛调度、小迭代直派与 Cloud 路由目标合同 | 目标宿主安装／加载、新关系的实际采用；协调员触发 Cloud 的运行链路尚未实现／验证 |
+| 本仓技能与协作规范 | 组织协作源码 1.6.1（本仓修订）、Projects 1.1.0；[协作约定](coordination-policy.md)明确 G8 上游定位、协调员广泛调度、小迭代直派与 Cloud 路由目标合同 | 目标宿主安装／加载、新关系的实际采用；协调员触发 Cloud 的运行链路尚未实现／验证 |
 | 云端Dot与 Mac 项目协调员 | [凡人负责人答复的定时读回](project-coordinator.md#fanren-scheduled-read)通过。另用一条只读连通性任务验收原计划首发、Mac 协调员自动回传、Dot 延时读回和已读确认，单件权限已撤回。[首次投递记录](project-coordinator.md#scheduled-first-submit) | 自建事件唤醒及长期稳定性待验。听检接手人及首份回执时间仍待凡人负责人核实 |
 | Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main`；11 月 4 日本次 Cloud 工作区已进行仓库文档编辑与[离线检查](#本地检查) | 协调员触发 Cloud、Cloud 信箱接入、指定接收者的成果读回及生产业务；本次工具权限不推广到其他任务 |
 
