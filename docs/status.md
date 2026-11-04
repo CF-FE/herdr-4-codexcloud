@@ -1,10 +1,12 @@
 # 本仓当前状态
 
-既有宿主运行证据截至 **2026-11-03（Asia/Shanghai）**；**2026-11-04** 的协作规范修订与本次 Cloud 工作区离线检查另列，不延长旧运行回执的有效范围。本页维护 Herdr 项目的当前采用摘要，具体任务以原 Issue／Project 为准，接口与逐项验收以所属规范为准。版本、工具计数与运行健康均为对应时点的观测，不是实时监控。此前逐轮记录已冻结到[状态沿革](history/status-through-2026-11-03.md)，不再与本页并列维护现状。
+本页维护 Herdr 项目的当前采用摘要。最近一次宿主部署于 **2026-11-04（北京时间）** 完成。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
 
 ## 当前结论
 
-协调核心新增独立 `DELEGATE_GOAL` 合同、接手/进度状态与原任务多版回报，见[完整目标交办](goal-handoff.md)。这些源码变更不修改下列既有宿主回执；正式部署、精确业务准入和真实项目接手仍须分别取证。
+**2026-11-04 10:49（北京时间），完整目标交办已部署到 Mac。** [协调员 PR #4](https://github.com/CF-FE/herdr-4-codexcloud/pull/4) 的合并提交 [`b08fb24`](https://github.com/CF-FE/herdr-4-codexcloud/commit/b08fb24ce5a892925593bc59a1c7e16da95aa14e) 已由等待检查与信箱轮询两个 launchd 服务实际加载，两者均已运行并正常退出。已安装的客户端与 Mac 桥签名握手通过。原有 4 件查询、联系与结果全部保留，数据库完整性检查通过。轮询返回 `NO_PILOT`，业务授权和新增目标数均为 0。凡人 22 段听检仍待原项目交办。[目标合同与单件准入](goal-handoff.md)
+
+配套 [Task Mailbox PR #4](https://github.com/CF-FE/task-mailbox-mcp/pull/4) 的合并提交 [`560b9f5`](https://github.com/CF-FE/task-mailbox-mcp/commit/560b9f5de160caf989cfe48d6bc5a83fb0a7bd1a) 已在 Mac 桥生效。10:48:31 完成一轮远端收件，10:49:11 再次出现升级前已见的间歇连接失败，本地端口仍就绪。VPS 服务源码无变更。[信箱宿主核验记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md#当前状态)
 
 | 对象 | 已取得的证据 | 尚不包含 |
 | --- | --- | --- |
@@ -48,7 +50,7 @@
 - 指定 Dot 的读取来自公子回报及实施侧服务 ACK 回读；不能写成评审直接操作 Dot，或 Dot 已发起完整执行链路。
 - `AUTH_FAILED` 与间歇 `CLIENT_OPEN RuntimeError` 的现场根因仍为 `UNKNOWN`。本次结果约 6 分钟后由原 collector 依既定退避补传，不能外推长期稳定性；[Task Mailbox #1](https://github.com/CF-FE/task-mailbox-mcp/issues/1)保持 Open／In Progress。
 
-桥负责收件、会话感知和结果补传；Lead 显式调用的执行适配器属于 Herdr 项目。信箱自动消费／无人值守派发、Dot 自动唤醒尚未实现。各 CLI 和 Cloud 的身份、工具及读写不继承专用桥的成功回执。
+桥负责收件、会话感知和结果补传。Mac 协调员轮询已安装，完整目标按单件授权派发；当前没有活动试点。云端Dot采用既有定时查信，事件自动唤醒仍未实现。Lead 显式执行适配器由 Herdr 项目维护。
 
 <a id="当前执行-goal网络与协作环境就绪"></a>
 
@@ -91,3 +93,6 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 检查命令见 [README](../README.md#本地检查)。2026-11-03 文档整理时，结构检查、Worker 库检查和 61 项测试通过，仓内链接／锚点及来源摘要核对通过；冻结历史与整理前原件字节一致，当轮源码、复制技能、来源清单与角色定义未变。
 
 2026-11-04 协作规范修订在本次 Cloud 工作区通过结构检查、Worker 库检查和现有 100 项标准库测试。此次修改文档与组织技能，运行源码、历史导入清单及 Worker／角色库未变；这是仓库级文档与离线验证样本，不证明 Mac 协调员能触发 Cloud、信箱自动派发、目标宿主部署或生产业务通过。
+
+
+2026-11-04 完整目标交办合并前，协调仓结构检查、Worker 库检查及 155 项测试通过。用已合并的信箱代码做本机跨仓联调，模拟丢失回执后原目标只投递一次，两份报告沿原任务回收。
