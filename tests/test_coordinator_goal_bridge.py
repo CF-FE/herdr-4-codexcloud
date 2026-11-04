@@ -1,12 +1,18 @@
 """The installed CLI preserves query grants and drains goal evidence without native availability."""
 
 from datetime import datetime, timezone
+from argparse import Namespace
 import json
 import subprocess
 import sys
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 import test_coordinator_bridge as fixtures
+import coordinator_bridge as bridge_runtime
+import coordinator_goal_channel as native_runtime
+from coordinator_transport import OwnerObservation, Peer, TransportError
 from project_coordinator import GOAL_BUDGET, canonical_hash
 
 
@@ -130,6 +136,46 @@ class GoalBridgeTests(unittest.TestCase):
         self.assertEqual(self.core.delivery('example', 'query-1')['result']['kind'], 'COORDINATOR_WAIT_REPORT')
         self.assertEqual(self.run_cli('pump')['state'], 'GOAL_CHANNEL_BLOCKED')
         self.assertEqual(self.core.inspect('example', 'query-1')['result_version'], 1)
+
+    def test_verified_acceptance_survives_later_rejected_native_completion(self):
+        self.goal()
+        self.run_cli('deliver', '--job-id', 'job-1')
+        intent = self.core.claim_contact('example', 'query-1', 1)
+        report = {'seq': 1, 'phase': 'ACCEPTED', 'summary': 'Accepted the existing goal.',
+                  'observed_at': datetime.now(timezone.utc).isoformat(), 'evidence_refs': ['test:accepted'],
+                  'next_owner': 'owner:existing', 'next_check_at': '2098-01-01T00:00:00Z'}
+        peer, session, handle = Peer('fixture-native', 'existing-owner'), object(), object()
+        observation = OwnerObservation(peer, 'native:existing', 'example', 'query-1', intent['action_id'],
+            1, 'goal_update', 'test:original-native-acceptance', report, canonical_hash(report))
+        def reconcile(context):
+            self.assertEqual(context['action_id'], intent['action_id'])
+            error = TransportError('NATIVE_LISTENING_CAPABILITY_UNAVAILABLE')
+            error.validated_handles = [(session, handle)]
+            error.evidence_ref = 'native-goal-report-sha256:' + 'd' * 64
+            raise error
+        channel = SimpleNamespace(peer=peer, reconcile=reconcile,
+            authenticated_peer=lambda value: peer if value is session else None,
+            verified_observation=lambda value, ref: observation if value is session and ref is handle else None)
+        candidate = self.root / 'fixed-channel.json'
+        candidate.write_text('{}'); candidate.chmod(0o600)
+        self.config['goal_channel_config'] = str(candidate)
+        self.config_path.write_bytes(fixtures.wire(self.config)); self.config_path.chmod(0o600)
+        with patch.object(native_runtime, 'load_goal_channel', return_value=channel):
+            result = bridge_runtime.dispatch(Namespace(config=self.config_path, operation='pump'))
+        self.assertEqual(result['state'], 'PENDING')
+        self.assertEqual(result['core_version'], 1)
+        status = self.core.inspect('example', 'query-1')
+        self.assertTrue(status['accepted'])
+        self.assertEqual(status['goal_state'], 'ACCEPTED')
+        self.assertEqual(status['action_id'], intent['action_id'])
+        self.assertEqual(status['result_version'], 2)
+        self.assertEqual(self.core.delivery('example', 'query-1', version=1)['result']['kind'], 'GOAL_UPDATE')
+        wait = self.core.delivery('example', 'query-1', version=2)['result']
+        self.assertEqual(wait['kind'], 'COORDINATOR_WAIT_REPORT')
+        self.assertEqual(wait['waiting']['reason'], 'NATIVE_LISTENING_CAPABILITY_UNAVAILABLE')
+        self.assertIn('native-goal-report-sha256:' + 'd' * 64, json.dumps(wait))
+        self.assertEqual(self.run_cli('pump')['core_version'], 2)
+        self.assertEqual(self.port.calls.count('enqueue_result'), 2)
 
 
 if __name__ == '__main__':

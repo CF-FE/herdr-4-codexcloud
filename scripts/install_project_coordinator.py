@@ -18,7 +18,8 @@ ROOT = Path(__file__).resolve().parents[1]
 CORE_FILES = ('scripts/project_coordinator.py', 'scripts/coordinator_transport.py')
 BRIDGE = 'scripts/coordinator_bridge.py'
 GOAL_CHANNEL = 'scripts/coordinator_goal_channel.py'
-FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL)
+GOAL_TOOLS = 'mcp/project-coordinator-tools/server.py'
+FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
 
@@ -44,6 +45,10 @@ def install(revision, destination, *, repository=ROOT):
     selected = (*CORE_FILES, *((BRIDGE,) if has_bridge else ()))
     if git('ls-tree', revision, '--', GOAL_CHANNEL).strip():
         selected += (GOAL_CHANNEL,)
+    if git('ls-tree', revision, '--', GOAL_TOOLS).strip():
+        if BRIDGE not in selected or GOAL_CHANNEL not in selected:
+            raise ValueError('The organization tools require the complete coordinator release')
+        selected += (GOAL_TOOLS,)
     for name in selected:
         entry = git('ls-tree', revision, '--', name).decode().strip().split()
         if len(entry) != 4 or entry[0] not in ('100644', '100755') or entry[1] != 'blob' or entry[3] != name:
@@ -71,9 +76,11 @@ def install(revision, destination, *, repository=ROOT):
     payload['receipt.json'] = (json.dumps(receipt, sort_keys=True, indent=2) + '\n').encode()
     if release.exists() or release.is_symlink():
         private_directory(release, create=False)
-        private_directory(release / 'scripts', create=False)
         for name, data in payload.items():
             path = release / name
+            for parent in path.relative_to(release).parents:
+                if parent != Path('.'):
+                    private_directory(release / parent, create=False)
             info = path.lstat()
             if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
                     or info.st_mode & 0o077 or path.read_bytes() != data):
@@ -82,9 +89,11 @@ def install(revision, destination, *, repository=ROOT):
         with tempfile.TemporaryDirectory(dir=release.parent, prefix='.install-') as tmp:
             ready = Path(tmp) / 'release'
             ready.mkdir(mode=0o700)
-            (ready / 'scripts').mkdir(mode=0o700)
             for name, data in payload.items():
                 path = ready / name
+                for parent in reversed(path.relative_to(ready).parents):
+                    if parent != Path('.'):
+                        private_directory(ready / parent)
                 path.write_bytes(data)
                 path.chmod(0o600)
             ready.rename(release)

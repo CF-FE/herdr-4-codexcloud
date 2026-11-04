@@ -40,6 +40,8 @@
 
 ## 现有 Codex 线程适配器
 
+保留原 home/线程的 v2 进程配置及实际组织工具见[目标运行入口](goal-runtime.md)。下述 v1 策略仍保留，不能用新空 home 或旧查询 profile 推定目标线程与工具已经可用。
+
 `coordinator_goal_channel.py` 提供可选的 `CodexGoalChannel`。协调桥私有配置的 `goal_channel_config` 引用单件策略文件；缺省不启用，且必须已有精确 pilot。策略绑定项目、原 job/hash、request、负责人/endpoint/代次、授权引用、工作键、资产范围、动作和有效期；固定 CLI 路径、摘要、版本、已存在的 profile、工作目录及私有动作记录目录。不会创建线程、profile、服务或凭据。
 
 单件策略的 `codex_home` 指向该线程已有的私有 Codex 目录。在本机 CLI 上，`app-server` 使用该目录内的 `config.toml`，具名 MCP 检查使用同目录的 `<profile>.config.toml`。准入清单须覆盖两份配置，且内容逐字节相同。配置指定的动作必须与原件完全相符。
