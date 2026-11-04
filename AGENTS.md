@@ -6,6 +6,7 @@
 - 组织协作任务按需读取 [组织技能](skill/organization-collaboration/SKILL.md)，复用公子及当前任务已明确的职责与授权；本仓文件不任命参与者。Projects 操作按 [对应技能](skill/github-projects-operations/SKILL.md) 和当前工具 schema 执行。
 - 云端Dot、协调层与 Cloud 路由按[协作约定](docs/coordination-policy.md)执行：完整目标优先交协调层；独立小迭代可依用户授权直派，仍保留项目归属、唯一派发与证据验收。协调员的广泛组织调度权不等于系统权限；`QUERY_BLOCKER` 不能承接目标或触发 Cloud。新的受控目标合同见[完整目标交办](docs/goal-handoff.md)，不能据源码存在推定宿主准入或真实执行已验。
 - 历史称呼沿用云端Dot的参与者关联，原生身份与权限仍按本次任务核验。见[全局角色名称映射](docs/coordination-policy.md#全局角色名称映射)。
+- 项目协调员沿现任绑定直接转交与恢复。GitHub 评论先在本机保存，再交独立记录者写回；协调员接单窗格继续处理其他消息。见[转交、恢复与待回填](docs/coordination-policy.md#协调员转交与待回填)。
 - Herdr 试点与运行状态以 [docs/status.md](docs/status.md) 为准。安装、入网、机器注册、启动或替换 server、真实任务派发及正式记录切换，须落在对应任务的有效授权内；仓库初始化不自动执行这些动作。
 - 同一执行和待写资产只有一个控制入口。未知结果沿原任务、机器、session、pane 与产物引用对账，不自动重派或切换到 Lody；旧 Lody 任务沿原入口收尾。
 - 不把 `--kind codex` 当作供应商、模型、认证和权限配置等价的证据；不以 `done/idle`、退出 0 或结构检查代替业务验收。

@@ -19,7 +19,9 @@ CORE_FILES = ('scripts/project_coordinator.py', 'scripts/coordinator_transport.p
 BRIDGE = 'scripts/coordinator_bridge.py'
 GOAL_CHANNEL = 'scripts/coordinator_goal_channel.py'
 GOAL_TOOLS = 'mcp/project-coordinator-tools/server.py'
-FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS)
+ROLE_CONTACT = 'scripts/herdr_role_contact.py'
+COMMENT_INTAKE = 'scripts/coordinator_comment_intake.py'
+FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS, ROLE_CONTACT, COMMENT_INTAKE)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
 
@@ -32,7 +34,7 @@ def private_directory(path, *, create=True):
         raise ValueError('Expected a private directory owned by the current account')
 
 
-def install(revision, destination, *, repository=ROOT):
+def install(revision, destination, *, repository=ROOT, github_inbox=None):
     if not re.fullmatch('[0-9a-f]{40}', revision):
         raise ValueError('A full Git commit is required')
     def git(*args):
@@ -49,6 +51,15 @@ def install(revision, destination, *, repository=ROOT):
         if BRIDGE not in selected or GOAL_CHANNEL not in selected:
             raise ValueError('The organization tools require the complete coordinator release')
         selected += (GOAL_TOOLS,)
+    if git('ls-tree', revision, '--', ROLE_CONTACT).strip():
+        selected += (ROLE_CONTACT,)
+    if git('ls-tree', revision, '--', COMMENT_INTAKE).strip():
+        selected += (COMMENT_INTAKE,)
+    if github_inbox is not None:
+        github_inbox = Path(github_inbox)
+        if COMMENT_INTAKE not in selected or not github_inbox.is_absolute() or github_inbox != github_inbox.resolve():
+            raise ValueError('Expected a fixed release with comment intake and an absolute, non-symlink inbox')
+        private_directory(github_inbox, create=False)
     for name in selected:
         entry = git('ls-tree', revision, '--', name).decode().strip().split()
         if len(entry) != 4 or entry[0] not in ('100644', '100755') or entry[1] != 'blob' or entry[3] != name:
@@ -65,6 +76,10 @@ def install(revision, destination, *, repository=ROOT):
               'ProgramArguments': [interpreter, '-I', '-B', str(release / FILES[0]),
                                    '--state-dir', str(destination / 'state'), 'tick',
                                    '--input', str(release / 'tick-input.json')]}
+    if github_inbox is not None:
+        config['ProgramArguments'] = [interpreter, '-I', '-B', str(release / COMMENT_INTAKE), 'tick',
+                                      '--inbox', str(github_inbox), '--state-dir', str(destination / 'state'),
+                                      '--input', str(release / 'tick-input.json')]
     payload['observer.plist'] = plistlib.dumps(config)
     if has_bridge:
         pump = {'Label': 'io.projectcoordinator.bridge-pump', 'StartInterval': 60, 'RunAtLoad': True,
@@ -104,8 +119,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--revision', required=True)
     parser.add_argument('--destination', type=Path, default=DEFAULT_ROOT)
+    parser.add_argument('--github-inbox', type=Path, help='Existing private foreground staging directory')
     args = parser.parse_args()
     try:
-        print(json.dumps(install(args.revision, args.destination), indent=2))
+        print(json.dumps(install(args.revision, args.destination, github_inbox=args.github_inbox), indent=2))
     except (ValueError, OSError, subprocess.CalledProcessError) as error:
         parser.exit(2, f'Install failed: {error}\n')

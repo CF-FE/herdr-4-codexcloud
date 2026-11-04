@@ -77,6 +77,9 @@ class CoordinatorInstallation(unittest.TestCase):
             help_text = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
                 str(release / installer.GOAL_TOOLS), '--help'], cwd=tmp, timeout=10, text=True)
             self.assertIn('--policy', help_text)
+            contact_help = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
+                str(release / installer.ROLE_CONTACT), '--help'], cwd=tmp, timeout=10, text=True)
+            self.assertIn('resolve', contact_help)
             for directory in ('mcp', 'mcp/project-coordinator-tools'):
                 self.assertEqual((release / directory).stat().st_mode & 0o777, 0o700)
             state = dest / 'state' / 'project-coordinator.sqlite3'
@@ -86,7 +89,12 @@ class CoordinatorInstallation(unittest.TestCase):
             (repo / installer.FILES[1]).write_text('# next tested release\n')
             git('add', '--', installer.FILES[1]); git('commit', '--quiet', '-m', 'fixture upgrade')
             second = git('rev-parse', 'HEAD')
-            updated = installer.install(second, dest, repository=repo)
+            inbox = (Path(tmp) / 'local' / 'github-comments').resolve()
+            inbox.mkdir(mode=0o700, parents=True)
+            updated = installer.install(second, dest, repository=repo, github_inbox=inbox)
+            observer = plistlib.loads((Path(updated['release']) / 'observer.plist').read_bytes())
+            self.assertIn(str(inbox), observer['ProgramArguments'])
+            subprocess.run(observer['ProgramArguments'], cwd=tmp, capture_output=True, check=True, timeout=10)
             self.assertNotEqual(prepared['release'], updated['release'])
             self.assertEqual(sentinel.read_text(), 'retained-reference')
             self.assertTrue(state.exists())
