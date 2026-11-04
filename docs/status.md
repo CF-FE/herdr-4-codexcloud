@@ -4,6 +4,10 @@
 
 ## 当前结论
 
+**2026-11-04 13:11（北京时间），弱连接协作迭代已部署到 Mac。** 原两项协调员服务已加载 [协调员 #6，`a7ae323`](https://github.com/CF-FE/herdr-4-codexcloud/pull/6)，Mac 桥已加载 [信箱 #6，`95dec8b`](https://github.com/CF-FE/task-mailbox-mcp/pull/6)。13:11:47 两端签名握手通过，原台账和授权保留。13:11:41 一轮远端收件仍出现切换前已有的间歇连接失败。本机跨仓隔离联调中，桥断开期间负责人两个模拟报告先落本地，重连后按原单补传，只发生一次派发。此项未在生产发送测试单。[弱连接协作约定](coordination-policy.md#弱连接下的进度与迭代)
+
+凡人 Issue #2 的实际交办沿项目原入口进行。13:00 检查点，负责人已接受安排与验收职责，核齐 22 段制作文本及声线基准。独立审听者与首份回执交期仍待落实。[原项目进度](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6622852785)
+
 **2026-11-04 12:45（北京时间），Mac 协调员已升级到 [PR #5 合并版本 `785dc2d`](https://github.com/CF-FE/herdr-4-codexcloud/commit/785dc2defeba28538d180f534106d20762a3f66a)。** 五份运行文件匹配固定提交，原等待检查和桥接轮询服务各已自然运行两次，最近退出码均为 0。本机桥签名握手通过，原数据库 11 张表与切换前备份一致。轮询配置为 `NO_PILOT`。凡人 22 段听检已从本机沿 [Project #5 的原 Issue 交办](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6622784733)，现任负责人在原生会话明确接手安排和验收。本件使用项目入口，未创建信箱业务单。实际听检进展沿原 Issue 更新。[目标运行入口](goal-runtime.md)
 
 **2026-11-04 10:49（北京时间），Mac 首次部署完整目标交办。** [协调员 PR #4](https://github.com/CF-FE/herdr-4-codexcloud/pull/4) 的合并提交 [`b08fb24`](https://github.com/CF-FE/herdr-4-codexcloud/commit/b08fb24ce5a892925593bc59a1c7e16da95aa14e) 已由等待检查与信箱轮询两个 launchd 服务实际加载，两者均已运行并正常退出。已安装的客户端与 Mac 桥签名握手通过。原有 4 件查询、联系与结果全部保留，数据库完整性检查通过。轮询返回 `NO_PILOT`，业务授权和新增目标数均为 0。[目标合同与单件准入](goal-handoff.md)
