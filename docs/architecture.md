@@ -90,7 +90,7 @@ flowchart LR
     H -."按需召回，采用内容留原任务".-> T
 ```
 
-VPS 不复制记忆数据库。角色读写、薄适配与集中验收只在[共享记忆实施文档](hindsight-memory-integration.md)详述，[ADR-002](decisions/002-shared-project-memory.md)保留取舍。
+VPS 不复制记忆数据库。图示为首选 MCP 路径；公子允许 Hindsight API 兜底，沿同一已认证入口与原 Win 服务，采用方式分别记录。超时、重试和协议切换共用总预算，不把 API 切换当作 EasyTier 断网的修复。角色读写、薄适配与集中验收见[共享记忆实施文档](hindsight-memory-integration.md)，[ADR-002](decisions/002-shared-project-memory.md)保留取舍。
 
 <a id="当前部署与待评估简化"></a>
 
