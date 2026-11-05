@@ -17,7 +17,7 @@
 ```mermaid
 flowchart LR
     dot["云端Dot · 需求与汇报"] -->|"HTTPS / MCP"| vps["vps-vultr · 认证与薄 MCP 接入"]
-    cloud["Codex Cloud · 任务执行"] -->|"HTTPS / MCP 或 API"| vps
+    cloud["Codex Cloud · 任务执行"] -->|"HTTPS / MCP"| vps
     vps -->|"EasyTier / SSH 承载 stdio MCP"| proxy["Win MCP 代理"]
     mac["Mac Herdr 内实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| proxy
     win["Win Herdr 内实际 Harness"] -->|"本机 stdio MCP"| proxy
@@ -29,7 +29,7 @@ flowchart LR
     task --> win
 ```
 
-Agent 调用的始终是 MCP 记忆工具。Mac 的 MCP 客户端配置使用 SSH 连接远端 stdio 服务，SSH 只承载协议数据；不是让模型临场执行 SSH 命令，也不把 Mac Agent 迁到 Win。云端使用 VPS 的 HTTPS MCP 入口，由入口完成必要的传输适配。
+Agent 调用的始终是 MCP 记忆工具，包括云端Dot与 Codex Cloud。Mac 的 MCP 客户端配置使用 SSH 连接远端 stdio 服务，SSH 只承载协议数据；不是让模型临场执行 SSH 命令，也不把 Mac Agent 迁到 Win。两种云端角色统一使用 VPS 的 HTTPS MCP 入口，由入口完成必要的传输适配。Hindsight API 仅是 MCP 服务内部上游，不提供 Agent 直接 API／SDK 的替代路线。
 
 - VPS复用既有 HTTPS／认证基础设施，在公子指定的 `create-network-sh/fastmcp/` 增加独立 Hindsight MCP 入口；优先经 EasyTier SSH 调用 Win 既有 stdio 代理，实现必要的 HTTP／stdio 适配。不复制数据库或运行第二套记忆模型，不占用信箱原路由。
 - EasyTier已组网不等于应用端口已开放。核当前监听、方向与可达性后定向接通；若 Hindsight 仅监听 loopback，在已有代理与必要私网监听中选择最简方式，不同时新增两套通道。
@@ -87,7 +87,7 @@ Herdr承载角色，MCP／Skill配置到实际 Harness。已有会话可能有�
 | --- | --- | --- |
 | M1 合同与本地接入 | Hindsight主实施者；Win服务、代理、Harness配置、Skill | 复用部署和Mac SSH；完成稳定bank、按需读写、更正与待补；交源码、模板、实际入口和客户端矩阵 |
 | M2 公网入口 | 连通性协助者独占 `create-network-sh/fastmcp/` 对应服务及 `vps-vultr` 部署 | 以M1 Win stdio／上游合同配置独立HTTPS MCP，经既有EasyTier SSH转发；交地址、认证合同、持久启动和撤回方法。Win服务变更由主实施者办理 |
-| M3 云端采用 | 主实施者负责云端Dot；协助者负责Codex Cloud环境 | 复用插件／环境入口；各端实际发现并调用同项目记忆。Cloud可用原生API客户端，不将本地请求伪称云端调用 |
+| M3 云端采用 | 主实施者负责云端Dot；协助者负责Codex Cloud环境 | 复用插件／环境的 MCP 配置入口；各端实际发现并调用同项目记忆工具。不以本地请求、curl 或直接 API／SDK 替代云端 MCP 采用 |
 | M4 统一审核验收 | 原审核窗口 | 审代码、真实调用、来源和故障行为；复用未变更基线，本轮改变的部署或启动链只补最小验证，不重跑生产流程 |
 
 本仓维护协议、Win／本地客户端适配与可分发 Skill，按实际分发需要归入 `mcp/hindsight-memory/`、`skill/hindsight-memory/`。VPS 服务源码与部署按公子明确指定放在 [create-network-sh/fastmcp](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp)，该既有仓实际 owner 为 `ghyghoo8`，不因组织默认规则自动迁移。已有实现先核归属和固定来源，避免临时脚本成为唯一维护源；跨仓只固定版本引用，不导入共享运行目录。网络规范仍在[网络文档](networking-plan.md)。
@@ -102,7 +102,7 @@ M1与M2只读核对可并行，M2配置等M1上游合同，M3真实采用等M2�
 | --- | --- |
 | 公网路径 | 实际请求经 `vps-vultr` 和EasyTier到原Win实例；认证有效、信箱原路由不受影响 |
 | 云端Dot | 原生工具实际读取本项目记忆，写入一条已确认且带来源的自然需求／决定；服务端能关联同一来源 |
-| Codex Cloud | 一个真实Cloud任务取得项目上下文并完成任务相关调用／经验回收；记录环境版本、原生任务和来源 |
+| Codex Cloud | 一个真实 Cloud 任务发现并调用 VPS 的 MCP 记忆工具，取得项目上下文并完成任务相关经验回收；记录环境版本、原生工具活动和来源 |
 | 本地Harness | 同项目实际接手者召回上述来源；矩阵区分已配置、当前会话发现、调用通过，未采用端明确列出 |
 | 记忆不可达 | 隔离客户端模拟一次不可达，输入齐备的确定步骤继续、待补摘要可保存；不停止生产服务制造故障 |
 | 原件与职责 | 召回可追溯来源；状态、进展与验收沿原记录，无新增业务派发或已读门槛 |

@@ -82,7 +82,7 @@ Hindsight 为上述角色提供按项目共享的经验与背景，不承担派�
 ```mermaid
 flowchart LR
     D["云端Dot"] -->|"HTTPS / MCP"| V["vps-vultr · 接入与转发"]
-    C["Codex Cloud"] -->|"HTTPS / MCP 或 API"| V
+    C["Codex Cloud"] -->|"HTTPS / MCP"| V
     V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理"]
     A["Herdr 内实际 Harness"] -->|"本机或局域网 SSH 承载 MCP"| M
     M --> H["Win Hindsight · 项目 bank"]
