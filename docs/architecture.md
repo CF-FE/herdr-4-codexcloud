@@ -186,7 +186,7 @@ Mac 持续在线是公子确认的部署前提；当前不建设离线接管、�
 | 信箱与 Mac 桥 | 外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) |
 | Gitee MCP 来源／项目业务资产 | 对应所属仓库；各项目正式状态仍留原入口 |
 
-`mcp/project-coordinator-tools/` 维护本仓受限 stdio 组织工具，依赖同一固定发布的协调模块；它不扩展外部 Task Mailbox 服务。`plugin/` 仍只有分类索引，源码、安装与真实启用分别记证。新实现或分发须有实际需求和明确 owner。
+`mcp/project-coordinator-tools/` 维护本仓受限 stdio 组织工具，依赖同一固定发布的协调模块；它不扩展外部 Task Mailbox 服务。`mcp/hindsight-memory/` 维护记忆客户端与 Win 代理，[Hindsight 本地插件](../plugin/hindsight-memory/README.md)为 Mac Codex App／CLI 统一分发 MCP 入口和 Skill。源码、安装与真实启用分别记证，新实现或分发须有实际需求和明确 owner。
 
 ## 复制与排除
 

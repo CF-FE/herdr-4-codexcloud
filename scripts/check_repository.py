@@ -50,6 +50,9 @@ def check_repository(root: Path) -> tuple[list[str], dict[str, int]]:
                     continue
                 if not entry.is_dir():
                     continue
+                # Codex marketplace metadata is not a distributable plugin.
+                if category == "plugin" and entry.name == ".agents":
+                    continue
                 counts[category] += 1
                 if not ENTRY_ID.fullmatch(entry.name):
                     report(entry, "ID 须为小写字母或数字组成的单词，以单个连字符分隔")

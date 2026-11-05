@@ -52,6 +52,13 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("skill/incomplete/SKILL.md", result.stderr)
 
+    def test_plugin_marketplace_metadata_is_not_counted_as_a_plugin(self):
+        self.write("plugin/.agents/plugins/marketplace.json", '{"name":"local","plugins":[]}')
+        self.write("plugin/example/README.md", "# Plugin\n")
+        result = self.run_check()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("plugin=1", result.stdout)
+
     def test_invalid_entry_id_fails_with_its_path(self):
         self.write("mcp/Bad Name/README.md", "# Server\n")
         result = self.run_check()

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "hindsight-memory",
+  "version": "1.0.0",
+  "description": "Use the existing Hindsight deployment for source-backed shared project memory.",
+  "author": {
+    "name": "CF-FE"
+  },
+  "repository": "https://github.com/CF-FE/herdr-4-codexcloud",
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Hindsight 项目记忆",
+        "shortDescription": "检索与沉淀有来源的项目经验",
+        "longDescription": "通过本机已部署的 Hindsight 客户端检索和沉淀项目共享记忆。目标为 Mac Codex App 与 CLI；需要既有局域网客户端、SSH 配置及 Hindsight 服务。插件包含 Skill 和 stdio 启动器。",
+        "developerName": "CF-FE",
+        "category": "Productivity",
+        "capabilities": ["Read", "Write"],
+        "defaultPrompt": "使用已确认的项目 bank，检索与当前任务有关的历史经验并核对来源。"
+      }
+    }
+  }
+}
