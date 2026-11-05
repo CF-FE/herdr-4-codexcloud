@@ -1,0 +1,4 @@
+# Native Hindsight 1.2.0 ONNX reranker; no Torch or GPU runtime needed.
+onnxruntime==1.31.1
+transformers==5.22.1
+safetensors==0.8.0
