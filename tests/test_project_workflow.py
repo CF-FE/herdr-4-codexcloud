@@ -252,13 +252,68 @@ class ProjectWorkflowTests(unittest.TestCase):
                     spec["steps"]["inventory"]["next"] = "finish"
                 target = self.init(spec=spec, ok=False)
                 self.assertFalse(target.parent.exists())
+                self.assertFalse((self.repo / "workflows/README.md").exists())
 
         workflow = self.init()
         definition = workflow.with_name("definition.py")
         definition.write_text("# A project-owner edit to keep.\n")
         before = {p.name: p.read_bytes() for p in workflow.parent.iterdir() if p.is_file()}
+        readme_before = (self.repo / "workflows/README.md").read_bytes()
         self.init(ok=False)
         self.assertEqual({p.name: p.read_bytes() for p in workflow.parent.iterdir() if p.is_file()}, before)
+        self.assertEqual((self.repo / "workflows/README.md").read_bytes(), readme_before)
+
+    def test_two_flows_share_a_readable_index_without_overwriting_project_notes(self):
+        self.init()
+        readme = self.repo / "workflows/README.md"
+        first = readme.read_text(encoding="utf-8")
+        self.assertIn("[batch-review](#batch-review)", first)
+        self.assertIn("```mermaid\nflowchart TD", first)
+        for text in ("program: verify_files", "decision: Summarize or inspect?",
+                     "handoff: Inspect the flagged items.", "result: finish", '"needs_review"',
+                     "../docs/project-memory.md", "python3 workflows/batch-review/workflow.py"):
+            self.assertIn(text, first)
+        first_section = first.split("<!-- workflow:batch-review:start -->", 1)[1]
+        manual = "\n## Owner notes\nUse the original Issue and Project for current progress.\n"
+        readme.write_text(first + manual, encoding="utf-8")
+        spec = self.spec()
+        spec["workflow"] = "delivery-check"
+        self.init(spec=spec)
+        updated = readme.read_text(encoding="utf-8")
+        self.assertIn(manual, updated)
+        self.assertIn(first_section, updated)
+        self.assertIn("[delivery-check](#delivery-check)", updated)
+        self.assertEqual(updated.count("## batch-review\n"), 1)
+        self.assertEqual(updated.count("## delivery-check\n"), 1)
+        self.assertEqual(updated.count("```mermaid"), 3)
+        # An overview groups workflows; it must not invent an order between independent flows.
+        overview = updated.split("<!-- workflow-index:end -->", 1)[0]
+        self.assertNotIn('f0 --> f1', overview)
+
+    def test_existing_readme_is_preserved_and_flow_labels_cannot_break_mermaid(self):
+        parent = self.repo / "workflows"
+        parent.mkdir()
+        readme = parent / "README.md"
+        notes = "# Existing project workflow notes\n\nKeep this exact handoff policy.\n"
+        readme.write_text(notes, encoding="utf-8")
+        spec = self.spec()
+        spec["steps"]["review"]["question"] = 'Review "A"?\n```\nflowchart LR'
+        self.init(spec=spec)
+        result = readme.read_text(encoding="utf-8")
+        self.assertTrue(result.startswith(notes))
+        self.assertIn("#quot;A#quot;", result)
+        self.assertEqual(result.count("```mermaid"), 2)
+        self.assertNotIn('decision: Review "A"?\n```', result)
+
+    def test_ambiguous_readme_markers_do_not_publish_a_workflow_or_replace_notes(self):
+        parent = self.repo / "workflows"
+        parent.mkdir()
+        readme = parent / "README.md"
+        original = "Owner notes\n<!-- workflow-index:start -->\n"
+        readme.write_text(original, encoding="utf-8")
+        target = self.init(ok=False)
+        self.assertFalse(target.parent.exists())
+        self.assertEqual(readme.read_text(encoding="utf-8"), original)
 
 
 if __name__ == "__main__":
