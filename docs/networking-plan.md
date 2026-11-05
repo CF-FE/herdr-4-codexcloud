@@ -1,6 +1,6 @@
 # EasyTier 双节点与现有局域网方案
 
-版本：0.10；修订日期：2026-11-03（Asia/Shanghai）。本页统一维护 EasyTier、主机路由、SSH 配置与运维边界，以及固定版本的已知风险。组件职责见[架构](architecture.md)，当前验收见[状态总表](status.md)，逐轮回执见[网络 Goal 历史](history/status-through-2026-11-03.md#当前执行-goal网络与协作环境就绪)。
+版本：0.11；修订日期：2026-11-05（Asia/Shanghai）。本页统一维护 EasyTier、主机路由、SSH 配置与运维边界，以及固定版本的已知风险。组件职责见[架构](architecture.md)，当前验收见[状态总表](status.md)，逐轮回执见[网络 Goal 历史](history/status-through-2026-11-03.md#当前执行-goal网络与协作环境就绪)。
 
 Mac 持续在线是公子确认的前提。Mac 不装 VPN，Cloud 不为信箱加入 VPN；当前只发布 `MAC_LAN_IP/32`，Mac 仅增加到 `VPS_VIP/32` 的主机路由经 Win，默认网关与 DNS 保留。本页使用角色占位，真实地址、账号、网络标识、密钥和原始日志留在宿主受限位置。
 
@@ -97,6 +97,8 @@ TUI 不能替代 sshd。Win 使用完整发行包，保留 `herdr.exe` 与 app-l
 版本升级须沿实际安装归属、原任务影响和回退依据处理；文档整理不触发升级或新的拒绝／故障测试。上述风险限定具体能力，不把产品整体判为不可用，也不阻塞无关的获准工作。
 
 ## 6. 效率与 Dot 连通怎样判断
+
+2026-11-05 的 VPS ↔ Win 调查已结项，含 11 月 3 日下午的历史补查：[脱敏报告](history/easytier-vps-win-20261105.md) · [原件与衍生文件索引](history/easytier-vps-win-20261105-evidence.json)。已核服务停启、心跳失联和短窗丢包；底层根因仍有 UNKNOWN，用户历史反馈与日志证据分列。结论已交 Hindsight 接入实施，沿原任务处理断线重建及单层有限重试，不再追加 EasyTier 测试；Mac LAN 不在此次优化范围。
 
 分别测 peer 路径、RTT／丢包、SSH 建连、原生命令回读和必要文件吞吐，不用一个指标替代另一个。2026-11-02 旧 VPS ↔ Win 路径短样本为 10 次 ping 丢 3、成功 RTT 约 132–141 ms；它不代表 Mac → Win LAN 质量、持续稳定性或性能 SLA。完整耗时与资源快照保留在[整理前固定记录](https://github.com/CF-FE/herdr-4-codexcloud/blob/9c704572930c721ad061bf44f774763e96096e52/docs/networking-plan.md#6-效率与-dot-连通怎样判断)，不在架构文档重复维护。
 
