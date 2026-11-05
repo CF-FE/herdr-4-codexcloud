@@ -1,12 +1,16 @@
 """Exercise the generator and each project-owned command through fresh CLI processes."""
 import hashlib
 import json
+import os
 from pathlib import Path
+import runpy
+import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 
 GENERATOR = Path(__file__).resolve().parents[1] / "scripts/project_workflow.py"
@@ -252,13 +256,169 @@ class ProjectWorkflowTests(unittest.TestCase):
                     spec["steps"]["inventory"]["next"] = "finish"
                 target = self.init(spec=spec, ok=False)
                 self.assertFalse(target.parent.exists())
+                self.assertFalse((self.repo / "workflows/README.md").exists())
 
         workflow = self.init()
         definition = workflow.with_name("definition.py")
         definition.write_text("# A project-owner edit to keep.\n")
         before = {p.name: p.read_bytes() for p in workflow.parent.iterdir() if p.is_file()}
+        readme_before = (self.repo / "workflows/README.md").read_bytes()
         self.init(ok=False)
         self.assertEqual({p.name: p.read_bytes() for p in workflow.parent.iterdir() if p.is_file()}, before)
+        self.assertEqual((self.repo / "workflows/README.md").read_bytes(), readme_before)
+
+    def test_two_flows_share_a_readable_index_without_overwriting_project_notes(self):
+        self.init()
+        readme = self.repo / "workflows/README.md"
+        first = readme.read_text(encoding="utf-8")
+        self.assertIn("[batch-review](#batch-review)", first)
+        self.assertIn("```mermaid\nflowchart TD", first)
+        for text in ("program: verify_files", "decision: Summarize or inspect?",
+                     "handoff: Inspect the flagged items.", "result: finish", '"needs_review"',
+                     "../docs/project-memory.md", "python3 workflows/batch-review/workflow.py"):
+            self.assertIn(text, first)
+        first_section = first.split("<!-- workflow:batch-review:start -->", 1)[1]
+        manual = "\n## Owner notes\nUse the original Issue and Project for current progress.\n"
+        readme.write_text(first + manual, encoding="utf-8")
+        spec = self.spec()
+        spec["workflow"] = "delivery-check"
+        self.init(spec=spec)
+        updated = readme.read_text(encoding="utf-8")
+        self.assertIn(manual, updated)
+        self.assertIn(first_section, updated)
+        self.assertIn("[delivery-check](#delivery-check)", updated)
+        self.assertEqual(updated.count("## batch-review\n"), 1)
+        self.assertEqual(updated.count("## delivery-check\n"), 1)
+        self.assertEqual(updated.count("```mermaid"), 3)
+        # An overview groups workflows; it must not invent an order between independent flows.
+        overview = updated.split("<!-- workflow-index:end -->", 1)[0]
+        self.assertNotIn('f0 --> f1', overview)
+
+    def test_existing_readme_is_preserved_and_flow_labels_cannot_break_mermaid(self):
+        parent = self.repo / "workflows"
+        parent.mkdir()
+        readme = parent / "README.md"
+        notes = "# Existing project workflow notes\n\nKeep this exact handoff policy.\n"
+        readme.write_text(notes, encoding="utf-8")
+        spec = self.spec()
+        spec["steps"]["review"]["question"] = 'Review "A"?\n```\nflowchart LR'
+        self.init(spec=spec)
+        result = readme.read_text(encoding="utf-8")
+        self.assertTrue(result.startswith(notes))
+        self.assertIn("#quot;A#quot;", result)
+        self.assertEqual(result.count("```mermaid"), 2)
+        self.assertNotIn('decision: Review "A"?\n```', result)
+
+    def test_ambiguous_readme_markers_do_not_publish_a_workflow_or_replace_notes(self):
+        parent = self.repo / "workflows"
+        parent.mkdir()
+        readme = parent / "README.md"
+        original = "Owner notes\n<!-- workflow-index:start -->\n"
+        readme.write_text(original, encoding="utf-8")
+        target = self.init(ok=False)
+        self.assertFalse(target.parent.exists())
+        self.assertEqual(readme.read_text(encoding="utf-8"), original)
+
+    def test_generated_readme_commands_run_from_the_project_root(self):
+        self.init()
+        self.input.write_text(json.dumps({"items": self.items[:1]}))
+        readme = (self.repo / "workflows/README.md").read_text(encoding="utf-8")
+        commands = readme.split("```bash\n", 1)[1].split("```", 1)[0]
+        commands = commands.replace("python3 ", shlex.quote(sys.executable) + " ")
+        commands = commands.replace("--task TASK", "--task " + self.task)
+        commands = commands.replace("--input input.json", "--input " + shlex.quote(str(self.input)))
+        commands = 'trap \'test -z "${RUN:-}" || rm -rf "$(dirname "$RUN")"\' EXIT\n' + commands
+        result = subprocess.run(["bash", "-eu", "-c", commands], cwd=self.repo,
+                                env={**os.environ, "TMPDIR": str(self.root)},
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        start, status = map(json.loads, result.stdout.splitlines())
+        self.assertEqual(start["status"], "FINISHED")
+        self.assertEqual(start["outputs"], status["outputs"])
+        self.assertFalse((self.repo / "RUN.sqlite3").exists())
+
+    def test_concurrent_flow_initialization_is_busy_then_preserves_both_entries(self):
+        first_spec = self.root / "first-spec.json"
+        first_spec.write_text(json.dumps(self.spec()), encoding="utf-8")
+        child = (
+            "import runpy,sys\nfrom pathlib import Path\n"
+            "module=runpy.run_path(sys.argv[1])\n"
+            "initialize=module['initialize']\n"
+            "original=initialize.__globals__['workflow_readme']\n"
+            "def paused(*args):\n"
+            "    print('LOCKED',flush=True)\n"
+            "    sys.stdin.readline()\n"
+            "    return original(*args)\n"
+            "initialize.__globals__['workflow_readme']=paused\n"
+            "initialize(Path(sys.argv[2]),Path(sys.argv[3]))\n")
+        process = subprocess.Popen([sys.executable, "-E", "-S", "-B", "-c", child,
+                                    str(GENERATOR), str(self.repo), str(first_spec)],
+                                   stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            self.assertEqual(process.stdout.readline().strip(), "LOCKED")
+            spec = self.spec()
+            spec["workflow"] = "delivery-check"
+            source = self.root / "second-spec.json"
+            source.write_text(json.dumps(spec), encoding="utf-8")
+            second = subprocess.run([sys.executable, "-E", "-S", "-B", str(GENERATOR), "init",
+                                     "--repo", str(self.repo), "--spec", str(source)],
+                                    text=True, capture_output=True, timeout=10)
+            self.assertNotEqual(second.returncode, 0, second.stdout)
+            self.assertIn("busy", second.stderr)
+        finally:
+            _, error = process.communicate("continue\n", timeout=10)
+            self.assertEqual(process.returncode, 0, error)
+        self.init(spec=spec)
+        readme = (self.repo / "workflows/README.md").read_text(encoding="utf-8")
+        self.assertIn("[batch-review](#batch-review)", readme)
+        self.assertIn("[delivery-check](#delivery-check)", readme)
+        self.assertFalse((self.repo / "workflows/.init.lock").exists())
+
+    def test_readme_publish_failure_is_recoverable_without_overwriting_workflow_source(self):
+        spec = self.root / "recover-spec.json"
+        spec.write_text(json.dumps(self.spec()), encoding="utf-8")
+        initialize = runpy.run_path(str(GENERATOR))["initialize"]
+        with mock.patch.object(Path, "replace", side_effect=OSError("simulated README failure")):
+            with self.assertRaisesRegex(ValueError, "rerun the same init"):
+                initialize(self.repo, spec)
+        target = self.repo / "workflows/batch-review"
+        original = {p.name: p.read_bytes() for p in target.iterdir()}
+        self.assertEqual(set(original), {"definition.py", "workflow.py"})
+        self.assertFalse((target.parent / "README.md").exists())
+        self.init()
+        self.assertEqual({p.name: p.read_bytes() for p in target.iterdir()}, original)
+        self.assertIn("[batch-review](#batch-review)", (target.parent / "README.md").read_text(encoding="utf-8"))
+        # Recovery is narrowly for missing documentation; completed init and project edits remain conflicts.
+        self.init(ok=False)
+        (target.parent / "README.md").unlink()
+        (target / "definition.py").write_bytes(original["definition.py"] + b"\n# Owner edit\n")
+        self.init(ok=False)
+        self.assertFalse((target.parent / "README.md").exists())
+
+    def test_readme_edit_during_init_is_preserved_then_recovered(self):
+        parent = self.repo / "workflows"
+        parent.mkdir()
+        readme = parent / "README.md"
+        readme.write_text("Original project notes\n", encoding="utf-8")
+        initialize = runpy.run_path(str(GENERATOR))["initialize"]
+        original_render = initialize.__globals__["workflow_readme"]
+        edited = "Original project notes\nOwner added the new handoff receiver.\n"
+
+        def edit_during_render(*args):
+            rendered = original_render(*args)
+            readme.write_text(edited, encoding="utf-8")
+            return rendered
+
+        spec = self.root / "edit-spec.json"
+        spec.write_text(json.dumps(self.spec()), encoding="utf-8")
+        with mock.patch.dict(initialize.__globals__, workflow_readme=edit_during_render):
+            with self.assertRaisesRegex(ValueError, "README changed.*rerun the same init"):
+                initialize(self.repo, spec)
+        self.assertEqual(readme.read_text(encoding="utf-8"), edited)
+        self.init()
+        result = readme.read_text(encoding="utf-8")
+        self.assertTrue(result.startswith(edited))
+        self.assertIn("[batch-review](#batch-review)", result)
 
 
 if __name__ == "__main__":
