@@ -1,13 +1,15 @@
 {
   "schema_version": 1,
   "component": "hindsight-memory",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "hindsight_api": "1.2.0",
   "hindsight_source_commit": "34a138684a899b6ec34175f7a2b633860466d289",
   "fastmcp": "4.1.6",
   "files": {
-    "mcp_bridge.py": "37b4abd85536d75208011db595def287eee648ba49ca86929a90acc1fa2399ae",
+    "mcp_bridge.py": "2ba059d68793008d29aafe7a50ac3906861d92ee28eae83c0a8cf88d1afbadc4",
     "api_relay.py": "496bfc67155ab7046fee68f95811a743e5da5ea73150f96ee648d423f7fd11f7",
     "mac_client.py": "8b69d3cf661373917dc0f23a3ac9d81b4edfe567bddc0f8d0bbbca845ebed61a"
-  }
+  },
+  "mcp": "2.3.0",
+  "mcp_types": "2.3.0"
 }

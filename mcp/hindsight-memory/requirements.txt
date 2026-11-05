@@ -1,2 +1,4 @@
 # Optional runtime dependency; repository checks use only the standard library.
 fastmcp==4.1.6
+mcp==2.3.0
+mcp-types==2.3.0

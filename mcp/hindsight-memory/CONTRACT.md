@@ -1,6 +1,6 @@
-# Win 上游合同 · 1.0.0
+# Win 上游合同 · 1.0.1
 
-拥有者：本仓 Hindsight 实施者；VPS 接入由指定部署仓独立维护。版本基线为 Hindsight API Slim 1.2.0、FastMCP 4.1.6。运行参数读取忽略的 `.env` 及适用的 Win 私有部署副本，不在本合同写实际凭据。
+拥有者：本仓 Hindsight 实施者；VPS 接入由指定部署仓独立维护。版本基线为 Hindsight API Slim 1.2.0、FastMCP 4.1.6、MCP SDK／types 2.3.0。运行参数读取忽略的 `.env` 及适用的 Win 私有部署副本，不在本合同写实际凭据。
 
 ## SSH 与 MCP
 
@@ -43,7 +43,7 @@ stdin 一行 JSON，stdout 一个 JSON 对象。只允许下列 action，不接�
 
 `retain.payload` 是单条原生 item，包含 `content`，以及原生支持的 context／timestamp／tags／metadata／strategy／update_mode；来源和原文 SHA-256 放 metadata，不作为路由字段。metadata 的键值均为字符串。保持同一来源事件的 document 与内容摘要；新事件／不同写者使用不同来源 ID，修订明确替代范围。
 
-回执含 `action/bank_id/operation_id/document_id`（适用时）、`state/http_status/body/attempts/retries/request_started`。`body` 保留原生 HTTP JSON；服务 token 和 API key 脱敏。
+回执含 `action/bank_id/operation_id/document_id`（适用时）、`state/http_status/body/attempts/retries/request_started`。`body` 保留原生 HTTP JSON；API relay 与 MCP 工具调用统一处理服务 token 和 API key 脱敏，保留状态、结构化内容、错误标志及元数据。
 
 | state | 含义 |
 | --- | --- |

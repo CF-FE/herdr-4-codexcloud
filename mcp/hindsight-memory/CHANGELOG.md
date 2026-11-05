@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1 — 2026-11-05
+
+- Redact the current service credential and existing API-key patterns on ordinary MCP tool results and errors as well as CID/API results, preserving native state, structured content and error metadata.
+
 ## 1.0.0 — 2026-11-05
 
 - Add explicit-project-bank stdio access to the existing Hindsight 1.2.0 service.

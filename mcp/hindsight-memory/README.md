@@ -1,4 +1,4 @@
-# Hindsight 项目记忆接入 · 1.0.0
+# Hindsight 项目记忆接入 · 1.0.1
 
 本目录拥有 Win stdio MCP 代理、Mac LAN SSH 客户端和受控的 API 兜底 relay。运行的是原有 Hindsight 实例，不启动模型、数据库或第二套记忆服务。[本轮 Issue #13](https://github.com/CF-FE/herdr-4-codexcloud/issues/13) · [实施合同](../../docs/hindsight-memory-integration.md) · [上游接口](CONTRACT.md)
 
@@ -7,7 +7,7 @@
 - `mcp_bridge.py`：代理 Hindsight 1.2.0 多 bank MCP；要求显式项目 bank，拒绝 `default`；为 `retain` 增加可选的预分配 `operation_id`。
 - `api_relay.py`：单次 JSON 请求／回执，通过 SSH 调用 Win loopback API。本层不重试、不创建持久队列。
 - `mac_client.py`：透明转发 stdio MCP 到局域网 Win；不处理业务结果，不增加重试。需要 Python 3.9+ 和现有 SSH 认证。
-- [requirements.txt](requirements.txt)：Win 代理运行依赖 FastMCP 4.1.6、Python 3.11+。已有部署复用已安装的兼容环境；仓库结构检查与单元测试仅需标准库。
+- [requirements.txt](requirements.txt)：Win 代理运行依赖 FastMCP 4.1.6、MCP SDK／types 2.3.0、Python 3.11+。已有部署复用已安装的兼容环境；仓库结构检查与单元测试仅需标准库。
 - [.env.example](.env.example)：复制适用字段到公子指定、已忽略的仓库 `.env`。不提交实际地址、用户名、凭据或原始运行回执。
 
 Hindsight API、PG、BGE 和开机任务继续由原部署维护；本目录不替换或重启这些服务。VPS 服务与重试策略唯一维护于公子指定的 [create-network-sh/fastmcp](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp)，跨仓只复制固定版本，不运行跨仓导入或共享目录。
