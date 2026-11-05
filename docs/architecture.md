@@ -1,6 +1,6 @@
 # 架构与范围
 
-修订日期：2026-11-04。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
+修订日期：2026-11-05。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
 
 ## 初始化决定
 
@@ -74,6 +74,22 @@ graph TD
 每项目有责任边界，不要求每项目常驻一个进程。现有 Cloud 或旧 Lody 任务沿原入口收尾；同一执行和待写资产只能有一个实际控制入口及当前写者，UNKNOWN 不换池重做。
 
 源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
+
+### 项目共享记忆
+
+Hindsight 为上述角色提供按项目共享的经验与背景，不承担派发或验收。仓库拥有正式规范及记忆入口，原检查点拥有执行状态；必要上下文随任务保存，在线召回失败不阻断已有确定性步骤。以下是 2026-11-05 已采纳的接入方案，各端实际采用另验。
+
+```mermaid
+flowchart LR
+    D["云端Dot"] -->|"HTTPS / MCP"| V["vps-vultr · 接入与转发"]
+    C["Codex Cloud"] -->|"HTTPS / MCP 或 API"| V
+    V -->|"既有 EasyTier"| H["Win Hindsight · 项目 bank"]
+    A["Herdr 内实际 Harness"] -->|"本机或既有 SSH 路径"| H
+    R["项目仓 · 正式规范与记忆入口"] --> T["原任务上下文与检查点"]
+    H -."按需召回，采用内容留原任务".-> T
+```
+
+VPS 不复制记忆数据库。角色读写、薄适配与集中验收只在[共享记忆实施文档](hindsight-memory-integration.md)详述，[ADR-002](decisions/002-shared-project-memory.md)保留取舍。
 
 <a id="当前部署与待评估简化"></a>
 

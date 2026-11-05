@@ -1,6 +1,6 @@
 # 云端Dot、项目协调层与 Cloud 路由协作约定
 
-版本 1.6 · 2026-11-04。本文维护本组织的决策、路由和交接规则。分层与回收路径见[全局架构图](architecture.md#整套协作分工)，通用岗位定义见[组织技能](../skill/organization-collaboration/SKILL.md)，实际部署见[状态页](status.md)。
+版本 1.7 · 2026-11-05。本文维护本组织的决策、路由和交接规则。分层与回收路径见[全局架构图](architecture.md#整套协作分工)，通用岗位定义见[组织技能](../skill/organization-collaboration/SKILL.md)，实际部署见[状态页](status.md)。
 
 主动汇报、暴露并逐级冒泡问题与风险是**全局协作责任**，适用于全部项目、协调层和执行层的所有角色，凡人仅是边界示例。通用权威条款维护在组织技能的[共同边界](../skill/organization-collaboration/SKILL.md#共同边界)与[共同汇报规则](../skill/organization-collaboration/references/context-and-reporting.md#回报与证据)；本页明确本组织的默认责任链，不以角色模板或通道尚未自动化免除报告与承接义务。
 
@@ -36,6 +36,8 @@ Mac 接手后，项目负责人在授权范围内推进。云端暂时离线时�
 例如，凡人旁白的术语读音、听检方法和交付格式属于凡人主仓。哪一批待听、谁跟进、哪一版已验收，记在凡人的原 Project／Issue。Win 上哪种模型已验证能听辨，记在[组织环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)。
 
 负责人接手项目时维护一个项目记忆入口。遇到可复用的业务流程，可在自己的 Herdr 会话设计步骤和决定点，生成到项目主仓，之后在项目内独立迭代。[工作流生成与接手示例](project-workflow-development.md)
+
+项目记忆采用稳定项目身份对应的 Hindsight bank，供云端Dot、协调层和执行者按需共享。项目仓保留规范、设计决定与短记忆入口，经验无需逐条回写仓库。云端Dot可沉淀已确认需求，Worker可直接贡献带来源的经验；正式验收仍由原验收者决定。必要上下文随任务保存，记忆不可达不阻止已有输入齐备的工作。具体资料归属、调用时机与云端接入见[共享记忆实施规范](hindsight-memory-integration.md)，采用状态以真实客户端证据为准。
 
 ### 云端Dot作为发起者
 
