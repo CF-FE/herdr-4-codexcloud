@@ -25,7 +25,7 @@
 | 云端客户端 | 已有项目级读取；公子回报的新写入经原操作独立核为 completed，文档原文与来源一致，提取 1 条记忆 |
 | Codex Cloud | 公子已回传云端读取结果；具体托管作业的环境与采用仍逐单记录，图中虚线表示按任务接入，不由一个客户端代证全部环境 |
 | Win Web UI | 官方 1.2.0 已安装并核已有 bank、配置、原操作页面；关闭后原 API／PG／BGE 保留。对应脚本新增不包含在上述 main 对齐回执中 |
-| 后端提取与召回 | SYSTEM 代理修复后，27 个 Skill／40 文件导入完成、1,515 条记忆及原文来源读回通过；自然语言召回命中目标，排序仍有噪声。历史失败保留，后台整合另记 |
+| 后端提取与召回 | 27 个 Skill／40 文件导入完成、1,515 条记忆及原文来源读回通过；后续已启用魔搭 BGE Q8 CPU 精排，两条查询的目标摘要均排第 1，实测约 26–28 秒。历史失败保留；[精排限制与回退](../../mcp/hindsight-memory/reranker/README.md)另述 |
 
 来源：[总架构](../architecture.md)、[任务协作](../coordination-policy.md)、[项目工作流](../project-workflow-development.md)、[Hindsight 合同](../hindsight-memory-integration.md)、[Web 使用](../../mcp/hindsight-memory/control-plane/README.md)、[部署核验原记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6655425331)。图中不包含凭据、私有网络地址或会话配置。
 
