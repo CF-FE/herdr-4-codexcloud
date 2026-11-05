@@ -18,15 +18,18 @@
 flowchart LR
     dot["云端Dot · 需求与汇报"] -->|"HTTPS / MCP"| vps["vps-vultr · 认证与薄 MCP 接入"]
     cloud["Codex Cloud · 任务执行"] -->|"HTTPS / MCP 或 API"| vps
-    vps -->|"既有 EasyTier / SSH / Win 代理"| memory["win-work · Hindsight 项目 bank"]
-    mac["Mac Herdr 内实际 Harness"] -->|"既有局域网 SSH"| memory
-    win["Win Herdr 内实际 Harness"] -->|"本机通道"| memory
+    vps -->|"EasyTier / SSH 承载 stdio MCP"| proxy["Win MCP 代理"]
+    mac["Mac Herdr 内实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| proxy
+    win["Win Herdr 内实际 Harness"] -->|"本机 stdio MCP"| proxy
+    proxy -->|"本机 API"| memory["win-work · Hindsight 项目 bank"]
     repo["项目仓 · 规范、工作流、记忆入口"] --> task["原任务输入与证据引用"]
     memory -."按需召回".-> task
     task --> cloud
     task --> mac
     task --> win
 ```
+
+Agent 调用的始终是 MCP 记忆工具。Mac 的 MCP 客户端配置使用 SSH 连接远端 stdio 服务，SSH 只承载协议数据；不是让模型临场执行 SSH 命令，也不把 Mac Agent 迁到 Win。云端使用 VPS 的 HTTPS MCP 入口，由入口完成必要的传输适配。
 
 - VPS复用既有 HTTPS／认证基础设施，在公子指定的 `create-network-sh/fastmcp/` 增加独立 Hindsight MCP 入口；优先经 EasyTier SSH 调用 Win 既有 stdio 代理，实现必要的 HTTP／stdio 适配。不复制数据库或运行第二套记忆模型，不占用信箱原路由。
 - EasyTier已组网不等于应用端口已开放。核当前监听、方向与可达性后定向接通；若 Hindsight 仅监听 loopback，在已有代理与必要私网监听中选择最简方式，不同时新增两套通道。

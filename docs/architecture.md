@@ -83,8 +83,9 @@ Hindsight 为上述角色提供按项目共享的经验与背景，不承担派�
 flowchart LR
     D["云端Dot"] -->|"HTTPS / MCP"| V["vps-vultr · 接入与转发"]
     C["Codex Cloud"] -->|"HTTPS / MCP 或 API"| V
-    V -->|"既有 EasyTier"| H["Win Hindsight · 项目 bank"]
-    A["Herdr 内实际 Harness"] -->|"本机或既有 SSH 路径"| H
+    V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理"]
+    A["Herdr 内实际 Harness"] -->|"本机或局域网 SSH 承载 MCP"| M
+    M --> H["Win Hindsight · 项目 bank"]
     R["项目仓 · 正式规范与记忆入口"] --> T["原任务上下文与检查点"]
     H -."按需召回，采用内容留原任务".-> T
 ```
