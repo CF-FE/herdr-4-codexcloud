@@ -12,6 +12,8 @@
 
 Hindsight API、PG、BGE 和开机任务继续由原部署维护；本目录不替换或重启这些服务。VPS 服务与重试策略唯一维护于公子指定的 [create-network-sh/fastmcp](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp)，跨仓只复制固定版本，不运行跨仓导入或共享目录。
 
+按需浏览和配置现有 bank，使用独立的 [Web 管理端启动脚本](control-plane/README.md)：官方 Control Plane 1.2.0，在可见终端前台运行，Ctrl+C 关闭 UI；不增加开机任务或后台守护。Mac 通过既有 LAN SSH 转发浏览，认证复用原后端配置。
+
 ## Win 部署与本地客户端
 
 把 `mcp_bridge.py`、`api_relay.py` 复制到私有运行根目录的 `scripts/`，部署时分别可命名为 `mcp-bridge.py`、`api_relay.py`。该根目录的 `config/mcp-client.env` 只需适用的 `HINDSIGHT_WIN_LOCAL_MCP_URL` 字段，来源为本仓 `.env`；`config/shared.env` 保留原 `HINDSIGHT_API_TENANT_API_KEY`。代理仅接受 HTTP loopback 上游，不新增监听端口。
