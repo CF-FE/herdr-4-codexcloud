@@ -11,7 +11,7 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 核对角色称呼 | [云端Dot与历史称呼](docs/coordination-policy.md#全局角色名称映射) |
 | 查每个角色在哪里运行、怎样创建和调用 | [组织岗位、专业角色与 Worker 的宿主和调用示例](docs/agent-hosts.md) |
 | 项目接手、建主仓、维护工作流 | [项目主仓与项目级规范](docs/coordination-policy.md#项目主仓与项目级规范) · [工作流开发与验收](docs/project-workflow-development.md) |
-| 云端Dot、Cloud 与本地 Agent 共享项目记忆 | [Hindsight 接入与实施](docs/hindsight-memory-integration.md) · [架构决定](docs/decisions/002-shared-project-memory.md) |
+| 云端Dot、Cloud 与本地 Agent 共享项目记忆 | [Hindsight 接入与实施](docs/hindsight-memory-integration.md) · [架构决定](docs/decisions/002-shared-project-memory.md) · [本项目 bank](docs/project-memory.md) |
 | 协调员转交、恢复现任负责人、挂起 GitHub 评论 | [操作入口](docs/project-coordinator.md#nonblocking-contact) |
 | 查各环境最近验证过的工具、模型与限制 | [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3) · [动态信息由谁维护](docs/coordination-policy.md#dynamic-records) |
 | 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |

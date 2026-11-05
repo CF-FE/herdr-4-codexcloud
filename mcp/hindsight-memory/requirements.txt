@@ -1,0 +1,2 @@
+# Optional runtime dependency; repository checks use only the standard library.
+fastmcp==4.1.6

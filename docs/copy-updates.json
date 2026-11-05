@@ -254,6 +254,41 @@
           "review_scope": "manifest_and_fixed_byte_integrity_only"
         }
       ]
+    },
+    {
+      "id": "2026-11-05-hindsight-memory-1.0.0",
+      "copied_on": "2026-11-05",
+      "target_base_commit": "2fbe42275398d1b96887fb4f33c663a80e301d86",
+      "source": {
+        "repository": "https://github.com/vectorize-io/hindsight",
+        "commit": "34a138684a899b6ec34175f7a2b633860466d289"
+      },
+      "component": "skill/hindsight-memory",
+      "protocol_version": "1.0.0",
+      "release_status": "implementation_pending_review",
+      "scope": "Explicit registered project banks, source-bearing experience, native async confirmation, single VPS retry ownership, authorized API fallback, and nonblocking original-task recovery; no collection hooks.",
+      "adoption_boundary": "Repository and selected user-level installation only; native cloud use and review remain separate.",
+      "files": [
+        {
+          "source_path": "hindsight-integrations/agent-plugin/skills/hindsight-memory/SKILL.md",
+          "path": "skill/hindsight-memory/SKILL.md",
+          "operation": "adapt",
+          "previous_sha256": null,
+          "source_sha256": "736dec06d414798f6b17dc078c5ef6204e8802f53cb3a5fb3c306ce08872f08e",
+          "sha256": "d2aae91cddf1568c5e62a3ddb3005f63fd16376c85b97e2338aea12f013e18bd",
+          "bytes": 5707,
+          "mode": "100644"
+        },
+        {
+          "source_path": "LICENSE",
+          "path": "skill/hindsight-memory/LICENSE",
+          "operation": "copy",
+          "previous_sha256": null,
+          "sha256": "01fde0bedf83bdc185065d7af524a61690efe576a67f922eaff3a1280c17b63a",
+          "bytes": 1075,
+          "mode": "100644"
+        }
+      ]
     }
   ]
 }
