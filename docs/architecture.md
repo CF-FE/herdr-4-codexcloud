@@ -1,6 +1,6 @@
 # 架构与范围
 
-修订日期：2026-11-04。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
+修订日期：2026-11-05。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
 
 ## 初始化决定
 
@@ -74,6 +74,23 @@ graph TD
 每项目有责任边界，不要求每项目常驻一个进程。现有 Cloud 或旧 Lody 任务沿原入口收尾；同一执行和待写资产只能有一个实际控制入口及当前写者，UNKNOWN 不换池重做。
 
 源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
+
+### 项目共享记忆
+
+Hindsight 为上述角色提供按项目共享的经验与背景，不承担派发或验收。仓库拥有正式规范及记忆入口，原检查点拥有执行状态；必要上下文随任务保存，在线召回失败不阻断已有确定性步骤。以下是 2026-11-05 已采纳的接入方案，各端实际采用另验。
+
+```mermaid
+flowchart LR
+    D["云端Dot"] -->|"HTTPS / MCP"| V["vps-vultr · 接入与转发"]
+    C["Codex Cloud"] -->|"HTTPS / MCP"| V
+    V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理"]
+    A["Herdr 内实际 Harness"] -->|"本机或局域网 SSH 承载 MCP"| M
+    M --> H["Win Hindsight · 项目 bank"]
+    R["项目仓 · 正式规范与记忆入口"] --> T["原任务上下文与检查点"]
+    H -."按需召回，采用内容留原任务".-> T
+```
+
+VPS 不复制记忆数据库。图示为首选 MCP 路径；公子允许 Hindsight API 兜底，沿同一已认证入口与原 Win 服务，采用方式分别记录。超时、重试和协议切换共用总预算，不把 API 切换当作 EasyTier 断网的修复。角色读写、薄适配与集中验收见[共享记忆实施文档](hindsight-memory-integration.md)，[ADR-002](decisions/002-shared-project-memory.md)保留取舍。
 
 <a id="当前部署与待评估简化"></a>
 
@@ -169,7 +186,7 @@ Mac 持续在线是公子确认的部署前提；当前不建设离线接管、�
 | 信箱与 Mac 桥 | 外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) |
 | Gitee MCP 来源／项目业务资产 | 对应所属仓库；各项目正式状态仍留原入口 |
 
-`mcp/project-coordinator-tools/` 维护本仓受限 stdio 组织工具，依赖同一固定发布的协调模块；它不扩展外部 Task Mailbox 服务。`plugin/` 仍只有分类索引，源码、安装与真实启用分别记证。新实现或分发须有实际需求和明确 owner。
+`mcp/project-coordinator-tools/` 维护本仓受限 stdio 组织工具，依赖同一固定发布的协调模块；它不扩展外部 Task Mailbox 服务。`mcp/hindsight-memory/` 维护记忆客户端与 Win 代理，[Hindsight 本地插件](../plugin/hindsight-memory/README.md)为 Mac Codex App／CLI 统一分发 MCP 入口和 Skill。源码、安装与真实启用分别记证，新实现或分发须有实际需求和明确 owner。
 
 ## 复制与排除
 

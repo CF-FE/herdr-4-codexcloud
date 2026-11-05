@@ -4,6 +4,8 @@
 
 ## 当前结论
 
+**2026-11-05，共享项目记忆方案已采纳并进入实施交办。** 复用 Win Hindsight、`vps-vultr` 和既有 EasyTier，覆盖本地 Harness、云端Dot及 Codex Cloud。此项是开发与接入范围，不表示公网或各云端实际调用已经通过；统一验收按[实施文档](hindsight-memory-integration.md)回填，设计取舍见[ADR-002](decisions/002-shared-project-memory.md)。
+
 Mac 日常原生交办有独立的[原任务待办与恢复入口](project-coordinator.md#native-followups)。现任协调员可登记待决定事项，角色恢复时查未结项，依据对应岗位的原生决定结单。专用提醒程序需要在已绑定的 Herdr 宿主启用；现场生产与成果验收仍以项目原单为准。
 
 **2026-11-04（北京时间），Mac Herdr 项目协调员已接手非开发事务。** 协调员在专用 Herdr 窗格中核实了工具进程继承的原生身份，Herdr 识别的 Agent 会话与实际 Codex 线程一致，然后返回了职责、下一检查点和交接回执。现有角色、服务和业务任务沿原记录继续。凡人 batch02 下一步仅获准由原写者只读对账，生产仍待负责人放行。[岗位和原生调用方式](agent-hosts.md)

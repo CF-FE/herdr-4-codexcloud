@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "archive_date": "2026-11-05",
+  "timezone": "Asia/Shanghai",
+  "kind": "SANITIZED_HISTORICAL_DERIVATIVES",
+  "task": "https://github.com/CF-FE/herdr-4-codexcloud/issues/13",
+  "source_chats": {
+    "investigation": "thread://01a1aa7e-94cf-74a0-a9f1-7d1efa72f934?hostId=local",
+    "review": "thread://01a19ea2-dd0c-7810-b06e-793575c90f93?hostId=local",
+    "access": "Authorized traceability links; not public unauthenticated logs"
+  },
+  "source_originals": {
+    "custody": "Private investigation materials associated with the source chats; no originals or host logs are included in this repository. Locate through the holder by filename and SHA-256, not a temporary absolute path.",
+    "durable_backup_and_future_retrievability": "UNKNOWN; not verified by this archival step",
+    "files": [
+      {
+        "filename": "report.md",
+        "bytes": 20662,
+        "sha256": "73afbb2a3d786540988370b43a97fd284f11ab7d02393287dad38cf572456292"
+      },
+      {
+        "filename": "summary.json",
+        "bytes": 5349,
+        "sha256": "d4c3d26f5694711fbdcd885cf233c0ab0313d4bda2a1e6122e1bcee62f8f0cf0"
+      },
+      {
+        "filename": "manifest.json",
+        "bytes": 8322,
+        "sha256": "f80111a18ec7fff353b67424f5069c684695c1bc34acc6e4aea4f0102ec5f521"
+      }
+    ],
+    "verification": "All three listed originals were read locally and their byte counts and SHA-256 values verified during archival.",
+    "manifest_coverage": {
+      "filename": "manifest.json",
+      "revision": 2,
+      "created_at": "2026-11-05T15:44:44.749536+08:00",
+      "file_count": 38,
+      "total_bytes": 3268587,
+      "includes_manifest_itself": false,
+      "verification": "Entry count and byte sum agree with manifest totals. Coverage is the private source manifest, not repository contents; referenced raw files were not reopened or rehashed during archival."
+    },
+    "selected_evidence_refs": [
+      {
+        "filename": "vps-initial.json",
+        "bytes": 3070,
+        "sha256": "cb63aa2cff7436beeecfe024b04b6c9c8c7dbd5f4dec892eed9aa75967f7a1f3",
+        "supports": "VPS identity and version verification, host and service start, initial path; private values omitted from derivative"
+      },
+      {
+        "filename": "vps-evidence.json",
+        "bytes": 3042195,
+        "sha256": "8560d5b70e0c870486251b7fe7638006bd14ef60ca3f310e9340186f99ee5daa",
+        "supports": "24-hour retained journal and file coverage, clock and runtime state"
+      },
+      {
+        "filename": "vps-summary.json",
+        "bytes": 6168,
+        "sha256": "d7e0aa07eeee354e3a3757a933fb96825c2c2778f27b5dbc75ae222141517696",
+        "supports": "VPS event counts and source timestamps"
+      },
+      {
+        "filename": "vps-bounded-observation.json",
+        "bytes": 12293,
+        "sha256": "87152765a6c45afbb475c8b4751ede3291f5c09f3cf3f1ddf2a44d5b297ba440",
+        "supports": "Single 60-second ICMP, SSH and peer/path observation"
+      },
+      {
+        "filename": "vps-clock.json",
+        "bytes": 227,
+        "sha256": "e82eed6cac8f8065a50686a5119b978b08f288db4551b910b432a1573729f961",
+        "supports": "Clock read bounded by local request times"
+      },
+      {
+        "filename": "win-01-identity-clock.json",
+        "bytes": 2362,
+        "sha256": "188683f1193d77e1c4d103b863ba6d98670fa055c94be1ddb597af3f1a668bdb",
+        "supports": "Windows identity and version verification and initial clock; private values omitted from derivative"
+      },
+      {
+        "filename": "win-03-parsed.json",
+        "bytes": 14347,
+        "sha256": "459071f3fb29ae2ea399e10c4cf8c903126e2452fdfe360e9c26f6c619a3a69a",
+        "supports": "Retained log coverage, host restart, network and selected SSH events"
+      },
+      {
+        "filename": "win-04-parsed.json",
+        "bytes": 18348,
+        "sha256": "a608f4da5eed46a0d2f64263cbbd154d4e766e6f13683a62088be04d986a6669",
+        "supports": "24-hour log counts, runtime parameters and selected events"
+      },
+      {
+        "filename": "win-05-parsed.json",
+        "bytes": 7132,
+        "sha256": "de48d529cae35d5a98d6d0207f31c316327b16f5855c13446e0eacc368be058a",
+        "supports": "Connected standby, local TUN and routes, time-service state"
+      },
+      {
+        "filename": "win-06-clock-only.json",
+        "bytes": 246,
+        "sha256": "f40a6a5223cb04c8248e3b49df09fba6a27773c5ff0077936b2e32cf02e517dc",
+        "supports": "Windows clock-read interval"
+      },
+      {
+        "filename": "win-07-cli-availability.json",
+        "bytes": 575,
+        "sha256": "6b54c64259f9fb8671c0398a4d178cb45242e3cd76812e940d1c5c4e14555591",
+        "supports": "Windows-local CLI availability limitation"
+      },
+      {
+        "filename": "win-07-observation-power.json",
+        "bytes": 725,
+        "sha256": "43b990378a4190e2ca4a33197ee4cbb6b6f1b757cb2714b18592ad04f8d9a776",
+        "supports": "Connected-standby entry during the observation"
+      },
+      {
+        "filename": "vps-historical-20261103.json",
+        "bytes": 27601,
+        "sha256": "03395e32797202a0c5524ee802879a389af5b94ce214925848958bf3d06e7b8e",
+        "supports": "November 3 journal coverage, ordered service stop/start and adjacent configuration mtime"
+      },
+      {
+        "filename": "win-historical-20261103-parsed.json",
+        "bytes": 9083,
+        "sha256": "0f9fd3718544f22c733ca23b7e24c41e186dd0c0f7c3b9410240c29865ec5f43",
+        "supports": "November 3 service termination, power and reconnection events"
+      },
+      {
+        "filename": "win-historical-20261103-FINDINGS.md",
+        "bytes": 3615,
+        "sha256": "aa3c24e58271064fbd8d5a9e3bc30e71cf47de957194a5cffd85ca8dde3299ff",
+        "supports": "Windows historical collection summary"
+      }
+    ],
+    "selected_evidence_verification": "Filenames, byte counts and SHA-256 values copied from the verified manifest; contents remain private."
+  },
+  "repo_derivatives": [
+    {
+      "path": "docs/history/easytier-vps-win-20261105.md",
+      "bytes": 8858,
+      "sha256": "2d20950a7ab4d5ab8cccb76e2105b62a19716703c074ca22090eb8df9db03dad",
+      "relation": "Condensed and redacted from source report and summary; not a byte-identical copy or a new runtime observation"
+    }
+  ],
+  "index_integrity": "This index intentionally contains no hash or byte count of itself. Its exact content is recorded by the repository commit.",
+  "redaction": {
+    "omitted": [
+      "host IP addresses",
+      "account names",
+      "machine identifiers",
+      "peer IDs",
+      "process IDs",
+      "private SSH paths",
+      "absolute private artifact paths",
+      "raw terminal output",
+      "raw host logs"
+    ],
+    "preserved": [
+      "time windows",
+      "versions including trailing tilde",
+      "user feedback distinct from verified events",
+      "log coverage and event counts",
+      "single-observation limitations",
+      "UNKNOWN states",
+      "recommendations and their authorization limits",
+      "source links and artifact digests"
+    ]
+  },
+  "evidence_state": {
+    "investigation_status": "READ_ONLY_INVESTIGATION_COMPLETE_WITH_UNKNOWNS",
+    "closure": "INVESTIGATION_CLOSED",
+    "basis": "Source summary and review handoff accept the evidence as sufficient for current fallback design.",
+    "network_remediation": "NOT_ESTABLISHED",
+    "long_term_stability": "NOT_ESTABLISHED",
+    "production_or_business_acceptance": "NOT_ESTABLISHED",
+    "additional_network_tests_performed_for_archive": 0
+  }
+}

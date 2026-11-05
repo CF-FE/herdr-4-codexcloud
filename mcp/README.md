@@ -1,5 +1,7 @@
 # MCP 服务
 
+[hindsight-memory](hindsight-memory/README.md) 提供项目共享记忆的 Win stdio 代理、Mac LAN 客户端和受控 API 兜底；公网入口由指定部署仓独立维护。[实施合同](../docs/hindsight-memory-integration.md)拥有范围与验收要求。
+
 本仓提供 [project-coordinator-tools](project-coordinator-tools/README.md)：按单件冻结目标运行的 stdio 组织工具。它使用同一固定发布中的协调模块，不创建网络服务或默认启用任何宿主权限。已有技能使用目标宿主实际提供的工具，不隐式安装或共享其他仓库的服务。
 
 Task Mailbox 与 Mac 协调桥唯一维护于 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp)，个人 `create-network-sh` 只保留历史整合来源。固定来源见[逐文件清单](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/source-updates.json)，接入与迁移见[服务验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。本仓不保留服务实现副本或跨仓运行依赖。

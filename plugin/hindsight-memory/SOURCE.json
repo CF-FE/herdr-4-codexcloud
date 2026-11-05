@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "name": "hindsight-memory",
+  "version": "1.0.0",
+  "maintenance": "independent",
+  "source": {
+    "repository": "https://github.com/CF-FE/herdr-4-codexcloud",
+    "commit": "7d5a322b6859a657a0084d45da041daa5ec6e017",
+    "skill_version": "1.0.0",
+    "component_version": "1.0.1",
+    "files": [
+      {
+        "source_path": "skill/hindsight-memory/SKILL.md",
+        "package_path": "skills/hindsight-memory/SKILL.md",
+        "sha256": "d2aae91cddf1568c5e62a3ddb3005f63fd16376c85b97e2338aea12f013e18bd"
+      },
+      {
+        "source_path": "skill/hindsight-memory/SOURCE.json",
+        "package_path": "skills/hindsight-memory/SOURCE.json",
+        "sha256": "62dd414410be62f8beb3a5734c8dc882f2279382a06467a32f0ed981a9914267"
+      },
+      {
+        "source_path": "skill/hindsight-memory/LICENSE",
+        "package_path": "skills/hindsight-memory/LICENSE",
+        "sha256": "01fde0bedf83bdc185065d7af524a61690efe576a67f922eaff3a1280c17b63a"
+      }
+    ],
+    "copy_policy": "Byte-for-byte skill copy; no semantic changes."
+  },
+  "external_runtime": {
+    "target": "macOS Codex App and Codex CLI",
+    "client": "~/.config/hindsight/client.py",
+    "source_path": "mcp/hindsight-memory/mac_client.py",
+    "bundled": false,
+    "python": ">=3.9",
+    "launch": "scripts/launch.py uses os.execv with sys.executable and the deployed client path.",
+    "prerequisites": [
+      "The independently deployed Mac LAN client and its private configuration are present.",
+      "Existing SSH authentication, verified host key, network route and Hindsight service are available.",
+      "The active project has an explicitly confirmed project_id to bank_id binding."
+    ],
+    "ownership": "The MCP component owns SSH, configuration parsing and transport. Client fixes are deployed separately; the plugin does not copy that implementation."
+  }
+}

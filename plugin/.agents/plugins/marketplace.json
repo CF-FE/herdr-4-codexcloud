@@ -1,0 +1,20 @@
+{
+  "name": "cf-fe-herdr-local",
+  "interface": {
+    "displayName": "CF-FE 本地协作"
+  },
+  "plugins": [
+    {
+      "name": "hindsight-memory",
+      "source": {
+        "source": "local",
+        "path": "./hindsight-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

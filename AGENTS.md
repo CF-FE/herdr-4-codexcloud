@@ -2,7 +2,7 @@
 
 - 先读 [README](README.md) 和 [本仓状态](docs/status.md)；涉及范围或执行绑定时读 [架构](docs/architecture.md) 与 [试点指引](docs/pilot.md)。
 - 本仓独立维护。需要复用时复制明确版本并记录来源；不建立软链接、子模块、跨仓库导入、共享运行目录或自动同步。
-- 能力源码按 `skill/<id>/`、`mcp/<id>/` 归属；`plugin/<id>/` 仅在存在明确分发目标时新增。受限组织工具位于 `mcp/project-coordinator-tools/`，使用同一固定发布的协调模块；源码存在不代表宿主启用。`plugin/` 当前只有索引，不虚构分发清单。
+- 能力源码按 `skill/<id>/`、`mcp/<id>/` 归属；`plugin/<id>/` 仅在存在明确分发目标时新增。受限组织工具位于 `mcp/project-coordinator-tools/`，使用同一固定发布的协调模块；源码存在不代表宿主启用。`plugin/` 包含 Hindsight 本地分发及 marketplace 元数据，按其 README 核安装与实际工具加载，不手改宿主缓存。
 - 组织协作任务按需读取 [组织技能](skill/organization-collaboration/SKILL.md)，复用公子及当前任务已明确的职责与授权；本仓文件不任命参与者。Projects 操作按 [对应技能](skill/github-projects-operations/SKILL.md) 和当前工具 schema 执行。
 - 云端Dot、协调层与 Cloud 路由按[协作约定](docs/coordination-policy.md)执行：完整目标优先交协调层；独立小迭代可依用户授权直派，仍保留项目归属、唯一派发与证据验收。协调员的广泛组织调度权不等于系统权限；`QUERY_BLOCKER` 不能承接目标或触发 Cloud。新的受控目标合同见[完整目标交办](docs/goal-handoff.md)，不能据源码存在推定宿主准入或真实执行已验。
 - 历史称呼沿用云端Dot的参与者关联，原生身份与权限仍按本次任务核验。见[全局角色名称映射](docs/coordination-policy.md#全局角色名称映射)。

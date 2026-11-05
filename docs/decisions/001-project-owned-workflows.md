@@ -18,3 +18,5 @@
 Deer 的 `create` 将设计固化成源码，`run` 重用源码，值得借鉴。直接采用其 Runner 可以得到现成的并发和事件，但其运行 ID 按调用生成，示例会过滤失败项，项目仍要自行处理原任务恢复和缺项。组织统一托管每个流程也方便集中升级，却会使项目运行依赖协调仓发布。首版选择源码生成，代价是公共修正要由各项目自行选取。等两个项目确实重复维护同一执行能力，再根据实际维护成本提取版本化库。[Deer 创建入口](https://github.com/deerwork-ai/deer-workflow/blob/b208230/src/cli/create.ts) · [Deer 工作流实现](https://github.com/deerwork-ai/deer-workflow/blob/b208230/src/flow/workflow.ts)
 
 具体接口、工程分工和验收见[开发文档](../project-workflow-development.md)。
+
+2026-11-05 补充：[ADR-002](002-shared-project-memory.md)细化共享记忆的存储与接入；正式规范及版本化入口仍归项目仓，可检索经验使用项目 bank，不要求两份手工维护。本文其余工作流和职责决定继续有效。
