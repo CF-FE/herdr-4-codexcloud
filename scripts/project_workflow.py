@@ -190,9 +190,10 @@ def workflow_readme(definition, existing):
                   "- 责任岗位、接手方及实时 Issue / Project：由项目在本块外补充；规格未定义。",
                   f"- 项目共同记忆：[阅读入口](../{quote(definition['memory'], safe='/')})。",
                   f"- 源码：[definition.py]({workflow}/definition.py) · [workflow.py]({workflow}/workflow.py)。",
-                  "", "从项目根目录运行（替换原任务、输入和检查点路径）：", "", "```bash",
-                  f"python3 workflows/{workflow}/workflow.py --state RUN.sqlite3 start --task TASK --input input.json",
-                  f"python3 workflows/{workflow}/workflow.py --state RUN.sqlite3 status", "```", block_start.replace(":start", ":end")))
+                  "", "从项目根目录运行（检查点存放在仓库外私有绝对路径；替换原任务与输入）：", "", "```bash",
+                  'RUN="$(mktemp -d /tmp/project-workflow.XXXXXX)/run.sqlite3"',
+                  f'python3 workflows/{workflow}/workflow.py --state "$RUN" start --task TASK --input input.json',
+                  f'python3 workflows/{workflow}/workflow.py --state "$RUN" status', "```", block_start.replace(":start", ":end")))
     return document + "\n\n" + "\n".join(lines) + "\n"
 
 
@@ -206,12 +207,6 @@ def initialize(repo, spec, operations=None):
     if parent.is_symlink():
         raise ValueError("Project workflows directory cannot be a symlink")
     target = parent / definition["workflow"]
-    if os.path.lexists(target):
-        raise FileExistsError(f"Workflow already exists: {target}")
-    readme = parent / "README.md"
-    if readme.is_symlink():
-        raise ValueError("Project workflows README cannot be a symlink")
-    readme_source = workflow_readme(definition, readme.read_text(encoding="utf-8") if readme.exists() else "")
     runner = Path(__file__).with_name("project_workflow_template.py").read_bytes()
     source = ("# Project-owned workflow definition. Edit this file to change future runs.\n"
               "DEFINITION = " + pformat(definition, sort_dicts=False, width=100) + "\n")
@@ -223,19 +218,47 @@ def initialize(repo, spec, operations=None):
             source = "# coding: utf-8\n" + module.read() + "\n\n" + source
         compile(source, str(target / "definition.py"), "exec", dont_inherit=True)
     parent.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=".workflow-init-", dir=parent) as temp:
-        ready = Path(temp) / "workflow"
-        ready.mkdir()
-        (ready / "definition.py").write_text(source, encoding="utf-8")
-        (ready / "workflow.py").write_bytes(runner)
-        staged_readme = Path(temp) / "README.md"
-        staged_readme.write_text(readme_source, encoding="utf-8")
-        if os.path.lexists(target):
-            raise FileExistsError(f"Workflow already exists: {target}")
-        # Both files become visible together. A competing generator publishes a nonempty directory.
-        ready.rename(target)
-        staged_readme.replace(readme)
-    return {"project": definition["project"], "workflow": definition["workflow"], "directory": str(target)}
+    lock = parent / ".init.lock"
+    try:
+        lock.mkdir()
+    except FileExistsError as error:
+        raise ValueError(f"Workflow init busy: {lock}; confirm prior init has stopped before removing a stale lock") from error
+    try:
+        readme = parent / "README.md"
+        if readme.is_symlink():
+            raise ValueError("Project workflows README cannot be a symlink")
+        original = readme.read_bytes() if readme.exists() else None
+        existing = original.decode("utf-8") if original is not None else ""
+        recover = os.path.lexists(target)
+        if recover:
+            expected = {"definition.py": source.encode("utf-8"), "workflow.py": runner}
+            if (target.is_symlink() or not target.is_dir()
+                    or f'<!-- workflow:{definition["workflow"]}:start -->' in existing
+                    or any((target / filename).is_symlink() or not (target / filename).is_file()
+                           or (target / filename).read_bytes() != content for filename, content in expected.items())):
+                raise FileExistsError(f"Workflow already exists: {target}")
+        readme_source = workflow_readme(definition, existing)
+        with tempfile.TemporaryDirectory(prefix=".workflow-init-", dir=parent) as temp:
+            staged_readme = Path(temp) / "README.md"
+            staged_readme.write_text(readme_source, encoding="utf-8")
+            if not recover:
+                ready = Path(temp) / "workflow"
+                ready.mkdir()
+                (ready / "definition.py").write_text(source, encoding="utf-8")
+                (ready / "workflow.py").write_bytes(runner)
+                # Publish both source files together; a later documentation failure can be repaired.
+                ready.rename(target)
+            try:
+                if readme.is_symlink() or (readme.read_bytes() if readme.exists() else None) != original:
+                    raise OSError("README changed during initialization; project edits were preserved")
+                staged_readme.replace(readme)
+            except OSError as error:
+                raise ValueError(f"Workflow source is published at {target}, but README update failed: {error}; "
+                                 "rerun the same init to repair only the missing README entry") from error
+    finally:
+        lock.rmdir()
+    return {"project": definition["project"], "workflow": definition["workflow"], "directory": str(target),
+            "readme_recovered": recover}
 
 
 def main(argv=None):
