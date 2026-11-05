@@ -1,10 +1,27 @@
 # 本仓当前状态
 
-本页维护 Herdr 项目的当前采用摘要。最近一次宿主部署于 **2026-11-04（北京时间）** 完成。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
+本页维护 Herdr 项目的当前采用摘要。最近一次共享记忆部署对齐核验于 **2026-11-05（北京时间）** 完成；协调员与 Mac 桥原部署记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
 
 ## 当前结论
 
-**2026-11-05，共享项目记忆方案已采纳并进入实施交办。** 复用 Win Hindsight、`vps-vultr` 和既有 EasyTier，覆盖本地 Harness、云端Dot及 Codex Cloud。此项是开发与接入范围，不表示公网或各云端实际调用已经通过；统一验收按[实施文档](hindsight-memory-integration.md)回填，设计取舍见[ADR-002](decisions/002-shared-project-memory.md)。
+**2026-11-05，Hindsight 代码已合并，Mac 与 VPS 运行文件已对齐 main，只读调用通过。** Herdr [PR #14](https://github.com/CF-FE/herdr-4-codexcloud/pull/14) 合并版本为 `84a68b2`，VPS [PR #1](https://github.com/ghyghoo8/create-network-sh/pull/1) 合并版本为 `da3356f`。已部署文件与两仓 main 一致，保留原安装来源，不为修改来源标签重启服务。[部署核验原记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6655425331)
+
+| 接入部分 | 已核结果 | 仍需区分 |
+| --- | --- | --- |
+| Mac Codex 本地插件／LAN 客户端 | 客户端及插件缓存共 11 文件与 Herdr main 一致，插件已安装启用；18:12:10 从实际安装入口发现 39 工具，`list_banks` 只读成功 | 已打开会话是否加载、项目经验召回和写入分别取证，不由包内入口检查代验 |
+| VPS Hindsight 入口 | 19 个发布文件和 systemd unit 与 VPS 仓 main 一致；原固定发布 `3daaa98` 进程运行，云端 OAuth MCP 成功读取原项目操作 | 固定发布名早于 merge 提交，但文件相同；此次核验未改运行字节、配置、OAuth 或 JWT |
+| 云端Dot／Codex Cloud | 云端Dot已有项目级只读回执；公子随后回报云端客户端完成成功样本读取并提交新写入，新操作与文档已独立核为完成、可读 | 云端提交来源为公子回报；该样本不代证所有客户端或 Codex Cloud saved environment 的完整作业采用 |
+| Win Web 管理端 | 官方 Control Plane 1.2.0 已安装，已有 bank、配置和原操作页面检查通过；Ctrl+C 后 UI 关闭、原后端保留 | 脚本前台手动启停，不自启、不隐藏后台。UI 源码新增尚未包含在上述 main 对齐回执中 |
+
+Web 启动脚本为 `D:\Hindsight\scripts\Start-HindsightUI.cmd`，本机访问 `http://localhost:9999`；Mac 经现有 LAN SSH 隧道访问。完整操作只维护于[管理端说明](../mcp/hindsight-memory/control-plane/README.md)。本页采用的是安装侧原生回执，UI 当前按需关闭，不把安装完成等同于常驻服务。
+
+**SYSTEM 代理缺口已修复，提取与读回已恢复。** 18:35:39（北京时间）重载 API 后，原生进程环境已确认代理生效；PG、BGE、模型、凭据与重试预算保留。复用获准的 Skill 重试取得首个成功样本，未另发提取测试。[修复与首项成功回执](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6655961110)
+
+截至 18:55:49，公子指定的 27 个 Skill、40 个源文件均已导入本项目 bank；27 项提取及子操作全部 `completed`，共 1,515 条记忆，原文、来源版本与 SHA-256 全部读回一致。自然语言召回在不含 Skill 名称、不加文档过滤时命中目标 Skill，首项排名第 3；排序仍有噪声。后台自动整合与来源文档提取分开记录，不把 1,515 当作长期固定计数。
+
+公子回报由云端提交的新操作 `bdd6bfea-0d24-4b52-884d-c1ded7869863` 于 18:59:08 完成，父子操作无错误；原文与来源读回一致，实际提取 1 条记忆。最初的 `9856142e…` 及 Skill 首次尝试 `0dded0a4…` 仍保留历史 `failed`，修复不会自动重跑旧操作。上述回执沿 [Issue #13](https://github.com/CF-FE/herdr-4-codexcloud/issues/13)维护；各 Harness 原生采用及长期稳定性在自然任务中补充，不追加本轮测试。
+
+协议、角色分工和统一验收见[实施文档](hindsight-memory-integration.md)，设计取舍见[ADR-002](decisions/002-shared-project-memory.md)，分享材料见[图集](share-doc/README.md)。
 
 Mac 日常原生交办有独立的[原任务待办与恢复入口](project-coordinator.md#native-followups)。现任协调员可登记待决定事项，角色恢复时查未结项，依据对应岗位的原生决定结单。专用提醒程序需要在已绑定的 Herdr 宿主启用；现场生产与成果验收仍以项目原单为准。
 

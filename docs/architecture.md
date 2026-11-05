@@ -16,15 +16,19 @@
 
 **向下交办。** 公子和云端Dot是需求与汇报终端。下游分协调组织与执行两层。协调员统筹各项目；现任负责人决定本项目怎么做、派给谁、怎样验。图中的机器名表示 Worker 的运行位置，同一机器可有多个按任务绑定的 Agent。当前有哪些环境、各自验证过哪些工具和模型，查 [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)；新增同类宿主沿用该入口。
 
+![Super-Agent 全局总览：终端、两层 Agent 与共享基础设施](share-doc/super-agent-architecture.svg)
+
+上图是稳定职责与当前组件的总览；以下分别展开交办、回收和记忆路径。PPT 使用的 SVG／高清 PNG 及讲解顺序见[分享图索引](share-doc/README.md)。云端Dot负责需求验证、交办与向公子汇报，交付成果的业务验收由现任项目负责人或本单指定验收者作出。
+
 ```mermaid
 graph TD
-    subgraph 第一层 需求与决策入口
+    subgraph 需求与汇报终端
         U["公子"] -->|"目标、授权与取舍"| D["云端Dot<br/>验证需求、指派验收者、发起委派"]
     end
-    subgraph 第二层 协调组织 Mac Herdr
+    subgraph 第一层 协调组织 Mac Herdr
         C["项目协调员<br/>统筹负责人、资源与路线"] -->|"联系现任者，核接手"| O["项目负责人<br/>分工、组织复核、默认验收"]
     end
-    subgraph 第三层 Worker 执行
+    subgraph 第二层 Worker 执行
         M["Mac 本机 Herdr<br/>绑定的本地 Agent"]
         W["Win Herdr<br/>目标 Agent 或命令 pane"]
         X["Codex Cloud 作业<br/>原生 task ID"]
@@ -75,22 +79,33 @@ graph TD
 
 源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
 
+### 项目自有动态工作流
+
+每个项目由现任负责人初始化和迭代 `workflows/`，集合入口为 `workflows/README.md`，流程代码与项目规范一起版本化。**程序负责执行，模型负责决策**：确定规则直接运行，需要新判断时保存检查点并交对口角色决定；跨 Worker 交接沿原生动作与成果回执恢复。负责人按任务能力、资产位置和接手成本安排 Worker，项目内适合时复用，跨项目优先复制明确版本并建立独立绑定。
+
+工作流运行检查点保留在执行侧私有状态目录，GitHub Project／Issue 记录项目进度与验收，Task Mailbox 回收原单进展；Hindsight 为接手和判断提供带来源背景。程序结束、Worker 自检和负责人业务验收分别记录。[流程生成与交接](project-workflow-development.md) · [设计依据](decisions/001-project-owned-workflows.md) · [分享图](share-doc/project-workflow.svg)
+
 ### 项目共享记忆
 
-Hindsight 为上述角色提供按项目共享的经验与背景，不承担派发或验收。仓库拥有正式规范及记忆入口，原检查点拥有执行状态；必要上下文随任务保存，在线召回失败不阻断已有确定性步骤。以下是 2026-11-05 已采纳的接入方案，各端实际采用另验。
+Hindsight 为上述角色提供按项目共享的经验与背景，不承担派发或验收。仓库拥有正式规范及记忆入口，原检查点拥有执行状态；必要上下文随任务保存，在线召回失败不阻断已有确定性步骤。Mac 与 VPS 的运行文件已按 2026-11-05 main 核对，实际读取、修复后的提取与来源文档读回已有成功样本；各客户端采用和 Codex Cloud 托管作业的证据分别见[状态总表](status.md#当前结论)。
 
 ```mermaid
 flowchart LR
-    D["云端Dot"] -->|"HTTPS / MCP"| V["vps-vultr · 接入与转发"]
-    C["Codex Cloud"] -->|"HTTPS / MCP"| V
-    V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理"]
-    A["Herdr 内实际 Harness"] -->|"本机或局域网 SSH 承载 MCP"| M
-    M --> H["Win Hindsight · 项目 bank"]
+    D["云端Dot · 项目只读调用已验"] -->|"HTTPS MCP / OAuth"| V["vps-vultr · 认证与薄适配"]
+    C["Codex Cloud · 托管作业逐单核采用"] -.->|"首选 MCP，获准 API 兜底"| V
+    V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理 / API relay"]
+    A["Mac Codex App / CLI 插件<br/>其他实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| M
+    W["Win 实际 Harness"] -->|"本机 stdio MCP"| M
+    M -->|"loopback MCP / API"| H["Win Hindsight · 项目 bank"]
+    B["浏览器"] -->|"本机访问；Mac 用 LAN SSH 隧道"| UI["Win Web 管理端<br/>脚本前台启动 · Ctrl+C 关闭"]
+    UI -->|"服务端复用原认证"| H
     R["项目仓 · 正式规范与记忆入口"] --> T["原任务上下文与检查点"]
     H -."按需召回，采用内容留原任务".-> T
 ```
 
 VPS 不复制记忆数据库。图示为首选 MCP 路径；公子允许 Hindsight API 兜底，沿同一已认证入口与原 Win 服务，采用方式分别记录。超时、重试和协议切换共用总预算，不把 API 切换当作 EasyTier 断网的修复。角色读写、薄适配与集中验收见[共享记忆实施文档](hindsight-memory-integration.md)，[ADR-002](decisions/002-shared-project-memory.md)保留取舍。
+
+Web 管理端是按需使用的浏览和配置入口：在 Win 可见终端通过脚本运行、显示实时日志，Ctrl+C 关闭；不配置开机启动、隐藏后台或守护。它复用原 Hindsight API 与 tenant 权限，关闭 UI 后原后端继续运行。管理端只监听 loopback，Mac 经已有 LAN SSH 隧道浏览，不经过 VPS。启动脚本和端口配置只在[管理端说明](../mcp/hindsight-memory/control-plane/README.md)维护。
 
 <a id="当前部署与待评估简化"></a>
 
@@ -120,6 +135,8 @@ Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动
 
 以下描述部署归属；实际版本、能力回合和运行状态由[能力盘点](local-agent-inventory.md)、[状态总表](status.md)及各组件权威记录更新。
 
+环境是可扩展的执行资源，Mac／Win 是当前实例，不是固定上限。新增 `linux-herdr` 等环境时，沿组织环境能力看板登记稳定环境身份、可联系入口、实际工具／模型、资产位置和最近验证时间，再由负责人按任务选用。安装 FFmpeg、本地模型或新增能力时更新对应能力卡；稳定调用合同和组件归属变化才更新仓库架构。
+
 ### 三机部署速查
 
 | 组件 | mac-work | VPS | win-work |
@@ -128,6 +145,8 @@ Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动
 | Agent CLI | 复用既有 Codex／Kimi | 不部署项目 Lead、模型或桌面 Agent | 本轮候选 OMP／Hermes／Kimi；Windows Codex 暂不纳入 |
 | HerdrExecutionAdapter | 独立安装，显式控制获准 Mac 既有 Agent | 不部署 | 首版不支持 |
 | Task Mailbox／Mac 协调桥 | 专用桥及其 OAuth／台账／collector／hook | 独立信箱、SQLite、OAuth；保留原 Gitee 服务 | 不作为本轮执行接入前置 |
+| Hindsight 项目记忆 | Codex App／CLI 共享本地插件与 LAN 客户端；其他 Harness 分别配置 | 独立 HTTPS MCP／API 薄入口，经 EasyTier 到原 Win 服务 | 原 Hindsight、PostgreSQL、BGE 与 MCP 代理；按项目 bank 共享 |
+| Hindsight Web 管理端 | 浏览器经可见 LAN SSH 隧道按需访问 | 不承载 UI | 官方 Control Plane 1.2.0，脚本前台运行、Ctrl+C 关闭，不自启 |
 | ngrok／Caddy | 客户端使用 HTTPS | 复用公网入口并按服务分路 | 非机器执行前置 |
 | EasyTier | 不装；仅到 VPS 的主机路由经 Win | 2.6.4 私有节点／TUN | 2.6.4 节点／指定 Mac 主机代理／系统转发 |
 | SSH | 原客户端和身份，LAN 直连 Win | 服务端管理入口、旧支路客户端 | 接收连接的 sshd；出站客户端按任务需要 |
@@ -151,6 +170,8 @@ Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动
 ### VPS：MCP 服务与过渡控制
 
 VPS 承载独立 FastMCP 服务、Task Mailbox 持久状态和 ngrok／Caddy 接入；Gitee 保留原认证及路径。旧 Herdr CLI、profile、SSH 与 EasyTier 用于原任务对账，不常驻项目规划 Codex 或本地模型，不作为 Mac → Win 中转。服务维护、安装归属和容量见[VPS 专项指引](vps-control-pilot.md)。
+
+Hindsight 使用独立 HTTPS MCP／API 路由及认证，经既有 EasyTier／SSH 访问 Win；对应薄适配唯一维护于公子指定的 [ghyghoo8/create-network-sh/fastmcp/hindsight-memory](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory)。它与信箱分别部署，不复制数据库或模型。
 
 ### Codex Cloud：托管 Worker
 
@@ -184,6 +205,9 @@ Mac 持续在线是公子确认的部署前提；当前不建设离线接管、�
 | Worker／角色定义 | [worker-library](worker-library/README.md)，独立版本与资源正文 |
 | 技能及复制来源 | `skill/<id>/`、[初始清单](copy-manifest.json)、[增量记录](copy-updates.json) |
 | 信箱与 Mac 桥 | 外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) |
+| Hindsight 本地合同、Win 代理、Mac 客户端与 Web 启停脚本 | 本仓 [mcp/hindsight-memory](../mcp/hindsight-memory/README.md)；Mac Codex 分发在 [plugin/hindsight-memory](../plugin/hindsight-memory/README.md) |
+| Hindsight VPS 接入 | 指定的 [ghyghoo8/create-network-sh/fastmcp/hindsight-memory](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory) |
+| 项目工作流、规范与记忆入口／动态经验 | 各项目主仓 `workflows/` 及记忆入口／同项目 Hindsight bank；实时能力仍在组织环境能力看板 |
 | Gitee MCP 来源／项目业务资产 | 对应所属仓库；各项目正式状态仍留原入口 |
 
 `mcp/project-coordinator-tools/` 维护本仓受限 stdio 组织工具，依赖同一固定发布的协调模块；它不扩展外部 Task Mailbox 服务。`mcp/hindsight-memory/` 维护记忆客户端与 Win 代理，[Hindsight 本地插件](../plugin/hindsight-memory/README.md)为 Mac Codex App／CLI 统一分发 MCP 入口和 Skill。源码、安装与真实启用分别记证，新实现或分发须有实际需求和明确 owner。

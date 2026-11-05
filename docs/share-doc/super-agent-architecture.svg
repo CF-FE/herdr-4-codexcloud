@@ -1,206 +1,381 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2400" height="2260" viewBox="0 0 2400 2260" role="img" aria-labelledby="svg-title svg-desc">
-<title id="svg-title">Super-Agent 多项目协作系统分层架构</title>
-<desc id="svg-desc">总控层由 Dot 承担；Router 是 Dot 与项目 Lead 共同承担的逻辑职责，包含项目拆解、准入、任务包和执行路由；Worker 分为 Cloud、Mac、Win 三类。任务信箱与 Mac 协调桥提供数据交接，Git、Space、角色库和正式项目记录提供上下文。Mac 执行接入器正在实施，仅覆盖本地已有 Agent。箭头为职责和路径设计，不代表全链路业务验收。</desc>
-<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke"/></marker><marker id="arrowBack" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M 10 0 L 0 5 L 10 10 z" fill="context-stroke"/></marker></defs>
-<style>text {font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif} a {cursor:pointer}</style>
-<rect x="0" y="0" width="2400" height="2260" rx="0" fill="#f4f7f8"/>
-<text id="t0" x="80" y="79" font-size="25" font-weight="750" fill="#166c68" text-anchor="start">SUPER-AGENT</text>
-<text id="t1" x="80" y="142" font-size="51" font-weight="700" fill="#173047" text-anchor="start">多项目协作系统 · 分层架构</text>
-<text id="t2" x="80" y="185" font-size="27" font-weight="400" fill="#516475" text-anchor="start">统一目标与协调，按任务路由到不同 Worker，以实际产物和负责人验收闭环。</text>
-<text id="t3" x="2320" y="77" font-size="22" font-weight="500" fill="#516475" text-anchor="end">2026-11-03  /  对外分享版</text>
-<path d="M 1725 126 H 1780" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<text id="t4" x="1797" y="134" font-size="20" font-weight="400" fill="#516475" text-anchor="start">既定职责／路径</text>
-<path d="M 2025 126 H 2080" fill="none" stroke="#9b621b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="7 6" marker-end="url(#arrow)"/>
-<text id="t5" x="2097" y="134" font-size="20" font-weight="400" fill="#516475" text-anchor="start">实施中／待验</text>
-<text id="t6" x="2320" y="179" font-size="20" font-weight="400" fill="#516475" text-anchor="end">连线表示设计关系，验证范围以文字标注为准。</text>
-<rect x="80" y="230" width="1610" height="100" rx="18" fill="#e8eff3"/>
-<text id="t7" x="110" y="273" font-size="30" font-weight="650" fill="#173047" text-anchor="start">公子 / 项目业务负责人</text>
-<text id="t8" x="110" y="307" font-size="23" font-weight="400" fill="#516475" text-anchor="start">需求与授权的来源 · 最终业务采用与验收</text>
-<text id="t9" x="1655" y="272" font-size="27" font-weight="550" fill="#173047" text-anchor="end">目标  ·  范围  ·  预算  ·  验收标准</text>
-<text id="t10" x="1655" y="307" font-size="23" font-weight="400" fill="#516475" text-anchor="end">授权向下传递，结果与风险向上汇报</text>
-<path d="M 875 331 V 371" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
-<rect x="80" y="380" width="1610" height="220" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="80" y="380" width="7" height="220" rx="3" fill="#244d70"/>
-<text id="t11" x="110" y="425" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">01  总控与交互层  /  SUPER-AGENT FRONTEND</text>
-<text id="t12" x="110" y="462" font-size="22" font-weight="400" fill="#516475" text-anchor="start">当前映射：Dot · 面向用户的连续交互与跨项目协调</text>
-<rect x="110" y="483" width="480" height="90" rx="13" fill="#f5f8fa"/>
-<text id="t13" x="134" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">理解目标与上下文</text>
-<text id="t14" x="134" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">识别项目 · 关联输入 · 明确优先级</text>
-<rect x="630" y="483" width="480" height="90" rx="13" fill="#f5f8fa"/>
-<text id="t15" x="654" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">跨项目统筹</text>
-<text id="t16" x="654" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">协调依赖 · 资源冲突 · 总体进展</text>
-<rect x="1150" y="483" width="510" height="90" rx="13" fill="#f5f8fa"/>
-<text id="t17" x="1174" y="523" font-size="26" font-weight="650" fill="#173047" text-anchor="start">结果与风险汇总</text>
-<text id="t18" x="1174" y="560" font-size="22" font-weight="400" fill="#516475" text-anchor="start">整合回报 · 暴露阻塞 · 组织验收</text>
-<path d="M 875 601 V 644" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
-<rect x="900" y="609" width="420" height="28" rx="0" fill="#f4f7f8"/>
-<text id="t19" x="910" y="631" font-size="20" font-weight="400" fill="#516475" text-anchor="start">目标、约束与任务 / 进展、结果与风险</text>
-<rect x="80" y="650" width="1610" height="560" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="80" y="650" width="7" height="560" rx="3" fill="#166c68"/>
-<text id="t20" x="110" y="695" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">02  ROUTER 层  /  项目协调与执行路由</text>
-<text id="t21" x="110" y="732" font-size="22" font-weight="400" fill="#516475" text-anchor="start">逻辑职责由 Dot + 项目 Lead 承担；当前没有独立 Router 模型或常驻路由服务。</text>
-<rect x="110" y="758" width="480" height="143" rx="13" fill="#eef6f4"/>
-<text id="t22" x="134" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">任务分流与准入</text>
-<text id="t23" x="134" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">核项目、权限、资产位置与能力</text>
-<text id="t24" x="134" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">明确目标、预算与唯一写者</text>
-<rect x="630" y="758" width="480" height="143" rx="13" fill="#eef6f4"/>
-<text id="t25" x="654" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">项目 Lead · Mac</text>
-<text id="t26" x="654" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Herdr 托管的 Codex / Kimi CLI</text>
-<text id="t27" x="654" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">拆解任务、跟踪依赖、组织复核</text>
-<rect x="1150" y="758" width="510" height="143" rx="13" fill="#eef6f4"/>
-<text id="t28" x="1174" y="798" font-size="27" font-weight="650" fill="#166c68" text-anchor="start">任务包与执行关联</text>
-<text id="t29" x="1174" y="835" font-size="24" font-weight="400" fill="#516475" text-anchor="start">固定输入、角色、产物与验收要求</text>
-<text id="t30" x="1174" y="869" font-size="24" font-weight="400" fill="#516475" text-anchor="start">关联 job → intent → 原生执行引用</text>
-<path d="M 594 829 H 623" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M 1114 829 H 1143" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="110" y="922" width="1550" height="53" rx="10" fill="#e4f0ed"/>
-<text id="t31" x="134" y="956" font-size="24" font-weight="550" fill="#166c68" text-anchor="start">下发合同：任务 + 输入版本 + 角色 / 后端 + 权限 / 预算 + 明确目标 + 产物 / 汇报路径</text>
-<rect x="110" y="1005" width="480" height="176" rx="13" fill="#f3f6fa" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t32" x="134" y="1045" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Cloud 原生路由</text>
-<rect x="134" y="1062" width="164" height="32" rx="8" fill="#e6ecf8"/>
-<text id="t33" x="216.0" y="1085" font-size="19" font-weight="600" fill="#365cad" text-anchor="middle">沿原获准入口</text>
-<text id="t34" x="134" y="1127" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Dot → 原生 Cloud 任务</text>
-<text id="t35" x="134" y="1161" font-size="24" font-weight="400" fill="#516475" text-anchor="start">创建 / 续接沿云平台生命周期</text>
-<rect x="630" y="1005" width="480" height="176" rx="13" fill="#fff9ee" stroke="#d8bb84" stroke-width="1.5" stroke-dasharray="7 5"/>
-<text id="t36" x="654" y="1045" font-size="27" font-weight="650" fill="#9b621b" text-anchor="start">Mac 确定性执行接入器</text>
-<rect x="654" y="1062" width="294" height="32" rx="8" fill="#f9ebcf"/>
-<text id="t37" x="801.0" y="1085" font-size="19" font-weight="600" fill="#9b621b" text-anchor="middle">实施中 · 未完成真实验收</text>
-<text id="t38" x="654" y="1127" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Lead → Adapter → Herdr</text>
-<text id="t39" x="654" y="1161" font-size="23" font-weight="400" fill="#516475" text-anchor="start">核验 / 单次投递 / journal / 产物核对</text>
-<rect x="1150" y="1005" width="510" height="176" rx="13" fill="#f3f6fa" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t40" x="1174" y="1045" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Win 原生机器路由</text>
-<rect x="1174" y="1062" width="260" height="32" rx="8" fill="#e6ecf8"/>
-<text id="t41" x="1304.0" y="1085" font-size="19" font-weight="600" fill="#365cad" text-anchor="middle">连接已核 · 业务待验</text>
-<text id="t42" x="1174" y="1127" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Lead → Herdr saved machine</text>
-<text id="t43" x="1174" y="1161" font-size="24" font-weight="400" fill="#516475" text-anchor="start">LAN / SSH → Win collab</text>
-<path d="M 350 1182 V 1253" fill="none" stroke="#365cad" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<path d="M 870 1182 V 1253" fill="none" stroke="#9b621b" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
-<path d="M 1405 1182 V 1253" fill="none" stroke="#365cad" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="8 7" marker-end="url(#arrow)"/>
-<rect x="80" y="1260" width="1610" height="310" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="80" y="1260" width="7" height="310" rx="3" fill="#365cad"/>
-<text id="t44" x="110" y="1305" font-size="29" font-weight="650" fill="#365cad" text-anchor="start">03  WORKER 层  /  按任务组合的执行实例</text>
-<rect x="110" y="1340" width="480" height="168" rx="13" fill="#f5f8fa"/>
-<text id="t45" x="134" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Cloud Worker</text>
-<text id="t46" x="134" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Codex Cloud · 托管任务</text>
-<text id="t47" x="134" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">编码 / 测试 / 文档 / 独立复核</text>
-<text id="t48" x="134" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">工具、账号与资源权限按任务核验</text>
-<rect x="630" y="1340" width="480" height="168" rx="13" fill="#f5f8fa"/>
-<text id="t49" x="654" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Mac Worker</text>
-<text id="t50" x="654" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">Codex / Kimi · 既有 Herdr Agent</text>
-<text id="t51" x="654" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">本机实现 / 研究 / 复核</text>
-<text id="t52" x="654" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">首版 Adapter 仅覆盖这一类目标</text>
-<rect x="1150" y="1340" width="510" height="168" rx="13" fill="#f5f8fa"/>
-<text id="t53" x="1174" y="1380" font-size="27" font-weight="650" fill="#365cad" text-anchor="start">Win Worker</text>
-<text id="t54" x="1174" y="1417" font-size="23" font-weight="400" fill="#516475" text-anchor="start">OMP / Hermes / Kimi / 命令工具</text>
-<text id="t55" x="1174" y="1451" font-size="23" font-weight="400" fill="#516475" text-anchor="start">CPU / GPU / 媒体 / 桌面相关任务</text>
-<text id="t56" x="1174" y="1485" font-size="23" font-weight="400" fill="#516475" text-anchor="start">真实能力、回收与业务产物分别验收</text>
-<text id="t57" x="110" y="1545" font-size="24" font-weight="400" fill="#516475" text-anchor="start">Worker = 宿主 + harness + 明确后端 + 专业角色 + 本次任务合同；角色数不等于进程数。</text>
-<path d="M 875 1571 V 1604" fill="none" stroke="#244d70" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="80" y="1610" width="1610" height="186" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="80" y="1610" width="7" height="186" rx="3" fill="#244d70"/>
-<text id="t58" x="110" y="1655" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">04  工具、模型与资产层  /  TOOLS · MODELS · ASSETS</text>
-<text id="t59" x="110" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">工具与服务</text>
-<text id="t60" x="110" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">MCP · Shell · Git · 制作工具</text>
-<text id="t61" x="630" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">模型与认证</text>
-<text id="t62" x="630" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">实际供应商 / 模型 / 认证 / 权限</text>
-<text id="t63" x="1150" y="1700" font-size="26" font-weight="650" fill="#173047" text-anchor="start">各执行端资产</text>
-<text id="t64" x="1150" y="1738" font-size="23" font-weight="400" fill="#516475" text-anchor="start">仓库 · 原件 · 模型 · 产物 / manifest</text>
-<text id="t65" x="110" y="1775" font-size="22" font-weight="400" fill="#516475" text-anchor="start">Win 的部分代理分支依赖 Mac CLI Proxy；大模型、原件和大产物保留在各自保管端。</text>
-<rect x="1740" y="230" width="580" height="489" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="1740" y="230" width="7" height="489" rx="3" fill="#244d70"/>
-<text id="t66" x="1770" y="275" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">共享上下文与事实来源</text>
-<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/issues/1" target="_blank">
-<text id="t67" x="1768" y="322" font-size="25" font-weight="650" fill="#173047" text-anchor="start">正式任务 · Issues / Projects</text>
-<text id="t68" x="1768" y="354" font-size="21" font-weight="400" fill="#516475" text-anchor="start">责任、状态、迭代与验收的正式入口</text>
-</a>
-<path d="M 1768 398 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<text id="t69" x="1768" y="418" font-size="25" font-weight="650" fill="#173047" text-anchor="start">协作空间 · ChatGPT Space</text>
-<text id="t70" x="1768" y="450" font-size="21" font-weight="400" fill="#516475" text-anchor="start">共享资料、交接与精选成果</text>
-<text id="t71" x="1768" y="478" font-size="21" font-weight="400" fill="#516475" text-anchor="start">按实际工具与资源权限访问</text>
-<path d="M 1768 494 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<text id="t72" x="1768" y="514" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Git · 固定版本</text>
-<text id="t73" x="1768" y="546" font-size="21" font-weight="400" fill="#516475" text-anchor="start">源码、项目合同、方法与交付版本</text>
-<text id="t74" x="1768" y="574" font-size="21" font-weight="400" fill="#516475" text-anchor="start">以 commit / 文件摘要定位</text>
-<path d="M 1768 590 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/tree/main/docs/worker-library" target="_blank">
-<text id="t75" x="1768" y="610" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Worker 库 + 专业角色库</text>
-<text id="t76" x="1768" y="642" font-size="21" font-weight="400" fill="#516475" text-anchor="start">离线选型与任务包准备</text>
-<text id="t77" x="1768" y="670" font-size="21" font-weight="400" fill="#516475" text-anchor="start">声明能力需预检；模板不代表可用实例</text>
-</a>
-<path d="M 1739 688 H 1698" fill="none" stroke="#516475" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" marker-end="url(#arrow)"/>
-<rect x="1740" y="760" width="580" height="665" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="1740" y="760" width="7" height="665" rx="3" fill="#166c68"/>
-<text id="t78" x="1770" y="805" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">消息与事件交接 · 支撑层</text>
-<text id="t79" x="1770" y="842" font-size="22" font-weight="400" fill="#516475" text-anchor="start">连接总控与 Mac Lead，承载任务与小结果。</text>
-<rect x="1768" y="854" width="524" height="86" rx="13" fill="#eef6f4"/>
-<text id="t80" x="1792" y="894" font-size="24" font-weight="650" fill="#173047" text-anchor="start">获准云端客户端</text>
-<text id="t81" x="1792" y="931" font-size="20" font-weight="400" fill="#516475" text-anchor="start">Dot / 桌面 App；Cloud 为条件接入</text>
-<path d="M 2030 942 V 983" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
-<text id="t82" x="2052" y="969" font-size="19" font-weight="400" fill="#516475" text-anchor="start">OAuth / HTTPS</text>
-<rect x="1768" y="990" width="524" height="115" rx="13" fill="#eef6f4"/>
-<text id="t83" x="1792" y="1030" font-size="25" font-weight="650" fill="#173047" text-anchor="start">VPS · Task Mailbox</text>
-<text id="t84" x="1792" y="1067" font-size="21" font-weight="400" fill="#516475" text-anchor="start">ngrok → Caddy → FastMCP / SQLite</text>
-<text id="t85" x="1792" y="1101" font-size="21" font-weight="400" fill="#516475" text-anchor="start">持久 job / event / 小结果 / 版本 / ACK</text>
-<path d="M 2030 1108 V 1155" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)" marker-start="url(#arrowBack)"/>
-<text id="t86" x="2052" y="1137" font-size="19" font-weight="400" fill="#516475" text-anchor="start">主动轮询 / 补传</text>
-<rect x="1768" y="1162" width="524" height="115" rx="13" fill="#eef6f4"/>
-<text id="t87" x="1792" y="1202" font-size="25" font-weight="650" fill="#173047" text-anchor="start">Mac 协调桥 · 已部署</text>
-<text id="t88" x="1792" y="1239" font-size="21" font-weight="400" fill="#516475" text-anchor="start">collector + 本地台账 + Codex hooks</text>
-<text id="t89" x="1792" y="1273" font-size="21" font-weight="400" fill="#516475" text-anchor="start">会话提示 / 显式绑定 / 持久 outbox</text>
-<text id="t90" x="1768" y="1314" font-size="21" font-weight="550" fill="#9b621b" text-anchor="start">→ Lead 显式承接；完整任务经获准入口读取</text>
-<text id="t91" x="1768" y="1349" font-size="21" font-weight="400" fill="#516475" text-anchor="start">收件和 ACK 不代表 Agent 执行或业务验收。</text>
-<path d="M 1768 1370 H 2292" fill="none" stroke="#d7e0e6" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
-<text id="t92" x="1768" y="1399" font-size="20" font-weight="400" fill="#516475" text-anchor="start">另有 Dot 原生 Mac 任务入口，Herdr 承接待验。</text>
-<rect x="1740" y="1460" width="580" height="336" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="1740" y="1460" width="7" height="336" rx="3" fill="#244d70"/>
-<text id="t93" x="1770" y="1505" font-size="29" font-weight="650" fill="#244d70" text-anchor="start">部署与网络映射</text>
-<text id="t94" x="1768" y="1543" font-size="24" font-weight="650" fill="#173047" text-anchor="start">Mac：协调 + Herdr + CLI Proxy</text>
-<text id="t95" x="1768" y="1576" font-size="22" font-weight="400" fill="#516475" text-anchor="start">持续在线是当前部署前提。</text>
-<text id="t96" x="1768" y="1620" font-size="24" font-weight="650" fill="#173047" text-anchor="start">Mac → Win：LAN / SSH 直连</text>
-<text id="t97" x="1768" y="1653" font-size="21" font-weight="400" fill="#516475" text-anchor="start">Win：执行与本地资产；VPS 不作控制中转。</text>
-<text id="t98" x="1768" y="1697" font-size="24" font-weight="650" fill="#173047" text-anchor="start">VPS：信箱 + Gitee MCP + 网络</text>
-<text id="t99" x="1768" y="1730" font-size="22" font-weight="400" fill="#516475" text-anchor="start">公网 HTTPS；私网 EasyTier ↔ Win。</text>
-<text id="t100" x="1768" y="1771" font-size="21" font-weight="400" fill="#516475" text-anchor="start">Mac 不装 VPN；Cloud 收发信箱无需 VPN。</text>
-<rect x="80" y="1840" width="2240" height="170" rx="22" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<rect x="80" y="1840" width="7" height="170" rx="3" fill="#166c68"/>
-<text id="t101" x="110" y="1885" font-size="29" font-weight="650" fill="#166c68" text-anchor="start">结果闭环  /  执行状态 → 产物证据 → 负责人验收</text>
-<rect x="110" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
-<text id="t102" x="290.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">Worker 产物与自检</text>
-<path d="M 477 1938 H 506" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="514" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
-<text id="t103" x="694.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">独立复核（按任务）</text>
-<path d="M 881 1938 H 910" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="918" y="1914" width="360" height="48" rx="8" fill="#eef6f4"/>
-<text id="t104" x="1098.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">Lead 收集与核对</text>
-<path d="M 1285 1938 H 1314" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="1322" y="1914" width="410" height="48" rx="8" fill="#eef6f4"/>
-<text id="t105" x="1527.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">负责人验收 / 写权交还</text>
-<path d="M 1739 1938 H 1768" fill="none" stroke="#166c68" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" marker-end="url(#arrow)"/>
-<rect x="1776" y="1914" width="514" height="48" rx="8" fill="#eef6f4"/>
-<text id="t106" x="2033.0" y="1946" font-size="23" font-weight="550" fill="#166c68" text-anchor="middle">正式记录更新 → Dot 汇报</text>
-<text id="t107" x="110" y="1993" font-size="21" font-weight="400" fill="#516475" text-anchor="start">贯穿约束：一个执行只有一个控制入口与明确写者；UNKNOWN 沿原引用对账；取消请求、读取确认与验收分别取证。</text>
-<text id="t108" x="80" y="2046" font-size="27" font-weight="650" fill="#173047" text-anchor="start">代码与能力的维护归属</text>
-<text id="t109" x="2320" y="2046" font-size="22" font-weight="400" fill="#516475" text-anchor="end">独立维护 · 固定版本交接 · 无跨仓共享运行目录或自动同步</text>
-<a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud" target="_blank">
-<rect x="80" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t110" x="100" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/herdr-4-codexcloud</text>
-<text id="t111" x="100" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">协调契约 · Worker / 角色库 · 执行接入器</text>
-</a>
-<a xlink:href="https://github.com/CF-FE/task-mailbox-mcp" target="_blank">
-<rect x="650" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t112" x="670" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/task-mailbox-mcp</text>
-<text id="t113" x="670" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">VPS 信箱 · Mac 协调桥</text>
-</a>
-<a xlink:href="https://github.com/CF-FE/mymcp-4-codexcloud" target="_blank">
-<rect x="1220" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t114" x="1240" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">CF-FE/mymcp-4-codexcloud</text>
-<text id="t115" x="1240" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">通用协作技能与 MCP 来源</text>
-</a>
-<a xlink:href="https://github.com/ghyghoo8/create-network-sh" target="_blank">
-<rect x="1790" y="2070" width="530" height="95" rx="12" fill="white" stroke="#d7e0e6" stroke-width="1.5"/>
-<text id="t116" x="1810" y="2108" font-size="22" font-weight="650" fill="#244d70" text-anchor="start">ghyghoo8/create-network-sh</text>
-<text id="t117" x="1810" y="2144" font-size="20" font-weight="400" fill="#516475" text-anchor="start">历史整合来源；信箱维护已归独立仓</text>
-</a>
-<text id="t118" x="80" y="2208" font-size="21" font-weight="400" fill="#516475" text-anchor="start">来源：本仓架构与迭代指引、Worker 库、执行接入器设计及 Task Mailbox 文档；按 2026-11-03 读取快照整理。</text>
-<text id="t119" x="80" y="2241" font-size="21" font-weight="400" fill="#516475" text-anchor="start">范围：总览图呈现职责和设计路径；Adapter 实施中，Cloud 信箱接入、Herdr 业务闭环及长期运行仍需分别验收。</text>
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1152pt" height="648pt" viewBox="0 0 1152 648" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <title>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</title>
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:title>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</dc:title>
+    <dc:date>2026-11-05</dc:date>
+    <dc:description>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</dc:description>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>CF-FE</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 648
+L 1152 648
+L 1152 0
+L 0 0
+z
+" style="fill: #f6f8fa"/>
+  </g>
+  <g id="axes_1">
+   <g id="line2d_1">
+    <path d="M 46.08 603.36
+L 1105.92 603.36
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #ccd7df; stroke-width: 0.9; stroke-linecap: square"/>
+   </g>
+   <g id="patch_2">
+    <path d="M 188.64 140.4
+L 427.68 140.4
+Q 437.76 140.4 437.76 150.48
+L 437.76 208.08
+Q 437.76 218.16 427.68 218.16
+L 188.64 218.16
+Q 178.56 218.16 178.56 208.08
+L 178.56 150.48
+Q 178.56 140.4 188.64 140.4
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 478.08 140.4
+L 1095.84 140.4
+Q 1105.92 140.4 1105.92 150.48
+L 1105.92 208.08
+Q 1105.92 218.16 1095.84 218.16
+L 478.08 218.16
+Q 468 218.16 468 208.08
+L 468 150.48
+Q 468 140.4 478.08 140.4
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 188.64 252
+L 1095.84 252
+Q 1105.92 252 1105.92 262.08
+L 1105.92 401.04
+Q 1105.92 411.12 1095.84 411.12
+L 188.64 411.12
+Q 178.56 411.12 178.56 401.04
+L 178.56 262.08
+Q 178.56 252 188.64 252
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #eaf5f1; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 204.48 268.56
+L 439.2 268.56
+Q 449.28 268.56 449.28 278.64
+L 449.28 341.28
+Q 449.28 351.36 439.2 351.36
+L 204.48 351.36
+Q 194.4 351.36 194.4 341.28
+L 194.4 278.64
+Q 194.4 268.56 204.48 268.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 487.44 268.56
+L 877.68 268.56
+Q 887.76 268.56 887.76 278.64
+L 887.76 341.28
+Q 887.76 351.36 877.68 351.36
+L 487.44 351.36
+Q 477.36 351.36 477.36 341.28
+L 477.36 278.64
+Q 477.36 268.56 487.44 268.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_7">
+    <path d="M 925.92 268.56
+L 1080 268.56
+Q 1090.08 268.56 1090.08 278.64
+L 1090.08 341.28
+Q 1090.08 351.36 1080 351.36
+L 925.92 351.36
+Q 915.84 351.36 915.84 341.28
+L 915.84 278.64
+Q 915.84 268.56 925.92 268.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_8">
+    <path d="M 188.64 445.68
+L 456.48 445.68
+Q 466.56 445.68 466.56 455.76
+L 466.56 524.88
+Q 466.56 534.96 456.48 534.96
+L 188.64 534.96
+Q 178.56 534.96 178.56 524.88
+L 178.56 455.76
+Q 178.56 445.68 188.64 445.68
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_9">
+    <path d="M 505.44 445.68
+L 773.28 445.68
+Q 783.36 445.68 783.36 455.76
+L 783.36 524.88
+Q 783.36 534.96 773.28 534.96
+L 505.44 534.96
+Q 495.36 534.96 495.36 524.88
+L 495.36 455.76
+Q 495.36 445.68 505.44 445.68
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_10">
+    <path d="M 822.24 445.68
+L 1095.84 445.68
+Q 1105.92 445.68 1105.92 455.76
+L 1105.92 524.88
+Q 1105.92 534.96 1095.84 534.96
+L 822.24 534.96
+Q 812.16 534.96 812.16 524.88
+L 812.16 455.76
+Q 812.16 445.68 822.24 445.68
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_11">
+    <path d="M 188.64 556.56
+L 456.48 556.56
+Q 466.56 556.56 466.56 566.64
+L 466.56 580.32
+Q 466.56 590.4 456.48 590.4
+L 188.64 590.4
+Q 178.56 590.4 178.56 580.32
+L 178.56 566.64
+Q 178.56 556.56 188.64 556.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_12">
+    <path d="M 505.44 556.56
+L 773.28 556.56
+Q 783.36 556.56 783.36 566.64
+L 783.36 580.32
+Q 783.36 590.4 773.28 590.4
+L 505.44 590.4
+Q 495.36 590.4 495.36 580.32
+L 495.36 566.64
+Q 495.36 556.56 505.44 556.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_13">
+    <path d="M 822.24 556.56
+L 1095.84 556.56
+Q 1105.92 556.56 1105.92 566.64
+L 1105.92 580.32
+Q 1105.92 590.4 1095.84 590.4
+L 822.24 590.4
+Q 812.16 590.4 812.16 580.32
+L 812.16 566.64
+Q 812.16 556.56 822.24 556.56
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 441.91916 179.28
+Q 452.159303 179.28 460.386986 179.28
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 455.186986 176.68
+L 460.386986 179.28
+L 455.186986 181.88
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_15">
+    <path d="M 784.8 222.318369
+Q 784.8 234.357882 784.8 244.384933
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 787.4 239.184933
+L 784.8 244.384933
+L 782.2 239.184933
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_16">
+    <path d="M 452.722588 308.88
+Q 461.881792 308.88 469.028536 308.88
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 463.828536 306.28
+L 469.028536 308.88
+L 463.828536 311.48
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_17">
+    <path d="M 891.202588 308.88
+Q 900.361792 308.88 907.508536 308.88
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 902.308536 306.28
+L 907.508536 308.88
+L 902.308536 311.48
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_18">
+    <path d="M 681.84 412.56
+L 681.84 427.68
+L 322.56 427.68
+L 322.56 440.067539
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 325.16 434.867539
+L 322.56 440.067539
+L 319.96 434.867539
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_19">
+    <path d="M 681.84 427.68
+L 639.36 427.68
+L 639.36 440.067539
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 641.96 434.867539
+L 639.36 440.067539
+L 636.76 434.867539
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_20">
+    <path d="M 1002.96 414.559951
+Q 1002.96 427.32056 1002.96 438.068707
+" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 1005.56 432.868707
+L 1002.96 438.068707
+L 1000.36 432.868707
+z
+" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="text_1">
+    <text style="fill: #137f75; font: 700 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="37.2744" transform="rotate(-0 46.08 37.2744)">SUPER-AGENT  /  CF-FE</text>
+   </g>
+   <g id="text_2">
+    <text style="fill: #172f40; font: 700 30.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="82.392975" transform="rotate(-0 46.08 82.392975)">一套系统，职责明确的两层 Agent</text>
+   </g>
+   <g id="text_3">
+    <text style="fill: #526577; font: 15.84px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="115.837425" transform="rotate(-0 46.08 115.837425)">终端发起目标；协调层组织和验收；Worker 执行任务单元。</text>
+   </g>
+   <g id="text_4">
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end" x="1105.92" y="41.4576" transform="rotate(-0 1105.92 41.4576)">01 / 04</text>
+   </g>
+   <g id="text_5">
+    <a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/blob/main/docs/architecture.md">
+     <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="625.0464" transform="rotate(-0 46.08 625.0464)">依据：架构与状态文档 · 观测截至 2026-11-05 · 连线不代表全链路业务验收</text>
+    </a>
+   </g>
+   <g id="text_6">
+    <text style="fill: #137f75; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end" x="1105.92" y="625.5144" transform="rotate(-0 1105.92 625.5144)">程序负责执行 · 模型负责决策</text>
+   </g>
+   <g id="text_7">
+    <text style="fill: #345ed5; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="172.8072" transform="rotate(-0 46.08 172.8072)">需求与汇报终端</text>
+   </g>
+   <g id="text_8">
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="168.5232" transform="rotate(-0 194.4 168.5232)">公子</text>
+   </g>
+   <g id="text_9">
+    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="196.01325" transform="rotate(-0 194.4 196.01325)">目标 · 授权 · 关键取舍</text>
+   </g>
+   <g id="text_10">
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="483.84" y="168.5232" transform="rotate(-0 483.84 168.5232)">云端Dot</text>
+   </g>
+   <g id="text_11">
+    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="483.84" y="196.08525" transform="rotate(-0 483.84 196.08525)">调研与方案 · 委派 · 感知进展 · 向公子汇报；不承担业务验收</text>
+   </g>
+   <g id="text_12">
+    <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="799.2" y="234.6912" transform="rotate(-0 799.2 234.6912)">完整目标与验收标准</text>
+   </g>
+   <g id="text_13">
+    <text style="fill: #137f75; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="286.5672" transform="rotate(-0 46.08 286.5672)">01  协调组织层</text>
+   </g>
+   <g id="text_14">
+    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="312.3144" transform="rotate(-0 46.08 312.3144)">岗位由 Herdr 承载</text>
+   </g>
+   <g id="text_15">
+    <text style="fill: #137f75; font: 700 18px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="210.24" y="296.1" transform="rotate(-0 210.24 296.1)">项目协调员</text>
+   </g>
+   <g id="text_16">
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="210.24" y="322.9776" transform="rotate(-0 210.24 322.9776)">负责人 · 跨项目资源 · 执行路线</text>
+   </g>
+   <g id="text_17">
+    <text style="fill: #137f75; font: 700 18px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="493.2" y="296.1" transform="rotate(-0 493.2 296.1)">项目负责人 · 默认验收者</text>
+   </g>
+   <g id="text_18">
+    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="493.2" y="324.144" transform="rotate(-0 493.2 324.144)">细化任务 · 维护流程 · 安排 Worker · 核收成果</text>
+   </g>
+   <g id="text_19">
+    <text style="fill: #137f75; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="931.68" y="295.5168" transform="rotate(-0 931.68 295.5168)">Codex 路由</text>
+   </g>
+   <g id="text_20">
+    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(931.68 322.3944)">唯一原生提交者</text>
+    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(931.68 337.406377)">具体 Cloud 作业例外</text>
+   </g>
+   <g id="text_21">
+    <text style="fill: #137f75; font: 15.84px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="199.44" y="386.376975" transform="rotate(-0 199.44 386.376975)">项目自有 workflows/ 代码 + README  ·  程序执行确定步骤，模型处理新判断</text>
+   </g>
+   <g id="text_22">
+    <text style="fill: #345ed5; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="478.0872" transform="rotate(-0 46.08 478.0872)">02  Worker 层</text>
+   </g>
+   <g id="text_23">
+    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="503.1144" transform="rotate(-0 46.08 503.1144)">成果与原生证据交接</text>
+   </g>
+   <g id="text_24">
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="473.8032" transform="rotate(-0 194.4 473.8032)">mac-herdr</text>
+   </g>
+   <g id="text_25">
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(194.4 500.845387)">本地 Agent · Codex 主力</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(194.4 517.62348)">开发、工具与项目资产</text>
+   </g>
+   <g id="text_26">
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="511.2" y="473.8032" transform="rotate(-0 511.2 473.8032)">win-herdr</text>
+   </g>
+   <g id="text_27">
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(511.2 500.830425)">本地 Agent · 媒体执行</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(511.2 517.738371)">FFmpeg、本地模型与项目资产</text>
+   </g>
+   <g id="text_28">
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="828" y="473.8032" transform="rotate(-0 828 473.8032)">Codex Cloud</text>
+   </g>
+   <g id="text_29">
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(828 500.6808)">按授权建立托管作业</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(828 517.643573)">任务 ID 关联产物与回传</text>
+   </g>
+   <g id="text_30">
+    <text style="fill: #526577; font: 700 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="579.8808" transform="rotate(-0 46.08 579.8808)">共享基础设施</text>
+   </g>
+   <g id="text_31">
+    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="581.184" transform="rotate(-0 194.4 581.184)">Task Mailbox · 单件进展</text>
+   </g>
+   <g id="text_32">
+    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="511.2" y="581.184" transform="rotate(-0 511.2 581.184)">GitHub Project · 项目与能力</text>
+   </g>
+   <g id="text_33">
+    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="828" y="581.29875" transform="rotate(-0 828 581.29875)">Hindsight · 项目共享经验</text>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p9e7b6d9dd5">
+   <rect x="0" y="0" width="1152" height="648"/>
+  </clipPath>
+ </defs>
 </svg>

@@ -1,6 +1,6 @@
 # Hindsight 项目共享记忆接入与实施
 
-2026-11-05 · 方案已采纳，实施与验收分别记载。公子授权由现有 Hindsight 实施会话主责、连通性维护会话协助，原审核窗口负责工程审核验收；复用 `vps-vultr` 与已有 VPS ↔ win-work EasyTier，将云端Dot和 Codex Cloud 纳入接入范围。[ADR-002](decisions/002-shared-project-memory.md)记录取舍；本页拥有合同、分工与验收要求。
+2026-11-05 · Mac／VPS main 对齐、实际读取、代理修复后的提取及来源文档读回已核；各 Harness 和 Codex Cloud 托管作业的采用分别记录。公子授权由现有 Hindsight 实施会话主责、连通性维护会话协助，原审核窗口负责工程审核验收；复用 `vps-vultr` 与已有 VPS ↔ win-work EasyTier，将云端Dot和 Codex Cloud 纳入接入范围。[ADR-002](decisions/002-shared-project-memory.md)记录取舍；本页拥有合同、分工与验收要求，最近观测集中在[状态总表](status.md#当前结论)。
 
 ## 1. 目标与当前依据
 
@@ -16,12 +16,14 @@
 
 ```mermaid
 flowchart LR
-    dot["云端Dot · 需求与汇报"] -->|"HTTPS / MCP"| vps["vps-vultr · 认证与薄 MCP 接入"]
-    cloud["Codex Cloud · 任务执行"] -->|"HTTPS / MCP"| vps
+    dot["云端Dot · 项目只读已验"] -->|"HTTPS MCP / OAuth"| vps["vps-vultr · 认证与薄 MCP 接入"]
+    cloud["Codex Cloud · 托管作业逐单核采用"] -.->|"首选 MCP；获准 API 兜底"| vps
     vps -->|"EasyTier / SSH 承载 stdio MCP"| proxy["Win MCP 代理"]
     mac["Mac Herdr 内实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| proxy
     win["Win Herdr 内实际 Harness"] -->|"本机 stdio MCP"| proxy
-    proxy -->|"本机 API"| memory["win-work · Hindsight 项目 bank"]
+    proxy -->|"本机 MCP / API"| memory["win-work · Hindsight 项目 bank"]
+    browser["浏览器 · 按需访问"] -->|"本机；Mac 用 LAN SSH 隧道"| ui["Win Web 管理端<br/>可见终端前台运行 / Ctrl+C 关闭"]
+    ui -->|"本机 API / 原 tenant 认证"| memory
     repo["项目仓 · 规范、工作流、记忆入口"] --> task["原任务输入与证据引用"]
     memory -."按需召回".-> task
     task --> cloud
@@ -36,6 +38,12 @@ flowchart LR
 - Mac保留已验证的 SSH 路径，不为本轮装 VPN；云端走 VPS HTTPS，不加入 EasyTier。地址、端口与连接参数在运行配置中维护，不硬编码进项目工作流。
 - 复用认证能力但保留服务区分，不复制信箱凭据。先核客户端支持的认证方式，Bearer、OAuth 或适配以真实兼容性决定。直接代理不够时才加最薄的适配层，不重建平台。
 - 代理保持必要 HTTP 方法、流式响应与协议头；只允许 GET 不等于“只读 MCP”，业务读写范围由工具与服务授权表达。
+
+### Web 管理端：按需浏览和配置
+
+官方 Control Plane 1.2.0 复用原 Win Hindsight API，启动脚本直接在可见终端前台运行并显示日志。公子明确要求不常驻：不配置开机启动、不隐藏后台、不设置守护或自动恢复；Ctrl+C 关闭 UI，保留现有 API、PostgreSQL 和 BGE。安装检查后默认关闭。
+
+UI 监听 Win loopback；Mac 浏览经现有 LAN SSH 隧道，不走 VPS 或 EasyTier。后端凭据只由 UI 服务端读取，不在浏览器地址或前端配置中传递。页面具有原 tenant 身份允许的管理写权，保存、删除和触发提取由使用者主动操作；页面可浏览不代表写入提取成功。安装、脚本地址、端口配置、来源和卸载入口统一见[管理端说明](../mcp/hindsight-memory/control-plane/README.md)。
 
 ## 3. 项目身份与资料归属
 
@@ -123,6 +131,7 @@ M1与M2只读核对可并行，M2配置等M1上游合同，M3真实采用等M2�
 | 云端Dot | 原生执行实际读取项目记忆并写入一条已确认、带来源的自然决定；服务端能关联来源。记录 MCP 或 API 兜底模式及原因 |
 | Codex Cloud | 真实 Cloud 任务通过 VPS 取得项目上下文并回收相关经验；记录环境版本、原生调用与来源。MCP 优先，API 兜底采用与 MCP 待验边界分开 |
 | 本地Harness | 同项目实际接手者召回上述来源；矩阵区分已配置、当前会话发现、调用通过，未采用端明确列出 |
+| Web 管理端 | 前台脚本可启动并显示已有 bank／配置／操作，Ctrl+C 只关闭 UI，原后端继续运行；不为验证创建记忆或配置自启 |
 | 弱连接 | 隔离输入覆盖一次暂时故障后恢复及预算耗尽，核重试不叠加、写入不重新派业务、API 切换不重置预算；已有确定步骤继续。不停止生产服务制造故障 |
 | 原件与职责 | 召回可追溯来源；状态、进展与验收沿原记录，无新增业务派发或已读门槛 |
 

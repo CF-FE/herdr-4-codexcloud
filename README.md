@@ -12,6 +12,7 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 查每个角色在哪里运行、怎样创建和调用 | [组织岗位、专业角色与 Worker 的宿主和调用示例](docs/agent-hosts.md) |
 | 项目接手、建主仓、维护工作流 | [项目主仓与项目级规范](docs/coordination-policy.md#项目主仓与项目级规范) · [工作流开发与验收](docs/project-workflow-development.md) |
 | 云端Dot、Cloud 与本地 Agent 共享项目记忆 | [Hindsight 接入与实施](docs/hindsight-memory-integration.md) · [Codex 本地插件](plugin/hindsight-memory/README.md) · [本项目 bank](docs/project-memory.md) |
+| 按需查看和配置 Win Hindsight | [Web 管理端：前台启动与关闭](mcp/hindsight-memory/control-plane/README.md) |
 | 协调员转交、恢复现任负责人、挂起 GitHub 评论 | [操作入口](docs/project-coordinator.md#nonblocking-contact) |
 | 查各环境最近验证过的工具、模型与限制 | [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3) · [动态信息由谁维护](docs/coordination-policy.md#dynamic-records) |
 | 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |
@@ -24,7 +25,8 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 查网络、SSH 与 VPS | [网络运维](docs/networking-plan.md#日常核对与恢复入口) · [VPS 专项指引](docs/vps-control-pilot.md) |
 | 核对能力与通信入口 | [能力盘点](docs/local-agent-inventory.md) · [Dot 评估](docs/dot-mac-herdr-evaluation.md) · [通信选型](docs/agent-communication.md#1-当前建议与理由) |
 | 明确协作责任、操作看板 | [组织协作技能](skill/organization-collaboration/SKILL.md) · [Projects 技能](skill/github-projects-operations/SKILL.md) · [离线评测资料](docs/organization-collaboration/README.md) |
-| 核对来源与历史 | [初始清单](docs/copy-manifest.json) · [增量记录](docs/copy-updates.json) · [状态沿革](docs/history/status-through-2026-11-03.md) · [验收前设计分享图](docs/share-doc/super-agent-architecture.svg) |
+| 制作分享 PPT | [16:9 总架构、任务闭环、工作流与记忆拓扑图](docs/share-doc/README.md) |
+| 核对来源与历史 | [初始清单](docs/copy-manifest.json) · [增量记录](docs/copy-updates.json) · [状态沿革](docs/history/status-through-2026-11-03.md) |
 
 Task Mailbox 与 Mac 协调桥由 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) 独立维护；服务运行证据见其[验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。本仓不共享其他仓库的运行目录。
 
