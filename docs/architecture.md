@@ -85,7 +85,7 @@ graph TD
 
 工作流运行检查点保留在执行侧私有状态目录，GitHub Project／Issue 记录项目进度与验收，Task Mailbox 回收原单进展；Hindsight 为接手和判断提供带来源背景。程序结束、Worker 自检和负责人业务验收分别记录。[流程生成与交接](project-workflow-development.md) · [设计依据](decisions/001-project-owned-workflows.md) · [分享图](share-doc/project-workflow.svg)
 
-需要新增授权的节点另按[审批子工作流设计](approval-workflow.md)接续：协调层负责原单审批的投递、答复回流和逾期升级，项目负责人定义触发条件及批准后的后继；已有授权覆盖时直接继续。该设计已采纳，自动投递与答复导入尚待实现和分通道验证，现有内部提醒不能代证审批已到用户入口。[ADR-003](decisions/003-approval-workflow.md)
+需要新增授权的节点按已实现并在 Mac 采用的[审批子工作流](approval-workflow.md)接续：当前绑定协调员以 `COORD_APPROVAL_PREPARE` 提案，原 watcher 登记；hook 在用户活动时提示，受信主会话记录者的答复由原 watcher 回流并接续原检查点。项目负责人定义触发条件及后继，已有授权直接继续；通知不即时，真实 UI、自然审批及业务验收仍待自然单。[ADR-003](decisions/003-approval-workflow.md)
 
 ### 项目共享记忆
 

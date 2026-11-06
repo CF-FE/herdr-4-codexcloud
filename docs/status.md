@@ -4,7 +4,7 @@
 
 ## 当前结论
 
-**2026-11-06，审批最小源码链路已接通候选，未部署；真实 UI 与自然单仍待验。** [唯一设计](approval-workflow.md)与[ADR-003](decisions/003-approval-workflow.md)保持有效。既有 Mac hook 提示、受信主会话记录者、原生分页收件及原检查点已完成临时跨仓 CLI 联调；本机固定 Codex CLI 的原主会话只读 probe 通过。通知仍依赖用户下一次活动，不能唤醒闲置；答复则由原 Herdr watcher 后续原轮次读取同一绑定和游标，无需再次用户活动。两仓生产配置、hook、服务和现有批准均未改；共享观察与原回填保留。[实现、入口证据与升级回退](approval-workflow.md#8-实现合同与候选采用)
+**2026-11-06，审批子工作流及提案入口补丁已合并到 main，Mac 安装和运行接线已采用；自然单待验。** [Herdr PR #16](https://github.com/CF-FE/herdr-4-codexcloud/pull/16) 承接 [PR #15](https://github.com/CF-FE/herdr-4-codexcloud/pull/15)，当前固定发布为 `f63e3b8`；[Task Mailbox PR #7](https://github.com/CF-FE/task-mailbox-mcp/pull/7) 的 Mac 运行副本为 `1b3da867`，桥侧 14 项文件摘要一致。协调员以 `COORD_APPROVAL_PREPARE` 沿原生来源提交提案，由原 watcher 登记，不授予台账写权或扩大沙箱。原 watcher 已运行新版并每 60 秒收回完成回合的答复，原 waits、bridge-pump 已加载同一发布且首轮退出码为 0；policy 与两个原游标保留，未重新绑定。通知依赖下一次用户活动；本次无新审批、批准或测试单，真实 UI、自然审批接续及业务验收仍待自然单。原协调员已确认采用新登记入口，无新采用阻塞；未发测试提案。远端 collector 的既有 `AUTH_FAILED` 独立保留，未重新认证或启动。[设计与部署回执](approval-workflow.md#8-实现合同与候选采用)
 
 **2026-11-06，凡人负责人的履职配置缺口已修复并部署到 Mac。** 恢复工具采用 [`ce4311f`](https://github.com/CF-FE/herdr-4-codexcloud/commit/ce4311f4e1b296e4a17694866bd85856473fc9dc)，原等待检查服务已加载固定发布并正常运行。经公子明确授权，现任负责人沿原 Herdr 线程在凡人主仓使用 `project-owner-v1`（`workspace-write`、`on-request`），实际读到了 Herdr、组织协作、负责人／规划技能与项目工作流，并从自身工具进程成功查询三个既有 Worker。协调员核实了原任职、线程及完整启动参数，已解除维护暂停；原提醒程序恢复运行，在途工作的唯一派发者保留。
 
