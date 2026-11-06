@@ -85,6 +85,8 @@ graph TD
 
 工作流运行检查点保留在执行侧私有状态目录，GitHub Project／Issue 记录项目进度与验收，Task Mailbox 回收原单进展；Hindsight 为接手和判断提供带来源背景。程序结束、Worker 自检和负责人业务验收分别记录。[流程生成与交接](project-workflow-development.md) · [设计依据](decisions/001-project-owned-workflows.md) · [分享图](share-doc/project-workflow.svg)
 
+需要新增授权的节点另按[审批子工作流设计](approval-workflow.md)接续：协调层负责原单审批的投递、答复回流和逾期升级，项目负责人定义触发条件及批准后的后继；已有授权覆盖时直接继续。该设计已采纳，自动投递与答复导入尚待实现和分通道验证，现有内部提醒不能代证审批已到用户入口。[ADR-003](decisions/003-approval-workflow.md)
+
 ### 项目共享记忆
 
 Hindsight 为上述角色提供按项目共享的经验与背景，不承担派发或验收。仓库拥有正式规范及记忆入口，原检查点拥有执行状态；必要上下文随任务保存，在线召回失败不阻断已有确定性步骤。Mac 与 VPS 的运行文件已按 2026-11-05 main 核对，实际读取、修复后的提取与来源文档读回已有成功样本；各客户端采用和 Codex Cloud 托管作业的证据分别见[状态总表](status.md#当前结论)。

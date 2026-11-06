@@ -14,6 +14,7 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 云端Dot、Cloud 与本地 Agent 共享项目记忆 | [Hindsight 接入与实施](docs/hindsight-memory-integration.md) · [Codex 本地插件](plugin/hindsight-memory/README.md) · [本项目 bank](docs/project-memory.md) |
 | 按需查看和配置 Win Hindsight | [Web 管理端：前台启动与关闭](mcp/hindsight-memory/control-plane/README.md) |
 | 协调员转交、恢复现任负责人、挂起 GitHub 评论 | [操作入口](docs/project-coordinator.md#nonblocking-contact) |
+| 审批怎样送达、收回答复并接续原任务 | [审批子工作流设计](docs/approval-workflow.md) · [设计决策](docs/decisions/003-approval-workflow.md) |
 | 查各环境最近验证过的工具、模型与限制 | [CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3) · [动态信息由谁维护](docs/coordination-policy.md#dynamic-records) |
 | 查云端Dot、协调员、项目负责人和 Worker | [任务归属](docs/project-coordinator.md#3-谁维护什么) · [生命周期](docs/project-coordinator.md#agent-lifecycle) · [Hooks 与适用范围](docs/project-coordinator.md#lifecycle-hooks) · [本机交付](docs/project-coordinator.md#7-本机交付与运行) |
 | 交办完整目标并沿原任务回报 | [目标交办合同与准入](docs/goal-handoff.md) |
