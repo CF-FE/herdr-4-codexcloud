@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from coordinator_approvals import VerifiedDecision, receive_decision
 from project_coordinator import Coordinator, CoordinatorError, canonical_hash
-from test_coordinator_approvals import fixture_spec
+from tests.test_coordinator_approvals import fixture_spec
 
 
 class ApprovalNoticeTests(unittest.TestCase):
@@ -124,6 +124,18 @@ class ApprovalNoticeTests(unittest.TestCase):
         self.assertIn("决定存在冲突", notice["summary"])
         self.assertIn("待有权审批者澄清", notice["summary"])
         self.assertNotIn("fixture:answer", json.dumps(notice))
+
+    def test_withdrawn_unknown_effect_stays_visible_as_stop_and_reconciliation(self):
+        item = self.prepare()
+        approved = self.decide(item)
+        intent = self.claim(approved)
+        unknown = self.record(intent, "UNKNOWN")
+        self.decide(unknown, "WITHDRAWN", supersedes_ref=approved["progress"]["decision"]["source_ref"])
+        notice = self.read()["notices"][0]
+        self.assertEqual(notice["phase"], "reconcile")
+        self.assertEqual(notice["action_owner"], item["spec"]["dispatcher"])
+        self.assertIn("停止与对账", notice["summary"])
+        self.assertIn("不请求再次批准", notice["summary"])
 
     def test_superseded_and_stale_generations_are_not_projected(self):
         first = self.prepare()

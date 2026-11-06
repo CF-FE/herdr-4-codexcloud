@@ -34,6 +34,8 @@ def snapshot(c, db, data):
                       "json_extract(a.spec,'$.dispatcher') AS dispatcher,"
                       "json_type(a.progress,'$.decision_conflict')='object' AS disputed,CASE "
                       "WHEN json_type(a.progress,'$.decision_conflict')='object' THEN 'decision' "
+                      "WHEN json_extract(a.progress,'$.stop_requested')=1 "
+                      "AND json_extract(a.progress,'$.execution.status') IN ('INTENT','UNKNOWN','CHECKPOINT_APPLIED','ACCEPTED','RUNNING') THEN 'reconcile' "
                       "WHEN json_extract(a.progress,'$.execution.status')='RESULT_PENDING' THEN 'review' "
                       "WHEN json_extract(a.progress,'$.decision.status')='PENDING' THEN 'decision' "
                       "WHEN json_extract(a.progress,'$.decision.status')='APPROVED' "
@@ -53,7 +55,9 @@ def snapshot(c, db, data):
         summary = row["summary"]
         if row["disputed"]:
             summary += " 决定存在冲突，待有权审批者澄清。"
-        owner = "project_owner" if phase == "review" else row["dispatcher"] if phase == "execution" else row["escalation_owner"]
+        if phase == "reconcile":
+            summary = "原批准已停止或撤回；在途效果待停止与对账，不请求再次批准。 " + summary
+        owner = "project_owner" if phase == "review" else row["dispatcher"] if phase in ("execution", "reconcile") else row["escalation_owner"]
         # A new conflict is material even if it returns to the same decision
         # phase. New observation timestamps alone never change this identity.
         result["notices"].append({"notice_id": canonical_hash([row["scope_hash"], phase, summary]),

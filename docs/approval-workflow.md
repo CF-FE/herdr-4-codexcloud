@@ -1,6 +1,6 @@
 # 审批子工作流设计
 
-2026-11-06 · 设计已采纳，代码与部署待完成。公子在本轮讨论中要求推进审批工作流，并将设计沉淀为文档。本文是该能力的唯一设计与实施依据；[ADR-003](decisions/003-approval-workflow.md)记录选择和取舍。设计采纳不代表真实投递、答复接回或宿主采用已经通过。
+2026-11-06 · 设计已采纳，实现候选待复审与部署。公子在本轮讨论中要求推进审批工作流，并将设计沉淀为文档。本文是该能力的唯一设计与实施依据；[ADR-003](decisions/003-approval-workflow.md)记录选择和取舍。设计采纳不代表真实投递、答复接回或宿主采用已经通过。
 
 ## 1. 目标与已确认缺口
 
@@ -133,7 +133,7 @@ Herdr 继续承载协调员、负责人和本地 Worker；只有获准的 Codex 
 
 ## 8. 实现合同与候选采用
 
-2026-11-06 的源码候选复用现有协调数据库，新增 `approvals` 表与 `APPROVAL_*` 事件，不创建服务、定时器、业务单或第二个派发者。它提供状态与恢复合同、App 工具宿主适配器、原检查点接续；**实际 Herdr 宿主的上行通道与可信答复入口尚缺，第 1 切片未验收，不能部署后直接宣称无人值守闭环。**
+2026-11-06 的源码候选复用现有协调数据库、事件、Mac hook 和 Herdr watcher，不创建服务、定时器、业务单或第二个派发者。本轮已将“hook 提示 → 受信主会话记录者 → 原生分页收件 → 原检查点”接成固定进程接口，并完成临时跨仓进程验证。**生产尚未切换，真实 UI 与下一自然审批的完整链路未验收；通知依赖用户活动，不是无人值守即时推送。**
 
 ### 入口核查与最小缺口
 
@@ -144,22 +144,25 @@ Herdr 继续承载协调员、负责人和本地 Worker；只有获准的 Codex 
 | 原生 `userMessage`／`role=user` | App Server 支持程序通过 `turn/start`、`turn/steer` 写入 user input，见[官方合同](https://learn.chatgpt.com/docs/app-server#api-overview) | 不扫描关键词自动批准；这类消息只可用于证明本次程序投递确实出现在绑定入口 |
 | GitHub 原评论 raw REST | 只读接口可核原 Issue、作者稳定 ID、时间及 `performed_via_github_app`；[已有记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6653501073)同时具有 User 作者与 Codex Connector 代写来源 | 同一账户也由记录者使用，不能把账户正确或 app 字段为空当作公子亲自批准；本候选不新增 GitHub 审批入口 |
 | 既有 Mac 协调桥 hook | 安装侧 hook／安装器／store 与信箱仓源码一致；现有 `SessionStart`／`UserPromptSubmit` 已提供 `additionalContext`。官方另有 [systemMessage 输出](https://learn.chatgpt.com/docs/hooks#common-output-fields)，可显示于 UI／事件流 | 当前只送计数等上下文，没有审批通知；`additionalContext` 不等于用户 UI。hook 输入没有可靠真人来源字段，不能将用户消息自动导入为批准 |
+| 本机固定 Codex CLI 原生读取 | 对已知原主会话只读 probe 成功，核 `vscode`／`Codex Desktop` 来源、原 thread／路径／cwd 及 paginated 历史；使用 `thread/read`、`thread/turns/list:notLoaded` 和逐项 `thread/items/list`，约 0.68 秒 | 无生产源绑定或决定导入。原先整回合响应超限，现不再读取整回合工具正文；单 item 仍有 8 MiB 明确上限。只读探针不证明实际 Herdr driver 已采用固定发布 |
 
-最小宿主适配要求只有两项：实际协调执行端取得获准的绑定入口发送／查询能力；明确接到公子原答复的受信入口／记录者能核人、核范围并导入原决定引用。前者由宿主提供 `call_tool` 和核真实能力的 `capability_check`，后者提供 `decision_verifier`。这些是受信代码，不能由任务 JSON、正文自报身份或 `true` 字段构造。公子正常答复一次即可，记录者在内部关联原请求和范围，不要求复制 hash、再次确认或已读。
+选定路径不依赖开发窗口转发或待提供回调：既有 hook 承载提示；已明确受权的原主会话记录者确认公子答复并出具回执；固定 CLI 从同一原生历史验证并导入。信任来自 operator 对该记录者的明确任命与原始答复核对，不要求平台提供不存在的真人密码学证明，也不把任意 `userMessage` 自动当批准。公子正常答复一次，记录者在内部关联原请求、范围与原生引用，不要求复制 hash、再次确认或已读。
 
-当前缺少这些实际宿主证据时，适配器在发送意图前报 `MISSING_COORDINATOR_DECISION_CHANNEL`，答复端报 `MISSING_TRUSTED_DECISION_INTAKE`。不以开发窗口长期人工转发代替宿主采用，也不借本开发扩大主会话、Agent 或信箱的调用权限。
+早期 App 工具适配器仍默认关闭，缺实际宿主函数时报 `MISSING_COORDINATOR_DECISION_CHANNEL`／`MISSING_TRUSTED_DECISION_INTAKE`；它不属于本轮选定 hook 路线的依赖，不把 App 开发工具推定为 Herdr 协调员工具。
 
-### 既有 hook 的最小跨仓候选
+### 既有 hook 的跨仓接线
 
 源码侧增加只读 `approval_notice_snapshot` 进程接口，供原主会话审阅后决定是否由既有 hook 采用。输入是明确配置的 `thread_id`、`host_id`、项目白名单及分页；输出仅包含稳定 notice ID、原审批版本、阶段、事先准备的 `notice_summary`、原单入口、责任与期限。没有 `notice_summary` 不投影，不返回原 scope、检查点、机器路径或私有答复来源。`--input -` 可经 stdin 传 JSON；读取不登记发送、不迁移数据库、不改变审批状态。
 
-最小跨仓改动只落在所属的 `CF-FE/task-mailbox-mcp`：
+桥侧源码落在所属的 `CF-FE/task-mailbox-mcp`，不使用其信箱业务 port 承载无 job 审批：
 
-1. 在原 hook 显式配置固定解释器／固定发布 CLI 的 argv，以有界子进程读上述 schema-v1 摘要；不使用 shell，不跨仓导入源码或直接打开协调数据库。该稳定进程接口的采用由原主会话审阅，不据源码存在启用。
-2. 在原桥 SQLite 只记 notice ID、绑定目标与传输去重，不保存第二份审批状态或扩大 prompt／回复采集。实际输出前沿原审批登记一次投递意图，再由 `systemMessage` 给出获准摘要和原单入口；`additionalContext` 只承担当前主会话定位。主／子 Agent 的 hook 归属须实核，不能只因共用 session ID 就假定送达用户主入口。
-3. hook 输出准备／退出成功只记受理。实际宿主事件或原有效答复可补齐送达；缺少确认不重新催批。审批者正常答复一次，受信主会话记录者沿原答复出具结构化回执，由 operator 绑定的原生来源、记录者身份、范围与游标验证后构造 `VerifiedDecision`。不扫描任意 `userMessage` 或正文“批准”。
+1. [桥侧适配器](https://github.com/CF-FE/task-mailbox-mcp/blob/760083df2d6f05df213af54fc5e2edb072ec4d9b/mac/approval_hook.py)从私有配置取得固定解释器／固定发布 `coordinator_approval_hook.py` argv，只传 session、turn、cwd、transcript 路径与事件名。不使用 shell，不跨仓导入源码、不打开协调数据库、不采集 prompt／答复／最后消息。总子进程默认 2.2 秒；配置错误与运行失败均隔离，保留原 counts／Stop 回填，固定禁用码在旧状态提示可见。
+2. [协调 hook 入口](../scripts/coordinator_approval_hook.py)核精确 thread、cwd 与 transcript 绑定，读取本地最小投影，沿原审批登记一次意图与输出准备受理；`systemMessage` 给出获准摘要，`additionalContext` 提供原索引和受信记录者合同。投递去重仍由原审批台账负责，桥不保存第二份审批状态。主／子 Agent 可能共用 session ID，不能仅以此推定用户主入口收到；实际 UI 显示留自然事件验收。
+3. [原生收件器](../scripts/coordinator_approval_intake.py)核固定 binary 摘要、已绑定的原 thread／home／来源／cwd／路径，再用原生分页 API 读取源。首次显式 `bind` 从当前 EOF 建锚点；同 policy 恢复保留 turn/item 游标，变更先对账。只接收该受信记录者独立单行 `APPROVAL_DECISION` 回执，核所引 user item 属同线程且先于回执；身份由私有 policy 提供，正文不得自报。决定与原检查点先落盘，再推进游标。
+4. **通知与答复回收触发不同。** 提示只在下一次 `SessionStart`／`UserPromptSubmit` 活动时显示，不能唤醒闲置窗口。hook 的 Stop 可收件，但 Stop 先于 TurnComplete 时保守等待；[既有 watcher](../scripts/coordinator_followup_wake.py)下一原轮次读取同一 policy／游标，在回合完成后接回，无需再发用户消息。不新增计时器或另一条回流入口；两调用方共享非阻塞源锁。interrupted／failed 历史跳过，不堵住后续完整回执。
+5. hook 的原生读取限 0.9 秒，暂失败仍输出本地绑定待办，并保留读取不可用与原承接责任；原 watcher 收件异常也不压住共享观察项。hook 输出成功仍只是准备／受理；真实宿主证据或有效原答复补齐送达。拒绝、撤回与在途未知显示停止／对账待办，不再次请求批准。
 
-已有信箱业务 port 必须核真实 `job_id` 和逐 job grant，因此不为本地原生审批扩造信箱单。本轮只读核查了该 hook，**未修改 Task Mailbox 源码、安装配置或生产 hook**；上述接线与下一自然单的实际可见／答复回流仍待原主会话审阅和实施。
+本轮已修改两仓源码，**未修改安装配置、生产 hook、原 watcher 进程或现有任务**。临时联调使用真实两仓 CLI、临时数据库／原 runner 和只读原生 API fixture：一次提示、一次正常用户答复、受信回执、Stop 仍在途、后继 watcher 完成收件与原节点接续均通过；不是自然单或业务完成证据。
 
 ### 已实现的程序合同
 
@@ -179,15 +182,58 @@ Herdr 继续承载协调员、负责人和本地 Worker；只有获准的 Codex 
 
 `route.kind` 当前只接受 `codex_app` 的显式绑定；已有 Mailbox 请求可用 `request_id` 核原任务后关联，但原 job 结果发布与云端可信回流适配尚未实现。不接受另建信箱单来补缺口。
 
+### 受信记录者绑定与回执
+
+operator 在**原安装根**保存私有 `native-approval-policy.json`，示例所有路径与身份均为占位值；实际采用前核真实入口、原任命和允许项目，不复制认证或会话历史：
+
+```json
+{
+  "schema_version": 1,
+  "binary": "/absolute/codex",
+  "binary_sha256": "<固定可执行文件的64位SHA256>",
+  "codex_home": "/private/original-codex-home",
+  "thread_id": "<已绑定的用户主会话>",
+  "host_id": "local",
+  "cwd": "/absolute/original-project",
+  "transcript_path": "/private/original-codex-home/sessions/<原元数据文件>.jsonl",
+  "source": "vscode",
+  "originator": "Codex Desktop",
+  "approver_principal": "user:bound-approver",
+  "relay_principal": "recorder:bound-main",
+  "project_ids": ["example-project"],
+  "authorization_ref": "<审批者与受信记录者的原核准引用>",
+  "resume_checkpoints": true
+}
+```
+
+`resume_checkpoints:true` 只允许把合法决定采用到本单冻结的原检查点，不代表 Herdr 派发或成果验收。先从固定发布运行下列命令；`probe` 只读，`bind` 首次从 EOF 启用并保留旧来源，不能把历史批准自动当作新任务执行：
+
+```bash
+python3 -I -B /fixed/release/scripts/coordinator_approval_intake.py --state-dir /private/coordinator/state --policy /private/coordinator/native-approval-policy.json probe
+python3 -I -B /fixed/release/scripts/coordinator_approval_intake.py --state-dir /private/coordinator/state --policy /private/coordinator/native-approval-policy.json bind
+```
+
+原桥的固定 argv 指向同一安装根的 `coordinator_approval_hook.py` 与同一 policy；原 Herdr watcher 的 `--root` 也必须指向该安装根，才会在既有轮次消费同一来源／游标。未加载候选或未核 watcher 实际承接时，不能宣称答复可在用户离线后自动接回。
+
+受信记录者在核人、核明确原范围后，发一条独立单行回执；原用户无需填写下列字段：
+
+```text
+APPROVAL_DECISION {"project_id":"example-project","approval_id":"original-approval","scope_version":1,"scope_hash":"<原冻结摘要>","decision":"APPROVED","user_response_ref":{"turn_id":"<原答复turn>","item_id":"<原答复item>"},"decided_at":"<原决定的带时区时间>"}
+```
+
+身份由绑定 policy 提供，不接受正文自报。`decision` 还可为 `REJECTED`／`WITHDRAWN`；冲突澄清／撤回由记录者带 `supersedes_ref` 关联原来源。原生读取／协议失败保留游标并交下一原轮次，不把读取失败当作非法答复吞掉；真正范围不符或无原始引用的回执才拒收。
+
 ### 安装、升级与回退
 
 以下步骤交原主会话审阅具体固定提交后办理，本次开发未执行生产切换。
 
 1. 记录原固定发布、服务参数、数据库与路由；停止原定时写者后，用 SQLite backup 保存一致快照。保留原在途执行，不重发业务单。
 2. 用 `python3 scripts/install_project_coordinator.py --revision <完整40位候选提交> --destination <原私有安装根>` 准备发布。安装器自动包含审批模块，保留原状态；它不会加载服务、增加定时器或启用审批通道。
-3. 在**原台账副本**上做升级与只读核对。只有核清实际 Herdr 宿主能力、受信记录者、原唯一派发者和原始答复引用后，才在下一件自然审批采用；没有这些证据就保持候选未启用。
+3. 两仓分别安装经复审的固定发布；在**原台账副本**上做升级与只读核对。按上节完成 probe／EOF 绑定，桥启用固定 argv，原 watcher 加载同一 policy 和游标；只有核清实际宿主承接、受信记录者与原唯一派发者后，才在下一件自然审批采用。缺少证据就保持未启用，已有批准沿原路由办理。
 4. 回退时先停新写者并保全新台账／来源游标／在途引用，再恢复原固定发布的服务参数。新增表对旧核心是旁路数据，旧台账仍可读；旧核心不处理新审批，未结事项须由原协调员显式承接。不要回滚数据库快照抹掉切换后的批准或副作用；只有核清快照后无新业务变化时才可恢复快照。
 
 工程验证使用临时 SQLite、合成 App 工具与受信 verifier double，以及真实生成器／原 runner 子进程。覆盖旧台账、范围与任职隔离、受理／送达、UNKNOWN、重复／冲突／迟到、期限／升级、共享观察者与独立分支、原节点恢复和核收。它不证明实际宿主投递、真人来源、Herdr 执行受理或自然单业务验收；这些仍沿第 7 节核证。
 
-本候选集中回归完成 **325 项测试，既有 4 项宿主 smoke 跳过**；结构与 Worker 库检查通过。独立复审发现的撤回穿透与冲突未阻断均已修复并复核；换任核收、明确未执行后的原单接续、执行意图中断后的期限升级均有回归。原两份失败记录仅作只读影子回放：本地发布和 `accepted` 均未推成送达或批准，连续观察没有顺延原期限或重复升级；未修改原审批、未重做维护、未发送测试审批。
+首版状态候选集中回归完成 **325 项测试，既有 4 项宿主 smoke 跳过**；结构与 Worker 库检查通过。独立复审发现的撤回穿透与冲突未阻断均已修复并复核；换任核收、明确未执行后的原单接续、执行意图中断后的期限升级均有回归。原两份失败记录仅作只读影子回放：本地发布和 `accepted` 均未推成送达或批准，连续观察没有顺延原期限或重复升级；未修改原审批、未重做维护、未发送测试审批。
+
+本轮接线的 **Herdr 43 项、Task Mailbox 26 项定向检查均通过**，包括隔离固定发布入口、原 watcher／Stop 兼容、读取失败保留游标、中断历史活性、撤回停止待办与可选配置错误可见。结构检查与两仓 diff 检查通过，最后独立复审 Required／Critical 为 0。另有一次真实本机只读 probe 和一次跨进程临时联调；未以重复全套旧验证代替自然单验收。

@@ -70,6 +70,10 @@ class CoordinatorInstallation(unittest.TestCase):
                 input=json.dumps({'thread_id': 'bound-thread', 'host_id': 'local', 'project_ids': ['fixture']}),
                 cwd=tmp, capture_output=True, text=True, check=True, timeout=10)
             self.assertEqual(json.loads(notice.stdout), {'schema_version': 1, 'notices': [], 'next_after': 0, 'more': False})
+            for entry in ('coordinator_approval_intake.py', 'coordinator_approval_hook.py'):
+                help_text = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
+                    str(release / 'scripts' / entry), '--help'], cwd=tmp, timeout=10, text=True)
+                self.assertIn('--policy', help_text)
             pump = plistlib.loads((release / 'bridge-pump.plist').read_bytes())
             self.assertNotEqual(plist['Label'], pump['Label'])
             config = dest / 'bridge-port.json'

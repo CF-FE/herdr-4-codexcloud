@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+import time
 
 if __package__:
     from .project_coordinator import canonical_hash, require, timestamp
@@ -17,7 +18,10 @@ else:
 
 
 class WorkflowCheckpoint:
-    def __init__(self, spec):
+    def __init__(self, spec, *, timeout=30):
+        if not isinstance(timeout, (int, float)) or not 0 < timeout <= 30:
+            raise ValueError("invalid workflow checkpoint budget")
+        self.deadline = time.monotonic() + timeout
         checkpoint = spec.get("checkpoint") if isinstance(spec, dict) else None
         keys = {"runner", "state", "project", "workflow", "task", "step", "source_sha256",
                 "input_sha256", "choice"}
@@ -44,8 +48,11 @@ class WorkflowCheckpoint:
                                                separators=(",", ":")).encode()).hexdigest()
         if source_hash != self.checkpoint["source_sha256"]:
             raise ValueError("workflow source version conflict; restore the original project revision")
+        remaining = self.deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("workflow checkpoint budget exhausted")
         result = subprocess.run([sys.executable, "-I", "-B", str(self.runner), "--state", str(self.state), *args],
-                                capture_output=True, text=True, timeout=30)
+                                capture_output=True, text=True, timeout=remaining)
         if result.returncode:
             raise ValueError(f"workflow {args[0]} failed: {result.stderr.strip()}")
         run = json.loads(result.stdout)
@@ -96,7 +103,7 @@ class WorkflowCheckpoint:
                           "--evidence", evidence_ref)
 
 
-def resume_approval(coordinator, key):
+def resume_approval(coordinator, key, *, timeout=30):
     """Adopt an already verified approval; leave all external dispatch to its owner.
 
     An interrupted import is reconciled against the original checkpoint. An
@@ -109,7 +116,7 @@ def resume_approval(coordinator, key):
     ledger = items[0]
     spec, progress = ledger["spec"], ledger["progress"]
     scope_hash = ledger["scope_hash"]
-    checkpoint = WorkflowCheckpoint(spec)
+    checkpoint = WorkflowCheckpoint(spec, timeout=timeout)
     evidence = progress["decision"].get("source_ref")
     readonly = {"CHECKPOINT_APPLIED", "ACCEPTED", "RUNNING", "RESULT_PENDING"}
 

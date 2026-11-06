@@ -24,7 +24,8 @@ COMMENT_INTAKE = 'scripts/coordinator_comment_intake.py'
 FOLLOWUP_INTAKE = 'scripts/coordinator_followup_intake.py'
 FOLLOWUP_WAKE = 'scripts/coordinator_followup_wake.py'
 APPROVAL_FILES = ('scripts/coordinator_approvals.py', 'scripts/coordinator_approval_channel.py',
-                  'scripts/coordinator_approval_workflow.py', 'scripts/coordinator_approval_notice.py')
+                  'scripts/coordinator_approval_workflow.py', 'scripts/coordinator_approval_notice.py',
+                  'scripts/coordinator_approval_intake.py', 'scripts/coordinator_approval_hook.py')
 FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS, ROLE_CONTACT, COMMENT_INTAKE,
          FOLLOWUP_INTAKE, FOLLOWUP_WAKE, *APPROVAL_FILES)
 LABEL = 'io.projectcoordinator.waits'
