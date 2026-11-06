@@ -4,6 +4,10 @@
 
 ## 当前结论
 
+**2026-11-06，凡人负责人的履职配置缺口已修复并部署到 Mac。** 恢复工具采用 [`ce4311f`](https://github.com/CF-FE/herdr-4-codexcloud/commit/ce4311f4e1b296e4a17694866bd85856473fc9dc)，原等待检查服务已加载固定发布并正常运行。经公子明确授权，现任负责人沿原 Herdr 线程在凡人主仓使用 `project-owner-v1`（`workspace-write`、`on-request`），实际读到了 Herdr、组织协作、负责人／规划技能与项目工作流，并从自身工具进程成功查询三个既有 Worker。协调员核实了原任职、线程及完整启动参数，已解除维护暂停；原提醒程序恢复运行，在途工作的唯一派发者保留。
+
+并行规则原已具备，本次补齐的是实际执行能力。源码检查运行 284 项测试（4 项跳过）；现场通过原角色接手核验，没有重发生产测试单。后续由负责人安排独立就绪分支并作业务验收，原协调员持续收回结果；这次修复不代表凡人整集完成，也不放行另行等待决定的 Win 主机维护。[运行配置与升级](agent-hosts.md#负责人运行配置与升级) · [定向联络与恢复](project-coordinator.md#nonblocking-contact)
+
 **2026-11-05，Hindsight 代码已合并，Mac 与 VPS 运行文件已对齐 main，只读调用通过。** Herdr [PR #14](https://github.com/CF-FE/herdr-4-codexcloud/pull/14) 合并版本为 `84a68b2`，VPS [PR #1](https://github.com/ghyghoo8/create-network-sh/pull/1) 合并版本为 `da3356f`。已部署文件与两仓 main 一致，保留原安装来源，不为修改来源标签重启服务。[部署核验原记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6655425331)
 
 | 接入部分 | 已核结果 | 仍需区分 |

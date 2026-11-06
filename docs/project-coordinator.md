@@ -365,7 +365,7 @@ python3 -I -B "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state"
 
 ### 转交私信、恢复负责人和暂存 GitHub 评论
 
-协调员接到已授权的普通转交后，沿现任负责人绑定办理。对方按需回执，私有路径和原话留在受控通道。本工具覆盖同一 Mac Herdr 会话内的 Codex 只读联络。首次绑定或换任时，宿主维护者将已核实的主体、代次、原线程、工作目录、窗格定位、恢复参数及回执证据写入私有 `handoffs/herdr-project-coordinator/owners/<project_id>.json`（0600）。字段取自本次原生接手，工具每次与协调台账的在任记录交叉核对。[定位文件与核验](../scripts/herdr_role_contact.py)
+协调员接到已授权的普通转交后，沿现任负责人绑定办理。对方按需回执，私有路径和原话留在受控通道。本工具覆盖同一 Mac Herdr 会话内已绑定 Codex 负责人的定向联络与原线程恢复，实际工具和写入范围由[已授权运行配置](agent-hosts.md#负责人运行配置与升级)决定。首次绑定或换任时，宿主维护者将已核实的主体、代次、原线程、工作目录、窗格定位、恢复参数及回执证据写入私有 `handoffs/herdr-project-coordinator/owners/<project_id>.json`（0600）。字段取自本次原生接手，工具每次与协调台账的在任记录交叉核对。[定位文件与核验](../scripts/herdr_role_contact.py)
 
 ```sh
 python3 "$RELEASE/scripts/herdr_role_contact.py" show "$PROJECT_ID"
