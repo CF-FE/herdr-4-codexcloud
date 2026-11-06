@@ -166,6 +166,24 @@ class WakeTests(unittest.TestCase):
             with self.assertRaisesRegex(CoordinatorError, "DRIVER_ALREADY_RUNNING"), wake.single_driver(self.root / "state"):
                 self.fail("a second driver acquired the lock")
 
+    def test_optional_approval_source_failure_keeps_shared_observer_and_next_round_recovers(self):
+        self.c.manage("role_followup_put", self.item)
+        (self.root / "native-approval-policy.json").write_text("{}")
+        legacy = Mock(return_value={"backlog": False})
+        with patch.object(wake, "check_driver"), patch("coordinator_approval_intake.load_policy", return_value={}), \
+                patch("coordinator_approval_intake.collect", side_effect=CoordinatorError("NATIVE_READ_TIMEOUT")):
+            first = wake.watch_round(self.c, self.root, legacy, self.query)
+        self.assertEqual(first["state"], "SUBMITTED")
+        self.assertEqual(first["approval_intake"]["state"], "SOURCE_UNAVAILABLE")
+        self.assertEqual(len(self.prompts), 1)
+        with patch.object(wake, "check_driver"), patch("coordinator_approval_intake.load_policy", return_value={}), \
+                patch("coordinator_approval_intake.collect", return_value={"accepted": 1, "rejected": 0}) as recovered:
+            second = wake.watch_round(self.c, self.root, legacy, self.query)
+        recovered.assert_called_once()
+        self.assertEqual(second["approval_intake"]["accepted"], 1)
+        self.assertEqual(second["state"], "NO_DUE_ITEM")
+        self.assertEqual(len(self.prompts), 1)
+
     def test_env_alone_cannot_substitute_for_driver_pid(self):
         query = Mock(return_value={"process_info": {"pane_id": "w1:p1", "foreground_processes": [{"pid": -1}]}})
         with patch.dict(os.environ, {"HERDR_ENV": "1", "HERDR_SESSION": "fixture", "HERDR_PANE_ID": "w1:p1"}), \

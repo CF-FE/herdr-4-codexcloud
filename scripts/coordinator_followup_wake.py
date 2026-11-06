@@ -160,9 +160,24 @@ def single_driver(state_dir):
 def watch_round(coordinator, root, collect, query=native):
     route = read_binding(root)
     check_driver(route, query)
-    if collect(coordinator, root)["backlog"]:
-        return {"state": "READING_PRIOR_DECISIONS"}
-    return wake_one(coordinator, root, route, query)
+    prior = collect(coordinator, root)
+    approval = None
+    policy = root / "native-approval-policy.json"
+    if policy.exists():
+        if not __package__:
+            from coordinator_approval_intake import collect as approval_collect, load_policy
+        else:
+            from .coordinator_approval_intake import collect as approval_collect, load_policy
+        try:
+            approval = approval_collect(coordinator, load_policy(policy))
+        except LOOP_ERRORS as error:
+            # The optional source never disables shared observers or the legacy
+            # report path. A native read failure is not a user decision.
+            approval = {"state": "SOURCE_UNAVAILABLE", "reason": getattr(error, "code", type(error).__name__)}
+    result = {"state": "READING_PRIOR_DECISIONS"} if prior["backlog"] else wake_one(coordinator, root, route, query)
+    if approval is not None:
+        result["approval_intake"] = approval
+    return result
 
 
 def watch(root):

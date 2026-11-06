@@ -23,8 +23,11 @@ ROLE_CONTACT = 'scripts/herdr_role_contact.py'
 COMMENT_INTAKE = 'scripts/coordinator_comment_intake.py'
 FOLLOWUP_INTAKE = 'scripts/coordinator_followup_intake.py'
 FOLLOWUP_WAKE = 'scripts/coordinator_followup_wake.py'
+APPROVAL_FILES = ('scripts/coordinator_approvals.py', 'scripts/coordinator_approval_channel.py',
+                  'scripts/coordinator_approval_workflow.py', 'scripts/coordinator_approval_notice.py',
+                  'scripts/coordinator_approval_intake.py', 'scripts/coordinator_approval_hook.py')
 FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS, ROLE_CONTACT, COMMENT_INTAKE,
-         FOLLOWUP_INTAKE, FOLLOWUP_WAKE)
+         FOLLOWUP_INTAKE, FOLLOWUP_WAKE, *APPROVAL_FILES)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
 
@@ -62,6 +65,8 @@ def install(revision, destination, *, repository=ROOT, github_inbox=None):
         if ROLE_CONTACT not in selected or COMMENT_INTAKE not in selected:
             raise ValueError('Native followups require role contact and private intake')
         selected += (FOLLOWUP_INTAKE, FOLLOWUP_WAKE)
+    if git('ls-tree', revision, '--', APPROVAL_FILES[0]).strip():
+        selected += APPROVAL_FILES
     if github_inbox is not None:
         github_inbox = Path(github_inbox)
         if COMMENT_INTAKE not in selected or not github_inbox.is_absolute() or github_inbox != github_inbox.resolve():
