@@ -160,7 +160,13 @@ def single_driver(state_dir):
 def watch_round(coordinator, root, collect, query=native):
     route = read_binding(root)
     check_driver(route, query)
-    prior = collect(coordinator, root)
+    try:
+        prior = collect(coordinator, root)
+    except LOOP_ERRORS as error:
+        # A source/prepare failure preserves its cursor for reconciliation; it
+        # cannot suppress reminders already registered for independent work.
+        prior = {"backlog": False, "state": "SOURCE_UNAVAILABLE",
+                 "reason": getattr(error, "code", type(error).__name__)}
     approval = None
     policy = root / "native-approval-policy.json"
     if policy.exists():
@@ -175,6 +181,8 @@ def watch_round(coordinator, root, collect, query=native):
             # report path. A native read failure is not a user decision.
             approval = {"state": "SOURCE_UNAVAILABLE", "reason": getattr(error, "code", type(error).__name__)}
     result = {"state": "READING_PRIOR_DECISIONS"} if prior["backlog"] else wake_one(coordinator, root, route, query)
+    if prior.get("state") or prior.get("last_approval_prepare") or prior.get("last_rejection") or prior.get("last_failure"):
+        result["coordination_intake"] = prior
     if approval is not None:
         result["approval_intake"] = approval
     return result

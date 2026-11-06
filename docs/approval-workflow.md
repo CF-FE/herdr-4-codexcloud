@@ -182,6 +182,22 @@ Herdr 继续承载协调员、负责人和本地 Worker；只有获准的 Codex 
 
 `route.kind` 当前只接受 `codex_app` 的显式绑定；已有 Mailbox 请求可用 `request_id` 核原任务后关联，但原 job 结果发布与云端可信回流适配尚未实现。不接受另建信箱单来补缺口。
 
+### 协调员通过原生提案准备审批
+
+协调员不需要原台账写权限。沿已绑定的 Herdr 协调员原生会话发一条独立单行提案，载荷仅为 `{"spec": <完整冻结对象>}`；下例是结构示意，完整对象使用上表 `approval_prepare` 的 spec，不是另一份审批方案：
+
+```text
+COORD_APPROVAL_PREPARE {"spec": <原任务的完整 approval_prepare spec>}
+```
+
+[原收件器](../scripts/coordinator_followup_intake.py)复用 `COORD_FOLLOWUP` 的来源、EOF 绑定和游标，只认当前绑定协调员的单段 assistant commentary／final 消息；代码块、引用、工具输出及任意 user 消息不能登记。watcher 核当前 `native-approval-policy.json` 的项目白名单和整条 route（kind、thread、host、授权引用、审批者、记录者），并要求非空 `notice_summary`，再以程序权限调用 `approval_prepare`。载荷不能选择 `op`、传 `covered_authorization_ref` 或导入批准；不开放派发、核收或新 DB 写权。
+
+提案必须保留原 `task_ref`、工作流 `checkpoint`、任职代次、原 `dispatcher`／`executor_ref` 及核收者。已有原任务待办时复用 `followup_key`；由已运行的父工作流观察项负责时，沿原父流程继续，不新建唤醒链。若原任务尚无人跟进，先沿既有 `COORD_FOLLOWUP put` 登记原检查／回收责任，再提案。批准只推进原检查点，仍由原唯一派发者接续并收回结果，不能把登记成功当作已经交给执行者。
+
+发出提案仅表示提出。应从原 watcher 的 `coordination_intake.last_approval_prepare` 或审批只读状态核到原 ID／版本／scope hash；`APPROVAL_PREPARE_PROPOSAL` 事件和原生 source 引用保留追溯。同一消息在游标落盘失败后重放，不新增审批或重复该来源事件。提案字段、项目或路由不符会记录 `last_rejection` 后继续旧 followup。策略缺失／暂不可读／配置损坏及登记存储故障属于宿主故障：保留原偏移与 `last_failure`，修复后下一原轮次继续同一提案，无需重发。已登记共享跟进仍继续，不因本提案失败停住其他分支。
+
+该入口补丁不改变现有主会话决定来源、桥接绑定或后续原节点接续规则，不为已批准的 C001 重新提案或执行。
+
 ### 受信记录者绑定与回执
 
 operator 在**原安装根**保存私有 `native-approval-policy.json`，示例所有路径与身份均为占位值；实际采用前核真实入口、原任命和允许项目，不复制认证或会话历史：
