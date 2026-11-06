@@ -19,6 +19,11 @@ import stat
 import sys
 import uuid
 
+if not __package__:
+    # A fixed release is also invoked with python -I, which excludes its script
+    # directory from sys.path. Only load siblings of this verified entrypoint.
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 
 COORDINATOR_ID = "cloud-dot-project-coordinator"
 # The old ledger ID is part of hashed report content and event-id derivation.
@@ -201,6 +206,10 @@ CREATE TABLE IF NOT EXISTS role_followups(
  state TEXT NOT NULL DEFAULT 'PENDING', revision INTEGER NOT NULL DEFAULT 0, action_id TEXT,
  evidence_ref TEXT, last_report_hash TEXT, UNIQUE(project_id,followup_key));
 CREATE INDEX IF NOT EXISTS role_followups_due ON role_followups(next_check_at,seq) WHERE state='PENDING';
+CREATE TABLE IF NOT EXISTS approvals(
+ seq INTEGER PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects, approval_id TEXT NOT NULL,
+ scope_version INTEGER NOT NULL, spec_hash TEXT NOT NULL, spec TEXT NOT NULL, progress TEXT NOT NULL,
+ UNIQUE(project_id,approval_id,scope_version));
 """
 
 
@@ -1071,6 +1080,18 @@ class Coordinator:
         require(operation in ADMIN_OPERATIONS, "ADMIN_OPERATION_NOT_ALLOWED")
         canonical(data)
         with self._db(operation not in ADMIN_READS) as db:
+            if operation.startswith("approval_"):
+                if operation == "approval_notice_snapshot":
+                    if __package__:
+                        from .coordinator_approval_notice import snapshot
+                    else:
+                        from coordinator_approval_notice import snapshot
+                    return snapshot(self, db, data)
+                if __package__:
+                    from .coordinator_approvals import operate
+                else:
+                    from coordinator_approvals import operate
+                return operate(self, db, operation.removeprefix("approval_"), data)
             return getattr(self, "_admin_" + operation)(db, data)
 
     def _followup_row(self, db, data):
@@ -1486,8 +1507,16 @@ class Coordinator:
                        (entry["deadline"] if phase == "CHECKPOINT" else None,
                         "DEADLINE" if phase == "CHECKPOINT" else "ESCALATED", p, r))
             items.append({"project_id": p, "request_id": r, "phase": phase, "revision": entry["revision"]})
-        return {"observed_at": now, "processed": len(items), "more_due": bool(db.execute(select, (*params, 1)).fetchone()),
-                "items": items}
+        result = {"observed_at": now, "processed": len(items), "more_due": bool(db.execute(select, (*params, 1)).fetchone()),
+                  "items": items}
+        if __package__:
+            from .coordinator_approvals import tick as approval_tick
+        else:
+            from coordinator_approvals import tick as approval_tick
+        escalations = approval_tick(self, db, limit=limit, project_id=data.get("project_id"))
+        if escalations:
+            result["approval_escalations"] = escalations
+        return result
 
     def _admin_report_wait(self, db, data):
         fields(data, "project_id request_id evidence_ref")
@@ -1528,11 +1557,13 @@ class Coordinator:
                 "next": rows[-1]["seq"] if rows else after}
 
 
-ADMIN_READS = {"notifications", "events", "github_list", "role_followup_list"}
+ADMIN_READS = {"notifications", "events", "github_list", "role_followup_list", "approval_list", "approval_notice_snapshot"}
 ADMIN_OPERATIONS = {"register_project", "activate_owner", "confirm_vacancy", "begin_creation", "record_creation",
                     "recover", "retarget", "record_stop", "set_wait", "report_wait", "tick",
                     "github_enqueue", "github_claim", "github_record",
-                    "role_followup_put", "role_followup_claim", "role_followup_record"} | ADMIN_READS
+                    "role_followup_put", "role_followup_claim", "role_followup_record",
+                    "approval_prepare", "approval_claim", "approval_record", "approval_recheck",
+                    "approval_result", "approval_close"} | ADMIN_READS
 CLI_READS = {"inspect": "inspect", "health": "local_health", "route": "route", "delivery": "delivery"}
 
 
@@ -1552,8 +1583,11 @@ def main(argv=None):
         require(args.input or args.operation == "tick", "INPUT_REQUIRED")
         raw = b"{}"
         if args.input:
-            with args.input.open("rb") as stream:
-                raw = stream.read(MAX_MESSAGE + 1)
+            if args.input == Path("-"):
+                raw = sys.stdin.buffer.read(MAX_MESSAGE + 1)
+            else:
+                with args.input.open("rb") as stream:
+                    raw = stream.read(MAX_MESSAGE + 1)
         require(len(raw) <= MAX_MESSAGE, "MESSAGE_TOO_LARGE")
         data = json.loads(raw.decode("utf-8"), object_pairs_hook=unique)
         require(isinstance(data, dict), "INVALID_FIELDS")

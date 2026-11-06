@@ -61,9 +61,15 @@ class CoordinatorInstallation(unittest.TestCase):
             dest = Path(tmp) / 'private-app'
             prepared = installer.install(first, dest, repository=repo)
             release = Path(prepared['release'])
+            self.assertTrue(set(installer.APPROVAL_FILES) <= prepared['files'].keys())
             plist = plistlib.loads((release / 'observer.plist').read_bytes())
             outcome = json.loads(subprocess.check_output(plist['ProgramArguments'], cwd=tmp, timeout=10))
             self.assertIsInstance(outcome, dict)
+            notice = subprocess.run([prepared['python'], '-I', '-S', '-B', str(release / installer.CORE_FILES[0]),
+                '--state-dir', prepared['state_dir'], 'approval_notice_snapshot', '--input', '-'],
+                input=json.dumps({'thread_id': 'bound-thread', 'host_id': 'local', 'project_ids': ['fixture']}),
+                cwd=tmp, capture_output=True, text=True, check=True, timeout=10)
+            self.assertEqual(json.loads(notice.stdout), {'schema_version': 1, 'notices': [], 'next_after': 0, 'more': False})
             pump = plistlib.loads((release / 'bridge-pump.plist').read_bytes())
             self.assertNotEqual(plist['Label'], pump['Label'])
             config = dest / 'bridge-port.json'

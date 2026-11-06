@@ -129,4 +129,65 @@ Herdr 继续承载协调员、负责人和本地 Worker；只有获准的 Codex 
 
 真实闭环验收必须能沿同一审批找到：目标入口、可信决定、原执行受理、实际结果和负责人核收。首次运行后更新[状态页](status.md)，分别记录源码、部署、通道与业务边界，不以测试数量或进程在线代替这些证据。
 
-**当前未实现范围：**本文新增的审批状态约束、对外投递／答复适配器及自然单闭环尚未交付。现有工作流和提醒能力继续按原版本运行；本次用户已经批准的具体事项沿原有效授权处理，不等待此开发完成。
+**采用边界：**源码候选、宿主通道、部署与自然单闭环分别核验，不能由下述工程实现推定第 1、4 切片已经通过。现有工作流和提醒能力继续按原版本运行；本次用户已经批准的具体事项沿原有效授权处理，不等待此开发完成。
+
+## 8. 实现合同与候选采用
+
+2026-11-06 的源码候选复用现有协调数据库，新增 `approvals` 表与 `APPROVAL_*` 事件，不创建服务、定时器、业务单或第二个派发者。它提供状态与恢复合同、App 工具宿主适配器、原检查点接续；**实际 Herdr 宿主的上行通道与可信答复入口尚缺，第 1 切片未验收，不能部署后直接宣称无人值守闭环。**
+
+### 入口核查与最小缺口
+
+| 入口／来源 | 本次取得的证据 | 采用限制 |
+| --- | --- | --- |
+| Codex App 定向工具 | 开发宿主发现 `send_message_to_thread`、`read_thread` 合同，并实际只读查询原主会话；查询返回指定 thread/host、turn/item 与正文 | 未发送审批测试。开发宿主的工具不能推定 Herdr 协调员或其 driver 进程可调用；没有已部署的跨宿主桥 |
+| `request_user_input_async` 历史回执 | 原失败记录只支持 `accepted:true`，协调员自身发布只支持本地发布 | 离线回放保留待送达；不重问已有批准，不把受理推成到达 |
+| 原生 `userMessage`／`role=user` | App Server 支持程序通过 `turn/start`、`turn/steer` 写入 user input，见[官方合同](https://learn.chatgpt.com/docs/app-server#api-overview) | 不扫描关键词自动批准；这类消息只可用于证明本次程序投递确实出现在绑定入口 |
+| GitHub 原评论 raw REST | 只读接口可核原 Issue、作者稳定 ID、时间及 `performed_via_github_app`；[已有记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6653501073)同时具有 User 作者与 Codex Connector 代写来源 | 同一账户也由记录者使用，不能把账户正确或 app 字段为空当作公子亲自批准；本候选不新增 GitHub 审批入口 |
+| 既有 Mac 协调桥 hook | 安装侧 hook／安装器／store 与信箱仓源码一致；现有 `SessionStart`／`UserPromptSubmit` 已提供 `additionalContext`。官方另有 [systemMessage 输出](https://learn.chatgpt.com/docs/hooks#common-output-fields)，可显示于 UI／事件流 | 当前只送计数等上下文，没有审批通知；`additionalContext` 不等于用户 UI。hook 输入没有可靠真人来源字段，不能将用户消息自动导入为批准 |
+
+最小宿主适配要求只有两项：实际协调执行端取得获准的绑定入口发送／查询能力；明确接到公子原答复的受信入口／记录者能核人、核范围并导入原决定引用。前者由宿主提供 `call_tool` 和核真实能力的 `capability_check`，后者提供 `decision_verifier`。这些是受信代码，不能由任务 JSON、正文自报身份或 `true` 字段构造。公子正常答复一次即可，记录者在内部关联原请求和范围，不要求复制 hash、再次确认或已读。
+
+当前缺少这些实际宿主证据时，适配器在发送意图前报 `MISSING_COORDINATOR_DECISION_CHANNEL`，答复端报 `MISSING_TRUSTED_DECISION_INTAKE`。不以开发窗口长期人工转发代替宿主采用，也不借本开发扩大主会话、Agent 或信箱的调用权限。
+
+### 既有 hook 的最小跨仓候选
+
+源码侧增加只读 `approval_notice_snapshot` 进程接口，供原主会话审阅后决定是否由既有 hook 采用。输入是明确配置的 `thread_id`、`host_id`、项目白名单及分页；输出仅包含稳定 notice ID、原审批版本、阶段、事先准备的 `notice_summary`、原单入口、责任与期限。没有 `notice_summary` 不投影，不返回原 scope、检查点、机器路径或私有答复来源。`--input -` 可经 stdin 传 JSON；读取不登记发送、不迁移数据库、不改变审批状态。
+
+最小跨仓改动只落在所属的 `CF-FE/task-mailbox-mcp`：
+
+1. 在原 hook 显式配置固定解释器／固定发布 CLI 的 argv，以有界子进程读上述 schema-v1 摘要；不使用 shell，不跨仓导入源码或直接打开协调数据库。该稳定进程接口的采用由原主会话审阅，不据源码存在启用。
+2. 在原桥 SQLite 只记 notice ID、绑定目标与传输去重，不保存第二份审批状态或扩大 prompt／回复采集。实际输出前沿原审批登记一次投递意图，再由 `systemMessage` 给出获准摘要和原单入口；`additionalContext` 只承担当前主会话定位。主／子 Agent 的 hook 归属须实核，不能只因共用 session ID 就假定送达用户主入口。
+3. hook 输出准备／退出成功只记受理。实际宿主事件或原有效答复可补齐送达；缺少确认不重新催批。审批者正常答复一次，受信主会话记录者沿原答复出具结构化回执，由 operator 绑定的原生来源、记录者身份、范围与游标验证后构造 `VerifiedDecision`。不扫描任意 `userMessage` 或正文“批准”。
+
+已有信箱业务 port 必须核真实 `job_id` 和逐 job grant，因此不为本地原生审批扩造信箱单。本轮只读核查了该 hook，**未修改 Task Mailbox 源码、安装配置或生产 hook**；上述接线与下一自然单的实际可见／答复回流仍待原主会话审阅和实施。
+
+### 已实现的程序合同
+
+| 代码入口 | 合同 |
+| --- | --- |
+| [协调核心](../scripts/project_coordinator.py)的 `approval_prepare` | 受信本地调用先核既有授权；`covered_authorization_ref` 返回 `BYPASSED`，不建立审批或业务单。新审批冻结原项目／任职、范围版本、路由、时限、原派发者、执行者、检查点与核收者；同版本重放须内容一致 |
+| `approval_list` | 分页只读；旧台账缺少审批表时返回空，不做隐式迁移。投递、决定、执行与核收分开显示 |
+| [摘要投影](../scripts/coordinator_approval_notice.py) `approval_notice_snapshot` | 精确绑定当前任职、thread/host 与允许项目，只输出已准备的最小摘要；无表时只读返回空。用于既有 hook 的候选接口，不代表已投递 |
+| `approval_claim`／`approval_record` | 先登记动作意图，再记 `ACCEPTED`／`UNKNOWN`／`DELIVERED` 等原通道证据。结果未知只核旧动作；确认未发送才允许重试。普通 CLI 没有写入批准的操作 |
+| [入口适配器](../scripts/coordinator_approval_channel.py) | 围绕上述两个 App 工具发送并分页查询，精确核 thread/host 与本次完整原生消息。`accepted` 单独仍是受理；消息缺失不推定未发送。`receive` 必须交受信 verifier，缺失即失败 |
+| [受信决定导入](../scripts/coordinator_approvals.py) `receive_decision` | 不注册为 CLI、远程 RPC 或 Worker MCP。宿主 verifier 读取原答复后返回 `VerifiedDecision`；核心再核绑定审批者／记录者、项目、版本、范围及任职。冲突需澄清；重复原决定幂等；有效答复可直接补齐送达 |
+| 既有 `tick`／`approval_recheck` | 原绝对时限不变；每审批版本、每到期阶段产生一次有责任人的 `PENDING` 升级待送达，实际发送另有意图与结果。批准后停在 `INTENT`／`UNKNOWN` 或仅 `CHECKPOINT_APPLIED` 仍保留原期限和对账责任；原执行者的 `ACCEPTED`／`RUNNING` 原生回执明确接手后才交已有后继跟进。没有新情况不反复唤醒模型；`RECHECK` 不清除升级历史 |
+| [检查点接续](../scripts/coordinator_approval_workflow.py) `resume_approval` | 核原 runner/definition、输入与项目身份，登记一次执行意图，调用原 runner 的 `decide`；重启先 `status` 对账。同一决定已采用时只读返回原后继 action。`CHECKPOINT_APPLIED` 仅证明原节点已采用决定，实际派发与 `ACCEPTED` 仍交原唯一派发者 |
+| `approval_result`／`approval_close` | 实际结果或明确取消处置进入待核收；冻结的核收者必须仍属原有效任职。换任后旧负责人不得作新核收；现任负责人须带当前代次、原任务验收交接与原生核验引用接手。迟到结果继续记账，云端Dot不得代验。拒绝／撤回停止对应动作；在途未知保留停止请求与原效果引用，其他分支继续 |
+
+关联 `followup_key` 只用于追溯，**不抑制原待办**。共享观察者可覆盖多个独立分支；在实际审批驱动接手前，原提醒机制保持有效。本候选没有自动接管或关闭旧提醒的操作。
+
+`route.kind` 当前只接受 `codex_app` 的显式绑定；已有 Mailbox 请求可用 `request_id` 核原任务后关联，但原 job 结果发布与云端可信回流适配尚未实现。不接受另建信箱单来补缺口。
+
+### 安装、升级与回退
+
+以下步骤交原主会话审阅具体固定提交后办理，本次开发未执行生产切换。
+
+1. 记录原固定发布、服务参数、数据库与路由；停止原定时写者后，用 SQLite backup 保存一致快照。保留原在途执行，不重发业务单。
+2. 用 `python3 scripts/install_project_coordinator.py --revision <完整40位候选提交> --destination <原私有安装根>` 准备发布。安装器自动包含审批模块，保留原状态；它不会加载服务、增加定时器或启用审批通道。
+3. 在**原台账副本**上做升级与只读核对。只有核清实际 Herdr 宿主能力、受信记录者、原唯一派发者和原始答复引用后，才在下一件自然审批采用；没有这些证据就保持候选未启用。
+4. 回退时先停新写者并保全新台账／来源游标／在途引用，再恢复原固定发布的服务参数。新增表对旧核心是旁路数据，旧台账仍可读；旧核心不处理新审批，未结事项须由原协调员显式承接。不要回滚数据库快照抹掉切换后的批准或副作用；只有核清快照后无新业务变化时才可恢复快照。
+
+工程验证使用临时 SQLite、合成 App 工具与受信 verifier double，以及真实生成器／原 runner 子进程。覆盖旧台账、范围与任职隔离、受理／送达、UNKNOWN、重复／冲突／迟到、期限／升级、共享观察者与独立分支、原节点恢复和核收。它不证明实际宿主投递、真人来源、Herdr 执行受理或自然单业务验收；这些仍沿第 7 节核证。
+
+本候选集中回归完成 **325 项测试，既有 4 项宿主 smoke 跳过**；结构与 Worker 库检查通过。独立复审发现的撤回穿透与冲突未阻断均已修复并复核；换任核收、明确未执行后的原单接续、执行意图中断后的期限升级均有回归。原两份失败记录仅作只读影子回放：本地发布和 `accepted` 均未推成送达或批准，连续观察没有顺延原期限或重复升级；未修改原审批、未重做维护、未发送测试审批。
