@@ -184,6 +184,16 @@ class WakeTests(unittest.TestCase):
         self.assertEqual(second["state"], "NO_DUE_ITEM")
         self.assertEqual(len(self.prompts), 1)
 
+    def test_failed_coordinator_intake_does_not_suppress_a_registered_shared_followup(self):
+        self.c.manage("role_followup_put", self.item)
+        collect = Mock(side_effect=OSError("temporary intake failure"))
+        with patch.object(wake, "check_driver"):
+            result = wake.watch_round(self.c, self.root, collect, self.query)
+        self.assertEqual(result["state"], "SUBMITTED")
+        self.assertEqual(result["coordination_intake"], {"backlog": False, "state": "SOURCE_UNAVAILABLE", "reason": "OSError"})
+        self.assertEqual(len(self.prompts), 1)
+        self.assertEqual(self.row()["state"], "SUBMITTED")
+
     def test_env_alone_cannot_substitute_for_driver_pid(self):
         query = Mock(return_value={"process_info": {"pane_id": "w1:p1", "foreground_processes": [{"pid": -1}]}})
         with patch.dict(os.environ, {"HERDR_ENV": "1", "HERDR_SESSION": "fixture", "HERDR_PANE_ID": "w1:p1"}), \

@@ -1,22 +1,27 @@
 """Import explicit coordination decisions from one operator-bound native Codex transcript."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
+import sqlite3
 import stat
 import sys
 import tempfile
 
 if not __package__:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from project_coordinator import CoordinatorError, require
+    from project_coordinator import CoordinatorError, canonical_hash, fields, require, text
     from herdr_role_contact import private
+    from coordinator_approval_intake import load_policy
 else:
-    from .project_coordinator import CoordinatorError, require
+    from .project_coordinator import CoordinatorError, canonical_hash, fields, require, text
     from .herdr_role_contact import private
+    from .coordinator_approval_intake import load_policy
 
 CURSOR = "native-followup-source.json"
 MARKER = "COORD_FOLLOWUP "
+PREPARE_MARKER = "COORD_APPROVAL_PREPARE "
 MAX_ROW = 256 * 1024
 READ_BUDGET = 4 * 1024 * 1024
 
@@ -68,6 +73,33 @@ def bind_source(root, path, sessions):
         return {"bound": True, "initial_offset": source["offset"]}
 
 
+def prepare_approval(coordinator, root, payload, source_ref, offset):
+    """The bound coordinator proposes; only the existing watcher writes the ledger."""
+    fields(payload, "spec")
+    spec = payload["spec"]
+    require(isinstance(spec, dict), "INVALID_APPROVAL_PROPOSAL")
+    try:
+        policy = load_policy(root / "native-approval-policy.json")
+    except OSError as error:
+        raise CoordinatorError("APPROVAL_PREPARE_POLICY_UNAVAILABLE") from error
+    except ValueError as error:
+        raise CoordinatorError("APPROVAL_PREPARE_POLICY_INVALID") from error
+    require(spec.get("project_id") in policy["project_ids"], "UNBOUND_APPROVAL_PROJECT")
+    route = {"kind": "codex_app", **{key: policy[key] for key in
+             ("thread_id", "host_id", "authorization_ref", "approver_principal", "relay_principal")}}
+    require(spec.get("route") == route, "UNBOUND_APPROVAL_ROUTE")
+    text(spec.get("notice_summary"), 1000)
+    result = coordinator.manage("approval_prepare", payload)
+    receipt = {**{key: result["spec"][key] for key in ("project_id", "approval_id", "scope_version")},
+               "scope_hash": result["scope_hash"], "source_ref": source_ref, "offset": offset}
+    # The same original message after a cursor-write failure adds neither a
+    # second approval nor a second source receipt. No authority/dispatch occurs.
+    with coordinator._db() as db:
+        coordinator._event(db, spec["project_id"], spec.get("request_id"), "APPROVAL_PREPARE_PROPOSAL",
+                           source_ref, receipt)
+    return receipt
+
+
 def collect_native_followups(coordinator, root, *, sessions=None):
     root = Path(root)
     source = private(root / "state" / CURSOR)
@@ -88,7 +120,7 @@ def collect_native_followups(coordinator, root, *, sessions=None):
                 source["discard"] = True
             elif source["discard"]:
                 source["discard"] = False
-            elif MARKER.encode() in raw:
+            elif MARKER.encode() in raw or PREPARE_MARKER.encode() in raw:
                 try:
                     row = json.loads(raw)
                     require(isinstance(row, dict) and isinstance(row.get("payload"), dict),
@@ -105,23 +137,41 @@ def collect_native_followups(coordinator, root, *, sessions=None):
                         and isinstance(parts, list) and len(parts) == 1 and isinstance(parts[0], dict)
                         and parts[0].get("type") == "output_text" and isinstance(parts[0].get("text"), str)):
                     line = parts[0]["text"].strip()
-                    if line.startswith(MARKER) and len(line.splitlines()) == 1:
+                    marker = next((m for m in (MARKER, PREPARE_MARKER) if line.startswith(m)), None)
+                    if marker and len(line.splitlines()) == 1:
+                        source_ref = "native:coordinator:" + canonical_hash(
+                            [source["path"], source["dev"], source["ino"], pos, hashlib.sha256(raw).hexdigest()])
                         try:
-                            payload = json.loads(line[len(MARKER):])
+                            payload = json.loads(line[len(marker):])
                             require(isinstance(payload, dict), "INVALID_FIELDS")
-                            op = payload.pop("op", None)
-                            require(op == "put" or (op == "record" and payload.get("outcome")
-                                    in ("CLOSED", "RECHECK", "DEFER")), "UNSUPPORTED_FOLLOWUP_DECISION")
-                            coordinator.manage("role_followup_" + op, payload)
+                            if marker == PREPARE_MARKER:
+                                source["last_approval_prepare"] = prepare_approval(coordinator, root, payload, source_ref, pos)
+                            else:
+                                op = payload.pop("op", None)
+                                require(op == "put" or (op == "record" and payload.get("outcome")
+                                        in ("CLOSED", "RECHECK", "DEFER")), "UNSUPPORTED_FOLLOWUP_DECISION")
+                                coordinator.manage("role_followup_" + op, payload)
                             source["accepted"] += 1
-                        except (ValueError, RecursionError) as exc:
-                            source["last_rejection"] = {"offset": pos, "code": getattr(exc, "code", "INVALID_JSON")}
+                        except (OSError, sqlite3.Error, ValueError, RecursionError) as exc:
+                            code = getattr(exc, "code", "")
+                            host_failure = isinstance(exc, (OSError, sqlite3.Error)) or code in {
+                                "APPROVAL_PREPARE_POLICY_UNAVAILABLE", "APPROVAL_PREPARE_POLICY_INVALID"}
+                            if host_failure:
+                                if marker == PREPARE_MARKER:
+                                    source["last_failure"] = {"offset": pos, "source_ref": source_ref,
+                                                              "code": code or type(exc).__name__}
+                                    source["offset"] = pos  # not processed; reconcile this original proposal next round
+                                    save_cursor(root, source)
+                                raise
+                            source["last_rejection"] = {"offset": pos, "code": getattr(exc, "code", "INVALID_JSON"),
+                                                        "source_ref": source_ref}
                             source["rejected"] += 1
             source["offset"] = stream.tell()
     if opened_at != source["offset"]:
         save_cursor(root, source)
     backlog = source["offset"] - opened_at >= READ_BUDGET and source["offset"] < info.st_size
-    return {**{k: source[k] for k in ("offset", "accepted", "rejected")}, "backlog": backlog}
+    return {**{k: source[k] for k in ("offset", "accepted", "rejected")}, "backlog": backlog,
+            **{k: source[k] for k in ("last_approval_prepare", "last_rejection", "last_failure") if k in source}}
 
 
 if __name__ == "__main__":
