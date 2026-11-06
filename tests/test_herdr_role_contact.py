@@ -79,6 +79,7 @@ class RoleContactTests(unittest.TestCase):
 
     def test_show_offline_and_generation_fence(self):
         self.assertEqual(self.run_op("show")["state"], "REGISTERED_ROUTE_ONLY")
+        self.assertEqual(self.run_op("show")["runtime_profile"], "readonly-contact-v1")
         self.assertEqual(self.calls, [])
         with sqlite3.connect(self.db) as db:
             db.execute("UPDATE projects SET generation=2")
@@ -163,6 +164,69 @@ class RoleContactTests(unittest.TestCase):
         self.assertEqual({**now, "locator": old["locator"]}, old)
         self.assertEqual(now["locator"]["pane_id"], new)
         self.assertEqual(self.run_op("resolve")["state"], "READY_FOR_CONTACT")
+
+    def owner_runtime(self, extra=()):
+        route = json.loads(self.route_file.read_bytes())
+        route["runtime_profile"] = "project-owner-v1"
+        route["authorization_ref"] = "user:repair-owner-capability-gap"
+        route["resume_argv"] = ["--no-daemon", "-a", "on-request", "-s", "workspace-write", "-C", self.cwd,
+                                "-c", 'shell_environment_policy.inherit="all"',
+                                "--disable", "multi_agent", *extra, "resume", self.thread]
+        route["resume_argv_sha256"] = contact.hashlib.sha256(
+            json.dumps(route["resume_argv"], ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        self.route_file.write_text(json.dumps(route))
+        return route
+
+    def test_project_owner_resume_preserves_original_identity_and_pending_work(self):
+        key = {"project_id": "test", "generation": 1, "followup_key": "pending-original"}
+        item = self.core.manage("role_followup_put", dict(key, task_ref="issue:1", receipt_ref="native:prior",
+                                next_action="collect existing worker", action_owner="coordinator",
+                                next_check_at="2026-11-05T15:00:00Z"))
+        route = self.owner_runtime()
+        self.shell(self.loc["pane_id"])
+        plan = self.run_op("prepare-resume")
+        self.assertEqual(plan["runtime_profile"], "project-owner-v1")
+        self.assertEqual(plan["argv"][-len(route["resume_argv"]):], route["resume_argv"])
+        self.assertEqual((plan["thread_id"], plan["generation"], plan["owner_principal"]),
+                         (self.thread, 1, "owner:test"))
+        self.assertEqual(plan["role_followups"]["items"], [item])
+        self.assertEqual(json.loads(self.route_file.read_bytes()), route)
+        self.assertNotIn("start", {word for cmd in self.calls for word in cmd})
+
+    def test_project_owner_identity_does_not_hide_a_running_legacy_process(self):
+        route = self.owner_runtime()
+        self.owner["agent_session"] = {"agent": "codex", "kind": "id", "value": self.thread}
+        with self.assertRaisesRegex(ValueError, "OWNER_RESUME_ARGV_UNCONFIRMED"):
+            self.run_op("resolve")
+        self.proc["foreground_processes"][0]["argv"] = ["codex", *route["resume_argv"]]
+        resolved = self.run_op("resolve")
+        self.assertEqual(resolved["state"], "READY_FOR_CONTACT")
+        self.assertEqual(resolved["identity_evidence"], "HERDR_AGENT_SESSION_AND_RESUME_ARGV")
+
+    def test_project_owner_requires_authorization_and_exact_argv_digest(self):
+        for field, value, reason in (("authorization_ref", " ", "OWNER_RUNTIME_AUTHORIZATION_REQUIRED"),
+                                     ("resume_argv_sha256", "0" * 64, "OWNER_RUNTIME_ARGV_HASH_MISMATCH"),
+                                     ("runtime_profile", "unknown", "RESUME_POLICY_MISMATCH")):
+            with self.subTest(field=field):
+                route = self.owner_runtime()
+                route[field] = value
+                self.route_file.write_text(json.dumps(route))
+                with self.assertRaisesRegex(ValueError, reason):
+                    self.run_op("show")
+                self.assertEqual(self.calls, [])
+
+    def test_project_owner_rejects_policy_overrides_even_with_matching_digest(self):
+        for extra in (("-a", "never"), ("-s", "danger-full-access"), ("-sread-only",),
+                      ("--ask-for-approval=never",), ("--sandbox", "read-only"),
+                      ("--profile", "other"), ("-pother",), ("--cd=/tmp",),
+                      ("--dangerously-bypass-approvals-and-sandbox",), ("--yolo",),
+                      ("--full-auto",), ("resume",), ("exec",), ("--",)):
+            with self.subTest(extra=extra):
+                self.owner_runtime(extra)
+                with self.assertRaisesRegex(ValueError, "OWNER_RUNTIME_POLICY_OVERRIDE"):
+                    self.run_op("show")
+                self.assertEqual(self.calls, [])
 
 
 if __name__ == "__main__":

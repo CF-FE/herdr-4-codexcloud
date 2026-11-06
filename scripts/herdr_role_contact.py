@@ -63,9 +63,25 @@ def read_route(root, project):
         db.row_factory = sqlite3.Row
         followups = role_followup_page(db, {"project_id": project, "generation": route["generation"]})
     args = route["resume_argv"]
+    profile = route.get("runtime_profile", "readonly-contact-v1")
+    require(profile in {"readonly-contact-v1", "project-owner-v1"}, "RESUME_POLICY_MISMATCH")
+    approval, sandbox = ("on-request", "workspace-write") if profile == "project-owner-v1" else ("never", "read-only")
     require(isinstance(args, list) and all(isinstance(a, str) and a and "\0" not in a for a in args)
-            and args[:7] == ["--no-daemon", "-a", "never", "-s", "read-only", "-C", route["cwd"]]
+            and args[:7] == ["--no-daemon", "-a", approval, "-s", sandbox, "-C", route["cwd"]]
             and args[-2:] == ["resume", thread], "RESUME_POLICY_MISMATCH")
+    if profile == "project-owner-v1":
+        authorization = route.get("authorization_ref")
+        require(isinstance(authorization, str) and authorization.strip() and "\0" not in authorization,
+                "OWNER_RUNTIME_AUTHORIZATION_REQUIRED")
+        # The host reviews the complete argv, including tools and writable roots.
+        # Digest format: UTF-8 JSON array, ensure_ascii=False, separators=(",", ":").
+        digest = hashlib.sha256(json.dumps(args, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest()
+        require(route.get("resume_argv_sha256") == digest, "OWNER_RUNTIME_ARGV_HASH_MISMATCH")
+        forbidden = {"--ask-for-approval", "--sandbox", "--profile", "--cd", "--full-auto",
+                     "--dangerously-bypass-approvals-and-sandbox", "--yolo", "--"}
+        require(all(a not in {"resume", "exec"} and a.split("=", 1)[0] not in forbidden
+                    and not any(a.startswith(flag) for flag in ("-a", "-s", "-p", "-C"))
+                    for a in args[7:-2]), "OWNER_RUNTIME_POLICY_OVERRIDE")
     return path, route, caller, followups
 
 
@@ -99,7 +115,7 @@ def check_owner(route, locator, owner, query, *, relocated=False):
         require(identity.get("agent") == "codex" and identity.get("kind") == "id"
                 and identity.get("value") == route["thread_id"], "OWNER_THREAD_MISMATCH")
         method = "HERDR_AGENT_SESSION"
-    if identity is None or relocated:
+    if identity is None or relocated or route.get("runtime_profile") == "project-owner-v1":
         processes = query(session, "pane", "process-info", "--pane", locator["pane_id"])["process_info"]
         require(processes["pane_id"] == locator["pane_id"], "OWNER_PANE_MISMATCH")
         group = processes["foreground_process_group_id"]
@@ -120,6 +136,10 @@ def operate(action, project, *, replacement=None, root=ROOT, query=native):
                                    "session", "agent", "last_confirmed_contact")}
     result["locator"] = locator
     result["role_followups"] = followups
+    result["runtime_profile"] = route.get("runtime_profile", "readonly-contact-v1")
+    if route.get("runtime_profile") == "project-owner-v1":
+        result["authorization_ref"] = route["authorization_ref"]
+        result["resume_argv_sha256"] = route["resume_argv_sha256"]
     if action == "show":
         return dict(result, state="REGISTERED_ROUTE_ONLY")
     check_caller(caller, query)
