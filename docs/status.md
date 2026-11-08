@@ -4,6 +4,8 @@
 
 ## 当前结论
 
+**2026-11-08，Decision Service 的工作流、角色选型及结果反馈已形成文档方案，尚未开发或部署。** 先做跨 bank MVP，以现有合法分支和一条原生角色配置路径提高工作流效率与 token 利用率；不等待收益基线或全量能力目录。服务负责候选选择、反馈关联与效果汇总，本仓负责薄适配、实际采用、应用／结果回传及原恢复入口补传，各项目负责人维护流程及验收。当前模板只有固定分支／检查点，动态改图、自动模型／强度应用及反馈钩子仍是开发项。[工作流侧合同与分工](project-workflow-development.md#decision-service-接入先跑通现有决定点) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。本轮仅改文档，没有改变运行权限、启动服务或派发业务。
+
 **2026-11-06，审批子工作流及提案入口补丁已合并到 main，Mac 安装和运行接线已采用；自然单待验。** [Herdr PR #16](https://github.com/CF-FE/herdr-4-codexcloud/pull/16) 承接 [PR #15](https://github.com/CF-FE/herdr-4-codexcloud/pull/15)，当前固定发布为 `f63e3b8`；[Task Mailbox PR #7](https://github.com/CF-FE/task-mailbox-mcp/pull/7) 的 Mac 运行副本为 `1b3da867`，桥侧 14 项文件摘要一致。协调员以 `COORD_APPROVAL_PREPARE` 沿原生来源提交提案，由原 watcher 登记，不授予台账写权或扩大沙箱。原 watcher 已运行新版并每 60 秒收回完成回合的答复，原 waits、bridge-pump 已加载同一发布且首轮退出码为 0；policy 与两个原游标保留，未重新绑定。通知依赖下一次用户活动；本次无新审批、批准或测试单，真实 UI、自然审批接续及业务验收仍待自然单。原协调员已确认采用新登记入口，无新采用阻塞；未发测试提案。远端 collector 的既有 `AUTH_FAILED` 独立保留，未重新认证或启动。[设计与部署回执](approval-workflow.md#8-实现合同与候选采用)
 
 **2026-11-06，凡人负责人的履职配置缺口已修复并部署到 Mac。** 恢复工具采用 [`ce4311f`](https://github.com/CF-FE/herdr-4-codexcloud/commit/ce4311f4e1b296e4a17694866bd85856473fc9dc)，原等待检查服务已加载固定发布并正常运行。经公子明确授权，现任负责人沿原 Herdr 线程在凡人主仓使用 `project-owner-v1`（`workspace-write`、`on-request`），实际读到了 Herdr、组织协作、负责人／规划技能与项目工作流，并从自身工具进程成功查询三个既有 Worker。协调员核实了原任职、线程及完整启动参数，已解除维护暂停；原提醒程序恢复运行，在途工作的唯一派发者保留。

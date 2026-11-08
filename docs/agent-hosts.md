@@ -38,6 +38,30 @@
 
 `--kind` 选择交互程序。供应商、模型、认证、工具和目录权限按本轮目标实核。库的 `select` 选候选，`prepare` 只生成含原生参数占位符的准备稿。旧 Lody 的迁移资料提供职责参考，在途旧单沿原入口收尾。[角色索引](worker-library/roles/index.json) · [Worker 与后端定义](worker-library/workers.json) · [离线选型示例](worker-library/README.md#离线查询与准备) · [旧任务交接](organization-collaboration/README.md#退出与运行交接待办的责任)
 
+<a id="decision-model-selection"></a>
+
+## 按任务选择模型配置
+
+2026-11-08 与 [Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)对齐的设计，尚未实现自动选型接线。项目负责人或原获准创建者负责提供任务需求、选择／复用 Worker 并应用配置；Decision Service 只帮助选择 `candidate_id`，不创建角色、不变更任职。职责不变，优先接一条可用创建路径，不先改造所有 Harness。
+
+创建者从[环境能力台账](worker-library/README.md#environment-capabilities)、当前宿主支持和本任务约束整理候选。程序先筛除工具、模态、上下文、宿主、明确型号或预算不匹配项，再按任务歧义、依赖深度、验证难度及已观察到的质量选预计足够的配置。筛后无可用组合时返回 `unavailable` 和具体缺口，无需空跑模型。不一律选最高档，也不以单次最低价替代整单成本；权限、网络或工具故障按对应原因处理，不靠提高推理强度解决。
+
+每个候选关联 Worker／后端、宿主能力观察来源、模型类型／型号、该模型支持的推理强度及配置摘要；不支持强度参数的模型明确标为不适用。公开能力摘要维护于原 Project，任务用的候选快照随原任务保留，凭据和私有启动配置留宿主。服务响应的参数仅从该候选取回，创建适配器按对应 Harness 已支持的方式应用，不拼接模型生成的命令。
+
+| 当前入口 | 已有能力 | 首版需补的接线 |
+| --- | --- | --- |
+| `worker_library.py select / prepare` | 按 Worker 能力／宿主筛选，准备稿透传后端 `agent_args`，不启动；不是完整模型／强度目录 | 构造实际模型与强度候选，记录能力来源、候选版本及选择结果 |
+| Herdr 原生角色创建者 | 在真实目标以指定 Harness 启动并取得接手回执 | 将所选配置映射为该 Harness 的参数，保留预期／实际配置与原生角色关联 |
+| `herdr_role_contact.py` | 沿固定 `resume_argv` 与摘要恢复原线程；履职 profile 控制工具和沙箱 | 选型结果不能改写现有恢复摘要；需要换配置时沿宿主支持的空闲／下一任务单元交接办理 |
+| `coordinator_goal_channel.py` | 按冻结 capability manifest 创建／恢复受限目标 | 当前无动态 model／effort 接口；所需配置适配由本仓维护，原权限保持独立 |
+| Codex Cloud 路由 | 沿原环境和实际任务 ID 提交／回收 | 只暴露已核可配置项；未核模型／强度参数不进入可自动应用候选 |
+
+创建角色或交付新任务时选一次，目标复杂度、质量或资源发生实质变化才重选；已有配置适合时直接复用。原权限和预算内的选型无需逐次批准。宿主支持切换时沿其原生入口应用，不支持热切换则在下一单元或原交接点采用，保留现任身份与在途动作。推荐值、实际启动配置和任务产出分别记录，模型更换不等于角色换任或取得新权限。
+
+创建／接续适配器负责把 `decision_id` 与原角色任务、工作单元和实际执行 attempt 关联，回读实际生效的模型／强度配置后发送 `application`；读不出实际配置时保留 UNKNOWN，不用准备稿代替。按每个工作单元回收产物、已有质量结论及 Harness 可提供的 usage／耗时，不等待长寿命角色退出，也不把角色全生命周期消耗归给最近一次决策。配置切换时保留各 attempt 的实际配置，无法拆分的计量注明范围。待回传记录、后补质量修订及恢复补传共用[工作流反馈合同](project-workflow-development.md#decision-feedback)；这些钩子及自动读回当前尚未实现。
+
+工作流候选与一次联调边界见[Decision Service 接入](project-workflow-development.md#decision-service-接入先跑通现有决定点)。实时型号、价格和可用额度沿能力记录与实际宿主维护，不固化进本页或据旧默认值宣称当前可用。
+
 ## 从原任务找到实例并收回结果
 
 **Herdr。** 一个持久 session 可容纳多个 workspace，每个 workspace 下有 tab，tab 中有 pane，命名 Agent 是该 pane 内运行的交互程序（harness）。多个岗位可在一个 session 分别绑定目标。只有需要独立执行、独立审查或隔离工作时，才按授权分配专用 pane。相同 Agent 名可能存在于不同机器／session，须与原任务、主机、原生目标和任职代次一并核对。

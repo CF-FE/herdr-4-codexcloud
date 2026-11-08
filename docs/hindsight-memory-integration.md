@@ -51,6 +51,8 @@ UI 监听 Win loopback；Mac 浏览经现有 LAN SSH 隧道，不走 VPS 或 Eas
 
 项目内角色可用固定 bank 连接；跨项目入口显式传 bank。固定绑定或原任务提供项目；缺失时报告缺口，不静默写 `default`。bank 路由不代替认证与项目授权。
 
+**Decision Service 跨 bank 读取设计（2026-11-08，待接入）。** 服务与调用入口的可读范围一次配置，调用时可从有效范围选择本项目、共享及相关项目 bank，无需逐次审批或先搬到共享库；来源项目未知的路由问题也可使用入口已有可见目录。写入仍须明确目标 bank。检索不是每次判断的必经步骤，必要片段保留 bank、文档来源和观察时间；当前输入足够时可直接判断。首版程序化应用／结果反馈及人工纠正保存在 Decision Service 自己的记录中，沿原执行引用精确关联，不依赖 webhook、语义召回找全或其他 bank 写权。现有 VPS 网关的 bank 范围与主体 mutations 分开检查，尚非逐 bank 的读写权限矩阵；首版只读配置无需为反馈扩大这些权限。服务合同由[其主仓](https://github.com/CF-FE/decision-service/blob/main/docs/hindsight-integration.md)维护，本文不表示运行配置已经变更。
+
 | 信息 | 原维护位置 | Hindsight 的用途 |
 | --- | --- | --- |
 | 正式规范、工作流、长期设计决定 | 项目仓库 | 可索引并保存原版本引用，原文只维护一处 |

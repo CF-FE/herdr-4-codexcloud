@@ -1,6 +1,6 @@
 # 架构与范围
 
-修订日期：2026-11-05。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
+修订日期：2026-11-08。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
 
 ## 初始化决定
 
@@ -86,6 +86,14 @@ graph TD
 工作流运行检查点保留在执行侧私有状态目录，GitHub Project／Issue 记录项目进度与验收，Task Mailbox 回收原单进展；Hindsight 为接手和判断提供带来源背景。程序结束、Worker 自检和负责人业务验收分别记录。[流程生成与交接](project-workflow-development.md) · [设计依据](decisions/001-project-owned-workflows.md) · [分享图](share-doc/project-workflow.svg)
 
 需要新增授权的节点按已实现并在 Mac 采用的[审批子工作流](approval-workflow.md)接续：当前绑定协调员以 `COORD_APPROVAL_PREPARE` 提案，原 watcher 登记；hook 在用户活动时提示，受信主会话记录者的答复由原 watcher 回流并接续原检查点。项目负责人定义触发条件及后继，已有授权直接继续；通知不即时，真实 UI、自然审批及业务验收仍待自然单。[ADR-003](decisions/003-approval-workflow.md)
+
+### Decision Service：辅助推进与模型选型（待实现）
+
+独立项目 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)为工作流和角色创建者提供有限候选选择。原调用方给出当前状态、合法动作或实际可用的模型／推理强度配置；服务按需跨 bank 取背景并选择候选；原执行入口在既有授权内采用。它是程序能力，不新增组织 Agent，不接管任务状态、任命或业务验收。
+
+首版先接现有工作流分支和一条角色配置应用路径，减少无效模型回合、重复上下文与等待，再按整单耗时、token 和返工改进。固定规则直接运行，普通判断不逐步审批。当前模板不支持任意在途改图，角色恢复工具不等于动态模型切换器；相关薄适配尚未开发。工作流合同、跨仓分工与集中联调见[工作流接入](project-workflow-development.md#decision-service-接入先跑通现有决定点)，模型应用见[宿主合同](agent-hosts.md#decision-model-selection)。服务接口与路线由其主仓维护，本仓保留消费者合同。
+
+MVP 同时设计[程序化反馈](project-workflow-development.md#decision-feedback)：原适配器将实际采用和工作单元结果直接回传，原状态保存关联及待传事件，恢复时补传而不重跑业务；服务精确关联并汇总质量证据与实际消耗。人工纠正可补充，质量沿原验收，不新增逐次人工评分。Hindsight 负责经验召回，完整 webhook 回收后置；上述反馈接线尚未实现。
 
 ### 项目共享记忆
 
