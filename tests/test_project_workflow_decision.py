@@ -17,7 +17,7 @@ from project_workflow_decision import Checkpoint, choose, reconcile, update_qual
 
 
 class ServiceDouble:
-    def __init__(self, test):
+    def __init__(self, test, prefix=""):
         self.records = {}
         self.events = {}
         self.posts = []
@@ -44,6 +44,10 @@ class ServiceDouble:
                     self.reply(401, {"error": {"code": "unauthenticated"}})
                     return
                 location = urlsplit(self.path)
+                route = prefix + "/v1/decisions"
+                if location.path != route and not location.path.startswith(route + "/"):
+                    self.reply(404, {"error": {"code": "not_found"}})
+                    return
                 if location.query:
                     record = double.records.get(parse_qs(location.query)["request_id"][0])
                 else:
@@ -60,7 +64,7 @@ class ServiceDouble:
                     return
                 payload = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
                 double.posts.append((self.path, payload))
-                if self.path == "/v1/decisions/evaluate":
+                if self.path == prefix + "/v1/decisions/evaluate":
                     choice_id = double.selection
                     candidate = next(item for item in payload["choices"] if item["candidate_id"] == choice_id)
                     record = {key: payload[key] for key in ("schema_version", "project_id", "request_id",
@@ -75,7 +79,7 @@ class ServiceDouble:
                     if double.drop_evaluate:
                         return
                     self.reply(200, record, truncate=double.truncate_responses)
-                elif self.path == "/v1/decision-feedback":
+                elif self.path == prefix + "/v1/decision-feedback":
                     key = payload["event_id"], payload["revision"]
                     prior = double.events.get(key)
                     if prior is not None and prior != payload:
@@ -96,7 +100,7 @@ class ServiceDouble:
         test.addCleanup(server.server_close)
         test.addCleanup(thread.join, 5)
         test.addCleanup(server.shutdown)
-        self.client = DecisionService(f"http://127.0.0.1:{server.server_port}", "isolated", timeout=2)
+        self.client = DecisionService(f"http://127.0.0.1:{server.server_port}{prefix}", "isolated", timeout=2)
 
 
 def example_checkpoint(test, *, fail_after_choice=False):
@@ -133,6 +137,23 @@ def example_checkpoint(test, *, fail_after_choice=False):
 
 
 class WorkflowDecisionTests(unittest.TestCase):
+    def test_gateway_prefix_is_preserved_for_evaluation_readback_and_feedback(self):
+        checkpoint = example_checkpoint(self)
+        http = ServiceDouble(self, prefix="/decision-service")
+        outcome = choose(checkpoint, http.client)
+        self.assertEqual(outcome["application_status"], "applied")
+        self.assertEqual(http.client.get(decision_id=outcome["decision_id"])["request_id"], outcome["request_id"])
+        self.assertEqual([path for path, _ in http.posts], [
+            "/decision-service/v1/decisions/evaluate",
+            "/decision-service/v1/decision-feedback",
+        ])
+
+    def test_gateway_prefix_rejects_ambiguous_path_segments(self):
+        for path in ("/prefix/../other", "/prefix/./other", "/prefix/%2e%2e", "/prefix//other"):
+            with self.subTest(path=path):
+                with self.assertRaisesRegex(DecisionServiceError, "invalid_service_url"):
+                    DecisionService("https://service.example" + path, "isolated")
+
     def test_lost_decision_and_feedback_ack_recover_without_business_replay(self):
         checkpoint = example_checkpoint(self)
         http = ServiceDouble(self)

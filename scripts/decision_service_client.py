@@ -3,6 +3,7 @@ from http.client import IncompleteRead
 import json
 import math
 import os
+import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -28,15 +29,18 @@ class DecisionService:
 
     def __init__(self, base_url, token, timeout=15):
         url = urlsplit(base_url)
+        prefix = url.path.rstrip("/")
         if (url.scheme not in {"https", "http"} or not url.hostname or url.username is not None
-                or url.query or url.fragment or url.path.rstrip("/")
+                or url.query or url.fragment
+                or (prefix and re.fullmatch(r"(?:/[A-Za-z0-9._~-]+)+", prefix) is None)
+                or any(segment in {".", ".."} for segment in prefix.split("/"))
                 or (url.scheme == "http" and url.hostname not in {"localhost", "127.0.0.1", "::1"})):
             raise DecisionServiceError("invalid_service_url")
         if not token or any(not 33 <= ord(char) <= 126 for char in token):
             raise DecisionServiceError("invalid_service_token")
         if not math.isfinite(timeout) or timeout <= 0:
             raise DecisionServiceError("invalid_service_timeout")
-        self.base_url = base_url.rstrip("/")
+        self.base_url = url._replace(path=prefix).geturl()
         self.token = token
         self.timeout = timeout
         self.opener = build_opener(NoRedirects())
