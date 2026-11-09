@@ -1361,10 +1361,15 @@ class Coordinator:
         return self._project(db, p)
 
     def _admin_begin_creation(self, db, data):
-        fields(data, "project_id expected_generation creation_id vacancy_ref release_ref authorization_ref")
+        fields(data, "project_id expected_generation creation_id vacancy_ref release_ref authorization_ref",
+               "binding_sha256")
         p, cid, epoch = identifier(data["project_id"]), identifier(data["creation_id"]), _generation(data["expected_generation"])
         for key in ("vacancy_ref", "release_ref", "authorization_ref"):
             text(data[key])
+        if "binding_sha256" in data:
+            binding_hash = data["binding_sha256"]
+            require(isinstance(binding_hash, str) and re.fullmatch(r"[0-9a-f]{64}", binding_hash),
+                    "INVALID_CREATION_BINDING")
         project = self._project(db, p)
         digest = canonical_hash(data)
         old = db.execute("SELECT * FROM creations WHERE project_id=? AND creation_id=?", (p, cid)).fetchone()
@@ -1382,6 +1387,13 @@ class Coordinator:
         db.execute("UPDATE projects SET assignment_state='VACANCY_CONFIRMED' WHERE project_id=?", (p,))
         self._event(db, p, None, "CREATION_INTENT", "local:administrator", data)
         return {"create": True, "creation_id": cid, "generation": epoch, "state": "INTENT"}
+
+    def _admin_creation_status(self, db, data):
+        fields(data, "project_id creation_id")
+        p, cid = identifier(data["project_id"]), identifier(data["creation_id"])
+        project = self._project(db, p)
+        row = db.execute("SELECT * FROM creations WHERE project_id=? AND creation_id=?", (p, cid)).fetchone()
+        return {"creation": dict(row) if row else None, "current_generation": project["generation"]}
 
     def _admin_record_creation(self, db, data):
         fields(data, "project_id expected_generation creation_id outcome evidence_ref", "candidate_ref")
@@ -1557,7 +1569,8 @@ class Coordinator:
                 "next": rows[-1]["seq"] if rows else after}
 
 
-ADMIN_READS = {"notifications", "events", "github_list", "role_followup_list", "approval_list", "approval_notice_snapshot"}
+ADMIN_READS = {"notifications", "events", "github_list", "role_followup_list", "approval_list",
+               "approval_notice_snapshot", "creation_status"}
 ADMIN_OPERATIONS = {"register_project", "activate_owner", "confirm_vacancy", "begin_creation", "record_creation",
                     "recover", "retarget", "record_stop", "set_wait", "report_wait", "tick",
                     "github_enqueue", "github_claim", "github_record",

@@ -58,13 +58,13 @@
 
 2026-11-09，[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)的 Mac Codex 新工作单元适配已固定安装，并通过专用 Herdr 合成任务的真实启动、模型／强度读回和结果回传；未切换现任生产角色。项目负责人或原获准创建者负责提供任务需求、选择／复用 Worker 并应用配置；Decision Service 只帮助选择 `candidate_id`，不创建角色、不变更任职。首版覆盖一条创建路径，不改造所有 Harness。
 
-创建适配器经 HTTP API 调用；Agent 的 MCP 入口复用同一服务核心，各客户端采用另核。消费者不直接读写服务主机的 SQLite，角色绑定和在途状态仍归原宿主。交付形式与数据归属见[工作流消费边界](project-workflow-development.md#decision-storage-boundary)，本节仅记录已经验证的 Mac 创建路径。
+原 Mac 工作流的模型适配器经 HTTP API 调用 Decision Service。Agent 的 MCP 入口复用同一服务核心，各客户端采用另核。角色绑定和在途状态仍归原宿主。组织角色共用入口在本地从策略和能力记录选出唯一配置。[工作流消费边界](project-workflow-development.md#decision-storage-boundary) · [组织角色创建指南](#controlled-role-creation)
 
 三类模型配置分别记录：Decision Service 的 Luna 负责业务候选判断；Win Hindsight 内部的 Luna 用于 recall／consolidation；被选给执行角色的模型与推理强度由原创建者在宿主应用（本次工程样例为 `gpt-6.1-sol / low`）。三者不是同一个运行实例，也不合并密钥或用推荐值代替实际读回。部署和验证来源见服务仓的[固定交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)。
 
 创建者从[环境能力台账](worker-library/README.md#environment-capabilities)、当前宿主支持和本任务约束整理候选。程序先筛除工具、模态、上下文、宿主、明确型号或预算不匹配项，再按任务歧义、依赖深度、验证难度及已观察到的质量选预计足够的配置。筛后无可用组合时返回 `unavailable` 和具体缺口，无需空跑模型。不一律选最高档，也不一律选最低档造成返工；权限、网络或工具故障按对应原因处理，不靠提高推理强度解决。
 
-**模型白名单。** 公子已确认允许组合并授权接入。仓库已在 Mac Codex `new-unit` 接上候选筛选与启动前复核。`validate`、`preview` 和 `defaults` 用于离线维护，导航 Skill 随源码维护。Win、Cloud 的原生模型参数接线和图像调用接线仍待完成。目标宿主采用见[当前状态](status.md#当前结论)。[维护指南](../config/allowlists/README.md) · [Agent 策略](../config/allowlists/agent-models.json) · [导航 Skill](../skill/allowlist-management/SKILL.md)
+**模型白名单。** Mac Codex `new-unit` 沿原工作流入口筛选候选并在启动前复核。组织角色的技术新建共用受控入口。Mac Codex 支持协调员、项目负责人和 Worker，Win OMP 当前仅支持 Worker。Cloud 的模型与强度参数当前不受支持，图像调用另有待接入口。宿主采用以实际回执为准。[组织角色创建指南](#controlled-role-creation) · [白名单维护指南](../config/allowlists/README.md) · [当前状态](status.md#当前结论)
 
 白名单按场景在本仓维护版本化 JSON，每个场景有唯一策略源。协调员维护条目和版本，本仓维护格式、校验与发布。Mac Codex `new-unit` 读取发布目录中的 `active` 策略快照，与宿主能力和本单要求求交，再向 Decision Service 提交合法候选。请求冻结策略修订号和文件摘要，原生启动前重新核对同一修订、摘要及所选组合。策略有变动的请求停在启动前。已有启动意图的原单沿冻结记录和原生目标对账。
 
@@ -111,14 +111,7 @@ Agent 策略以 Mac 为默认基准，未配置覆盖的环境继承期望值。
 
 2. 复用身份相符的 Agent。确证无可用绑定、无未决创建且本单有创建权时，选择归本单且处于交互 shell 的 pane。若已获准新增独立 tab，可用 `herdr tab create --workspace "$WORKSPACE" --cwd "$TASK_DIR" --no-focus`，从返回的 `root_pane` 取 ID。远端先核已启用的 saved-machine 和兼容的运行中服务，从 `herdr --machine "$PROFILE" agent list` 取目标，后续对同一机器操作。
 
-   ```sh
-   herdr agent start "$AGENT" --kind codex --pane "$PANE" -- \
-     --no-daemon \
-     -c 'shell_environment_policy.inherit="all"' \
-     -c 'shell_environment_policy.include_only=["PATH","HOME","USER","USERNAME","LOGNAME","SHELL","TERM","LANG","LC_*","TMPDIR","PWD","HERDR_ENV","HERDR_SESSION","HERDR_WORKSPACE_ID","HERDR_TAB_ID","HERDR_PANE_ID","HERDR_SOCKET_PATH","HERDR_TERMINAL_ID","CODEX_THREAD_ID","CODEX_HOME"]'
-   ```
-
-   这是 Mac Codex 的现场做法。默认 TUI 即使显示在 pane 内，共享 daemon 的工具进程也可能丢失 pane 身份。用本机 CLI 支持的 `--no-daemon` 启动，只在本次进程透传 Herdr 实际注入的 `HERDR_ENV`、`HERDR_SESSION`、`HERDR_WORKSPACE_ID`、`HERDR_TAB_ID`、`HERDR_PANE_ID`、`HERDR_SOCKET_PATH` 等必要字段，不手填值或改全局环境策略。由 Agent 在自身工具进程核实 `HERDR_ENV=1`、pane 匹配及 Herdr 的 `agent_session` 与本轮 Codex thread 一致，再以原生答复确认接手。其他 harness 使用各自已经核实的参数。
+   新建协调员、负责人或 Worker 时使用[受控创建入口](#controlled-role-creation)准备、启动和对账。复用或恢复走原绑定和冻结配置。
 
 3. 先记录派发意图，核目标空闲且能接此任务，提交一次含原任务引用和交付要求的指令。读原生接手答复和本次产物／报告，交指定接收者。超时或掉线保留原意图，先查原目标、产物和写权。重建需先隔离旧写者、关联原未决效果并取得授权。终端 `done/idle` 或 prompt 等待结束均不能代替本次接手、验收与交还。[操作与恢复语义](pilot.md) · [显式适配器的证据](herdr-executor.md#验收记录)
 
@@ -127,15 +120,44 @@ Agent 策略以 Mac 为默认基准，未配置覆盖的环境继承期望值。
    herdr agent read "$AGENT" --source recent --lines 80
    ```
 
+<a id="controlled-role-creation"></a>
+
+### 组织角色受控创建
+
+从实际 Mac Herdr 管理 pane 发起。Mac Codex 用当前原生 session，可绑定 `project_coordinator`、`project_owner` 或 `executor`。Win OMP 仅接受 `executor`，用已核的 saved-machine ID、绑定的远端 session 和 Windows 绝对工作目录。负责人的定向联系和目标运行仍沿 `codex-cli:mac`。技术入口负责创建候选及对账，任命、接手、负责人激活和业务验收分别沿原记录办理。[角色决定与经办分工](#role-creation-responsibility) · [宿主采用状态](status.md#当前结论)
+
+由获准经办者准备绝对路径、本人独占读写的 `schema_version=1` JSON 绑定文件。使用已有受控角色交接目录。以下字段引用原任务与证据，公开文档只保留字段名。
+
+| 绑定内容 | 要填什么 |
+| --- | --- |
+| 共通授权 | `role`、`project_id`、`task_ref`、`unit_id`、`creation_id`、`authorization_ref` |
+| 原生目标与路由 | `target` 中的 session、Agent、工作目录及 workspace／tab／pane／terminal ID。Win 另填 `machine` 和本次专用的 Windows 绝对 OMP 会话目录 `session_dir`。`route` 绑定环境、Worker、后端与供应商 |
+| 模型选择和启动 | `selection` 提供任务要求及已核能力记录。省略显式型号或档位时按环境默认值解析。`prepare` 要求结果恰好为一个允许组合。Mac Codex 的 `agent_args` 保留已获准的非模型配置与 `--no-daemon`。Win OMP 使用 `cli-proxy-responses`，`agent_args` 为空，由适配器映射模型、档位和会话目录 |
+| 岗位专属凭据 | Mac 协调员 `project_coordinator` 提供 `initialization_ref`，沿原初始化入口。Mac 负责人 `project_owner` 提供 `owner_creation` 下的 `expected_generation`、`vacancy_ref`、`release_ref`。Mac 或 Win Worker 用 `executor`，提供 `dispatch_ref` 与 `input_sha256` |
+
+从已核发布中取脚本绝对路径 `ROLE_CREATION`，用原绑定文件 `CREATION_BINDING`。核对 `prepare` 返回的目标、配置、策略修订和摘要，取 `prepared_sha256` 作为 `PREPARED_SHA256`。三条命令按原任务状态分别调用。
+
+```sh
+python3 "$ROLE_CREATION" prepare --binding "$CREATION_BINDING"
+python3 "$ROLE_CREATION" start --binding "$CREATION_BINDING" --prepared-sha256 "$PREPARED_SHA256"
+python3 "$ROLE_CREATION" reconcile --binding "$CREATION_BINDING"
+```
+
+`start` 核同一准备摘要和空闲 shell pane，持久保存唯一启动意图，在原生启动前复核 `active` 策略的修订、文件摘要及所选组合。适配器调用 Herdr 时从子进程环境剔除 `DECISION_SERVICE_TOKEN`，其余继承行为按宿主与已获准的启动参数控制。Win OMP 显式传 `--session-dir`，使用本次专用目录隔离工作区的自动续接。
+
+只有原回执明确为 `not_started` 且核实零效果时，才在同一原任务和单元下用新的明确 `creation_id` 重试，旧回执继续保留。结果为 `UNKNOWN` 或已创建时，沿同一绑定执行 `reconcile`，查原目标并补原回执。已有原生候选后另核实际回合的模型和强度，以及岗位接手。Win 的原生会话身份由宿主的 OMP session report 扩展提供。现任角色恢复使用原线程与冻结参数。
+
+Win OMP Worker 承担规划或动态判断时，可按职责配备 Decision Service MCP 与 Skill。执行已冻结单元的 Worker 可沿原任务运行，工作流选型与反馈由原端通过 HTTP 办理。
+
 ### 负责人运行配置与升级
 
-负责人恢复绑定区分早期的只读收件配置与 `project-owner-v1` 履职配置。后者在已核项目仓库使用 `workspace-write` 和 `on-request`，启用 Shell、项目规范及技能发现，沿本节的允许列表传递实际 Herdr 环境。Worker 仍通过 Herdr 组织，Codex 内部多 Agent 不承担项目角色。配置应有本次授权引用和固定参数摘要，恢复前核当前运行程序与配置版本；原生线程身份相同仍须核实际参数，不能把更新绑定文件当作已升级进程。
+负责人恢复绑定区分早期的只读收件配置与 `project-owner-v1` 履职配置。后者在已核项目仓库使用 `workspace-write` 和 `on-request`，启用 Shell、项目规范及技能发现，沿冻结参数的环境允许列表传递实际 Herdr 环境。Worker 仍通过 Herdr 组织，Codex 内部多 Agent 不承担项目角色。配置应有本次授权引用和固定参数摘要，恢复前核当前运行程序与配置版本；原生线程身份相同仍须核实际参数，不能把更新绑定文件当作已升级进程。
 
 本项按 `BOUNDARY_NOTE` 实施：只扩展现有恢复合同，角色、项目归属、负责人代次、线程和任务状态的所有者不变。迁移前核原线程已空闲并交还，沿原线程恢复；旧只读绑定继续可用。在途工作保留原唯一派发者，新任务按负责人明确的任务分工登记派发者，不把新工具能力当成已有预算或主机维护审批。通过负责人实际读取技能、核对 Herdr 身份和既有 Worker 的回执验收能力，不重跑生产。
 
 外部开发窗口向正在 Herdr 中运行的角色转达消息时，复用已授权的真实维护终端；App 的 `active writer` 表示原生进程持有线程，应转回 Herdr 路径。维护者可从真实 PTY 附着原命名 session，再在已有 driver 内核身份、定向投递并读接手回执；临时暂停的提醒程序须在维护后恢复。不伪造 Herdr 环境，也不从 App 并行恢复同一角色。
 
-**Codex Cloud。** 唯一获准的路由执行者先核原任务、已发布且匹配该仓／分支的环境、创建权限和未决意图，才创建一次。保存平台实际返回的任务 ID。按同一 ID 拉状态和目标尝试的变更，将精确提交／PR／产物、验证及未验项交原负责人或指定接收者。合并、应用变更与发布各按本单授权办理。
+**Codex Cloud。** 当前提交接口缺少 `model` 和 `effort` 字段，白名单模型与推理强度约束为 `unsupported`。要求强制该配置的单元报告缺口，独立获准的 Mac／Win 工作继续。其他已获准的 Cloud 作业由唯一路由执行者核原任务、已发布环境、创建权限和未决意图后创建一次。保存原生任务 ID，沿原 ID 收回状态与产物并交本单接收者。合并、应用变更与发布各按本单授权办理。
 
 ```sh
 codex cloud list --env "$ENV_ID" --json

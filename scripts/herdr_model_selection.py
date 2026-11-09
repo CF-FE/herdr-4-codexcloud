@@ -1,150 +1,22 @@
 """Select and apply a Mac Codex configuration for an authorized new handoff unit."""
 import argparse
 import json
-import os
 from pathlib import Path
-import platform
-import re
 import sqlite3
-import stat
-import subprocess
 import sys
 
-from allowlists import (DEFAULT_FILE, DEFAULT_ROOT, LibraryError, preview_agent, read_active_agent_policy,
-                        resolve_agent_default)
+from allowlists import DEFAULT_FILE, DEFAULT_ROOT, LibraryError, read_active_agent_policy
+from herdr_agent_creation import (LOCATION, MAC_ROUTE, HostError, check_empty, check_policy_at_start,
+                                  mac_agent_process, mac_launch_argv, mac_shell_process, matching_candidates,
+                                  native, non_model_args, read_agent_thread, require_private, start_agent)
 from decision_service_client import DecisionService
 from project_workflow_decision import (MODEL_FIELDS, Checkpoint, add_checkpoint_arguments, freeze, handoff_unit,
                                        integration, model_application, reconcile, resolve)
 from project_workflow_template import decision_state_digest, digest, encoded, require
 
 
-LOCATION = ("workspace_id", "tab_id", "pane_id", "terminal_id")
-HERDR = Path.home() / ".local/bin/herdr"
-MAC_ENVIRONMENT = "mac-work"
-MAC_WORKER = "mac-codex"
-MAC_BACKEND = "current-default"
-
-
-class HostError(ValueError):
-    pass
-
-
-def native(session, *command):
-    if platform.system() != "Darwin" or os.getenv("HERDR_ENV") != "1" or os.getenv("HERDR_SESSION") != session:
-        raise HostError("the authorized local Herdr session is required")
-    timeout = 35 if command[:2] == ("agent", "start") else 8
-    env = {key: value for key, value in os.environ.items() if key != "DECISION_SERVICE_TOKEN"}
-    try:
-        result = subprocess.run([str(HERDR), "--session", session, *command],
-                                capture_output=True, timeout=timeout, env=env)
-        if result.returncode:
-            raise HostError("native command outcome unconfirmed")
-        return json.loads(result.stdout)["result"]
-    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError, KeyError, TypeError):
-        raise HostError("native command outcome unconfirmed") from None
-
-
-def non_model_args(argv, cwd, provider):
-    """Keep approved TUI options and reject a conflicting provider override."""
-    switches = {"--no-daemon", "--no-alt-screen", "--strict-config"}
-    values = {"-a", "--ask-for-approval", "-s", "--sandbox", "-C", "--cd", "-p", "--profile",
-              "--add-dir", "--enable", "--disable", "-c", "--config", "-m", "--model"}
-    require(isinstance(argv, list) and all(isinstance(arg, str) and arg and "\0" not in arg for arg in argv),
-            "invalid approved Codex argv")
-    retained = []
-    index = 0
-    while index < len(argv):
-        arg = argv[index]
-        key, separator, value = arg.partition("=")
-        if key in switches and not separator:
-            retained.append(arg)
-            index += 1
-            continue
-        require(key in values, "use documented new Codex TUI options in the approved argv")
-        if separator:
-            pair = [arg]
-            index += 1
-        else:
-            require(index + 1 < len(argv) and not argv[index + 1].startswith("-"), "missing Codex option value")
-            value = argv[index + 1]
-            pair = argv[index:index + 2]
-            index += 2
-        if key in {"-C", "--cd"}:
-            require(value == cwd, "Codex working directory differs from the authorized pane")
-        if key in {"-m", "--model"}:
-            continue
-        if key in {"-c", "--config"}:
-            config_key, equals, config_value = value.partition("=")
-            config_key = config_key.strip()
-            require(equals and re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*", config_key),
-                    "unsupported Codex configuration key")
-            if config_key == "model_provider":
-                require(config_value.strip() in (provider, json.dumps(provider), f"'{provider}'"),
-                        "Codex provider override conflicts with the authorized binding")
-                continue
-            if config_key in {"model", "model_reasoning_effort"}:
-                continue
-        retained.extend(pair)
-    require("--no-daemon" in retained, "the approved Mac Herdr Codex options must include --no-daemon")
-    return retained
-
-
 def candidates(selection, provider, policy, policy_ref, library):
-    """Intersect the requested fields, current host capabilities and the exact policy entries."""
-    needs = selection["requirements"]
-    require(isinstance(needs, dict) and isinstance(selection["capabilities"], list)
-            and type(needs.get("input_tokens", 0)) is int and needs.get("input_tokens", 0) >= 0,
-            "invalid task requirements or capabilities")
-    for key in ("tools", "modalities", "models", "providers", "efforts"):
-        require(key not in needs or isinstance(needs[key], list), "task capability requirements must be arrays")
-    defaults = resolve_agent_default(policy, MAC_ENVIRONMENT)
-    models = needs.get("models", [defaults["model"]] if defaults["model"] is not None else [])
-    efforts = needs.get("efforts", [defaults["reasoning_effort"]] if defaults["reasoning_effort"] is not None else [])
-    capabilities = []
-    for row in selection["capabilities"]:
-        require(isinstance(row, dict), "capabilities must contain objects")
-        if (row.get("environment_id", MAC_ENVIRONMENT) != MAC_ENVIRONMENT or row["worker_id"] != MAC_WORKER
-                or row["backend_id"] != MAC_BACKEND or row["provider"] != provider):
-            continue
-        if (not set(needs.get("tools", [])) <= set(row["tools"])
-                or not set(needs.get("modalities", [])) <= set(row["modalities"])
-                or needs.get("input_tokens", 0) > row["context_window"]
-                or row["model"] not in models
-                or ("providers" in needs and row["provider"] not in needs["providers"])):
-            continue
-        capabilities.append(row)
-    matched, _, _ = preview_agent(policy, capabilities, library)
-    choices = []
-    for match in matched:
-        entry = match["entry"]
-        effort = entry["reasoning_effort"]
-        if effort not in efforts:
-            continue
-        model = {key: entry[key] for key in MODEL_FIELDS}
-        choices.append({"candidate_id": MAC_WORKER + "-" + digest(model),
-                        "description": f'{entry["model"]} ({effort or "not applicable"})',
-                        "parameters": model, "metadata": {"worker_id": MAC_WORKER, "backend_id": MAC_BACKEND,
-                        "capability_ref": match["capability_sources"][0], "model_policy": policy_ref}})
-    return sorted(choices, key=lambda choice: choice["candidate_id"])
-
-
-def check_empty(target, host):
-    session = target["session"]
-    agents = host(session, "agent", "list")["agents"]
-    require(not any(agent.get("name") == target["agent"] or agent.get("pane_id") == target["pane_id"]
-                    for agent in agents), "existing or pending agent on authorized target")
-    panes = host(session, "pane", "list", "--workspace", target["workspace_id"])["panes"]
-    require(any(all(pane.get(key) == target[key] for key in LOCATION)
-                and pane.get("cwd") == pane.get("foreground_cwd") == target["cwd"]
-                and not pane.get("launch_pending") for pane in panes), "authorized pane is unconfirmed")
-    process = host(session, "pane", "process-info", "--pane", target["pane_id"])["process_info"]
-    shell = process["shell_pid"]
-    foreground = process["foreground_processes"]
-    require(process.get("pane_id") == target["pane_id"] and type(shell) is int and shell > 0
-            and process["foreground_process_group_id"] == shell and len(foreground) == 1
-            and foreground[0].get("pid") == shell and foreground[0].get("cwd") == target["cwd"]
-            and foreground[0].get("argv") and Path(foreground[0]["argv"][0]).name.lstrip("-") in {"zsh", "bash", "sh"},
-            "interactive shell is unconfirmed")
+    return matching_candidates(selection, dict(MAC_ROUTE, provider=provider), policy, policy_ref, library)
 
 
 def apply(checkpoint, client, unit_id, binding, selection, *, host=native, policy_path=DEFAULT_FILE):
@@ -156,6 +28,10 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native, polic
             and binding["provider"].strip(), "an approved native target, provider and authorization are required")
     require(all(not value.startswith("-") for key, value in target.items() if key != "cwd"),
             "invalid native target")
+
+    def target_host(*command):
+        return host(target["session"], *command)
+
     binding_digest = digest(binding)
     status = checkpoint.native("status")
     require(status.get("decision_integration_version") == 1, "workflow integration is unavailable")
@@ -208,13 +84,11 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native, polic
         return {"request_id": request_id, "decision_id": decision["decision_id"], "status": "complete",
                 "disposition": decision["disposition"], "feedback": reconcile(checkpoint, client)}
 
-    argv = [*base_args, "-m", selected["model"], "-c", "model_provider=" + json.dumps(selected["provider"])]
-    if selected["reasoning_effort"] is not None:
-        argv.extend(("-c", "model_reasoning_effort=" + json.dumps(selected["reasoning_effort"])))
+    argv = mac_launch_argv(base_args, selected)
     # Inspect the native target outside SQLite. The transaction then fences a
     # concurrent workflow transition or a second caller of this creation path.
     try:
-        check_empty(target, host)
+        check_empty(target, target_host, mac_shell_process)
     except (ValueError, KeyError, TypeError):
         with checkpoint.open(write=True) as run:
             existing = integration(run)["launches"].get(unit_id)
@@ -236,16 +110,9 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native, polic
         else:
             if decision_state_digest(run) != entry["request"]["snapshot"]["state_digest"]:
                 model.update(application_status="stale", reason="snapshot_changed")
-            else:
-                try:
-                    current_policy, current_ref, current_library = read_active_agent_policy(policy_path, DEFAULT_ROOT)
-                    allowed = current_ref == entry["model_policy"] and any(
-                        choice["parameters"] == selected for choice in
-                        candidates(selection, binding["provider"], current_policy, current_ref, current_library))
-                except LibraryError:
-                    allowed = False
-                if not allowed:
-                    model.update(application_status="stale", reason="agent_model_policy_changed")
+            elif not check_policy_at_start(policy_path, selection, dict(MAC_ROUTE, provider=binding["provider"]),
+                                           entry["model_policy"], selected):
+                model.update(application_status="stale", reason="agent_model_policy_changed")
             if model["application_status"] != "stale":
                 require(not any(prior["target"]["session"] == target["session"] and
                                 (prior["target"]["pane_id"] == target["pane_id"] or
@@ -262,13 +129,7 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native, polic
         return {"request_id": request_id, "decision_id": decision["decision_id"], "status": "stale",
                 "reason": model["reason"], "launch_outcome": "not_started", "model_policy": policy_ref,
                 "feedback": reconcile(checkpoint, client)}
-    try:
-        host(target["session"], "agent", "start", target["agent"], "--kind", "codex", "--pane", target["pane_id"],
-             "--timeout", "30000", "--", *argv)
-    except HostError:
-        # The command can have reached Herdr even without a usable response.
-        pass
-    else:
+    if start_agent(target, target_host, "codex", argv) == "ready_acknowledged":
         with checkpoint.open(write=True) as run:
             integration(run)["launches"][unit_id]["outcome"] = "ready_acknowledged"
     return reconcile_model(checkpoint, client, request_id, host=host)
@@ -303,32 +164,12 @@ def reconcile_model(checkpoint, client, request_id, *, rollout=None, turn_id=Non
         launch = data.get("launches", {}).get(unit_id)
         require(launch is not None and launch["request_id"] == request_id, "no original model launch to reconcile")
         target = launch["target"]
-    thread_id = None
-    try:
-        agent = host(target["session"], "agent", "get", target["agent"])["agent"]
-        identity = agent.get("agent_session") or {}
-        require(agent.get("name") == target["agent"] and agent.get("agent") == "codex"
-                and agent.get("cwd") == agent.get("foreground_cwd") == target["cwd"]
-                and all(agent.get(key) == target[key] for key in LOCATION)
-                and identity.get("agent") == "codex" and identity.get("kind") == "id"
-                and isinstance(identity.get("value"), str) and identity["value"],
-                "native Codex identity is unconfirmed")
-        if not launch.get("thread_id"):
-            process = host(target["session"], "pane", "process-info", "--pane", target["pane_id"])["process_info"]
-            require(process.get("pane_id") == target["pane_id"] and any(
-                item.get("pid") == process["foreground_process_group_id"] and item.get("cwd") == target["cwd"]
-                and item.get("argv") and Path(item["argv"][0]).name.startswith("codex")
-                and digest(item["argv"][1:]) == launch["argv_digest"]
-                for item in process["foreground_processes"]), "bound Codex launch argv is unconfirmed")
-        thread_id = identity["value"]
-    except (ValueError, KeyError, TypeError):
-        pass
-    observed = None
-    # A prior verified binding can be used after the role exits. Never adopt a
-    # different thread found in the same terminal on a later lookup.
+    def target_host(*command):
+        return host(target["session"], *command)
+
     recorded_thread = launch.get("thread_id")
-    if recorded_thread and thread_id != recorded_thread:
-        thread_id = None
+    thread_id = read_agent_thread(target, target_host, "codex", mac_agent_process, launch["argv_digest"], recorded_thread)
+    observed = None
     evidence_thread = thread_id or recorded_thread
     if rollout is not None and evidence_thread:
         observed = read_turn(rollout, turn_id, evidence_thread, target["cwd"])
@@ -373,12 +214,6 @@ def reconcile_model(checkpoint, client, request_id, *, rollout=None, turn_id=Non
             output["model_policy"] = launch["model_policy"]
     output["feedback"] = reconcile(checkpoint, client)
     return output
-
-
-def require_private(stream):
-    info = os.fstat(stream.fileno())
-    require(stat.S_ISREG(info.st_mode) and info.st_uid == os.getuid() and not info.st_mode & 0o077,
-            "use an owner-private regular file")
 
 
 def main(argv=None):
