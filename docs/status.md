@@ -9,13 +9,16 @@
 | 本次采用的版本证据 | 对应对象 |
 | --- | --- |
 | Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
-| VPS release `c38f58e` | Decision Service 当前运行发布；凡人单 bank 的历史结果回收已验，首期工程发布为 `2df05a48` |
-| Herdr `3e90b459` | Mac 当前安装的消费者，包含组织角色受控创建入口和 Win OMP Worker 适配 |
+| VPS release `07cf3d34` | Decision Service 当前运行发布，公网 HTTP/MCP 读回原决定与反馈；凡人单 bank 试点版 `c38f58e` 保留作回退 |
+| Herdr `5d666fcb` | Mac 当前标准消费者，凡人可显式绑定独立发布器 |
+| Herdr `3e90b459` | 此前的组织角色受控创建及 Win OMP Worker 适配版，原目录保留作回退 |
 | Herdr `701cd01` | 此前接入 Mac Codex 工作流 `new-unit` 白名单的发布，原目录独立保留作回退 |
 | Herdr `8612a9a` | 此前的 Mac 合成工程闭环版本，原安装目录独立保留作回退 |
 | Herdr `49e48b5c` | Win Hindsight 候选级拒答补丁，与 Mac 消费者分开安装 |
 
 <a id="role-creation-deployment"></a>
+
+**2026-11-09 22:11:51（北京时间），Mac 标准消费者已切换到 `5d666fcb`。** 30 个安装文件的摘要与固定发布回执一致，标准入口通过启动参数检查。凡人普通入口的受管绑定引用同版本独立目录以及 Decision Service 主分支发布器，应用回执继续直传。已冻结工作流按原输入恢复，切换未创建角色或启动模型回合。[消费者 PR #19](https://github.com/CF-FE/herdr-4-codexcloud/pull/19) · [凡人入口 PR #14](https://github.com/CF-FE/fanren-work/pull/14)
 
 **2026-11-09 18:49:13（北京时间），Mac 的 `HerdrDecisionConsumer` 原入口已切换到组织角色受控创建版。** 合并版本的 30 个安装文件与固定 Git 对象逐字节一致，`herdr_role_creation.py --help` 可从安装路径导入并显示用法。切换前该消费者在途调用为 0，旧 `701cd01` 目录独立保留，原工作流和负责人台账状态保持原位。本次切换新建角色、发送 prompt 与模型回合均为 0。[PR #18](https://github.com/CF-FE/herdr-4-codexcloud/pull/18) · [固定发布 `3e90b459`](https://github.com/CF-FE/herdr-4-codexcloud/commit/3e90b459521c52fa5a4de2a387d4a4806f3369b3)
 
