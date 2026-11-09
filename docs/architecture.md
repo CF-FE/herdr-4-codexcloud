@@ -87,15 +87,15 @@ graph TD
 
 需要新增授权的节点按已实现并在 Mac 采用的[审批子工作流](approval-workflow.md)接续：当前绑定协调员以 `COORD_APPROVAL_PREPARE` 提案，原 watcher 登记；hook 在用户活动时提示，受信主会话记录者的答复由原 watcher 回流并接续原检查点。项目负责人定义触发条件及后继，已有授权直接继续；通知不即时，真实 UI、自然审批及业务验收仍待自然单。[ADR-003](decisions/003-approval-workflow.md)
 
-### Decision Service：辅助推进与模型选型（待实现）
+### Decision Service：辅助推进与模型选型（本地接线已实现）
 
 独立项目 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)为工作流和角色创建者提供有限候选选择。原调用方给出当前状态、合法动作或实际可用的模型／推理强度配置；服务按需跨 bank 取背景并选择候选；原执行入口在既有授权内采用。它是程序能力，不新增组织 Agent，不接管任务状态、任命或业务验收。
 
 首版交付一个服务核心与 HTTP API，按 Agent 实际需要提供共用核心的 MCP，并以轻量 Skill 说明调用规范；插件分发后置。内部 SQLite 放服务主机持久磁盘，仅服务访问，保存决策、已收反馈及关联／已知缺口；消费者通过 API／MCP 调用。Hindsight 保留经验，原工作流保留业务状态、产物权威、待传事件与恢复责任。服务库不代表尚未回传的业务事实。[消费者与存储边界](project-workflow-development.md#decision-storage-boundary)
 
-首版先接现有工作流分支和一条角色配置应用路径，减少无效模型回合、重复上下文与等待，再按整单耗时、token 和返工改进。固定规则直接运行，普通判断不逐步审批。当前模板不支持任意在途改图，角色恢复工具不等于动态模型切换器；相关薄适配尚未开发。工作流合同、跨仓分工与集中联调见[工作流接入](project-workflow-development.md#decision-service-接入先跑通现有决定点)，模型应用见[宿主合同](agent-hosts.md#decision-model-selection)。服务接口与路线由其主仓维护，本仓保留消费者合同。
+首版已接现有工作流分支和 Mac Codex 新工作单元配置路径，通过本地隔离联调；部署、真实 provider 和角色采用仍待执行。目标是减少无效模型回合、重复上下文与等待，再按整单耗时、token 和返工改进。固定规则直接运行，普通判断不逐步审批。当前模板不支持任意在途改图，新单元创建不等于在途角色热切换。工作流合同、跨仓分工与集中联调见[工作流接入](project-workflow-development.md#decision-service-接入先跑通现有决定点)，模型应用见[宿主合同](agent-hosts.md#decision-model-selection)。服务接口与路线由其主仓维护，本仓保留消费者合同。
 
-MVP 同时设计[程序化反馈](project-workflow-development.md#decision-feedback)：原适配器将实际采用和工作单元结果直接回传，原状态保存关联及待传事件，恢复时补传而不重跑业务；服务精确关联质量证据。模型类型／型号与推理强度必须记录，推荐和实际配置分开；消耗低优先级，只记现成值、缺失留空，不扩展采集，不记现金费用。人工纠正可补充，质量沿原验收，不新增逐次人工评分。Hindsight 负责经验召回，完整 webhook 回收后置；上述反馈接线尚未实现。
+MVP 已实现[程序化反馈](project-workflow-development.md#decision-feedback)：原适配器将实际采用和工作单元结果直接回传，原状态保存关联及待传事件，显式恢复时补传而不重跑业务；服务精确关联质量证据。模型类型／型号与推理强度必须记录，推荐、启动与实际配置分开；消耗低优先级，只记现成值、缺失留空，不扩展采集，不记现金费用。人工纠正可补充，质量沿原验收，不新增逐次人工评分。Hindsight 负责经验召回，完整 webhook 回收后置；当前反馈已验证隔离工程行为，尚无生产业务验收。
 
 ### 项目共享记忆
 

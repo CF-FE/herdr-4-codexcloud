@@ -73,7 +73,7 @@ python3 workflows/batch-review/workflow.py --state "$RUN" resume
 
 ## Decision Service 接入：先跑通现有决定点
 
-2026-11-08 设计增量，尚未实现接线。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)由独立项目维护，帮助选择下一步和角色模型配置，目标是提高整条工作流的推进效率与 token 利用率。先跑通包含跨 bank 检索的 MVP，再按实际使用迭代，不以收益基线、完整标签集或统一影子期作为开工前置。本文拥有工作流侧合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同。
+2026-11-09，消费者首版已实现并通过本地隔离联调，尚未部署或用于真实任务。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)由独立项目维护，帮助选择下一步和角色模型配置，目标是提高整条工作流的推进效率与 token 利用率。先跑通包含跨 bank 检索的 MVP，再按实际使用迭代，不以收益基线、完整标签集或统一影子期作为开工前置。本文拥有工作流侧合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同。
 
 ```mermaid
 flowchart LR
@@ -86,14 +86,14 @@ flowchart LR
     W --> H["原 handoff 与成果回收"]
     A -.->|"application"| F["原状态：待回传事件"]
     H -.->|"result"| F
-    F -.->|"异步直传／恢复补传"| E["服务：精确关联与效果汇总"]
+    F -.->|"事务外发送／恢复补传"| E["服务：精确关联与效果汇总"]
 ```
 
 ### 最小调用与应用合同
 
-**首版程序入口为 HTTP API。** Herdr／项目适配器通过服务调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作；Agent 有实际接入需求时提供 MCP，两个入口共用一个 Decision Service 核心及同一套记录。轻量 Skill 说明何时调用、怎样准备候选、应用与反馈；插件分发后置。本节不预定 URL、HTTP 方法或已安装工具名，实际路由由服务实现合同给出；当前尚未发布入口。
+**首版程序入口为 HTTP API。** Herdr／项目适配器通过服务调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作，方法、路径与字段统一见服务的 [v1 合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md)。Agent 需要 MCP 时再复用同一核心；插件分发后置。当前已验证本地 HTTP 接线，不表示远端服务已经发布。
 
-调用者在真正需要判断时读取 `status`，以当前 `decision.choices` 构造有稳定 `candidate_id` 的候选，另提供“均不适合”的非执行出口，映射为 `needs_replan` 而不导入 `decide`。请求关联原项目、任务、流程、`step`、`source_sha256`、`input_sha256`，并保留本次相关状态和候选的摘要。状态与候选摘要及服务关联是待实现的薄适配层记录，不能冒称模板已有独立 `state_version` 字段。业务状态仍只在原检查点维护。
+调用者在真正需要判断时读取 `status`，以当前 `decision.choices` 构造有稳定 `candidate_id` 的候选，另提供“均不适合”的非执行出口，映射为 `needs_replan` 而不导入 `decide`。请求关联原项目、任务、流程、`step`、`source_sha256`、`input_sha256`，并保留本次相关状态和候选的摘要。关联、冻结请求和待传事件保存在原检查点的 `decision_integration` 中；它不进入业务状态摘要或项目 program 参数，也不改变原 `decisions[step]` 的 `{choice,evidence}` 结构。模板没有独立 `state_version` 或原生 `run_id`，适配器生成的 `unit_id` 显式标记来源。
 
 服务返回 `decision_id`、所选 `candidate_id` 和处置状态；参数由程序从本次冻结候选取回，不使用模型生成的命令。同一请求的候选集合及参数／配置改变即为输入冲突，旧 ID 不套用新映射。已有合法建议可在原授权内直接采用：原调用者核仍是对应待决定步骤、相关状态与候选未变，再将候选映射到原 `decide --step … --choice … --evidence …`。证据引用指向保存的决策记录，包含来源、输入快照和选中候选；它不是用户批准或业务验收证据。模板事务内再次检查当前步骤和选项并自动推进。相同导入重放须沿用原 choice 和 evidence；不能为重试换证据引用。
 
@@ -132,7 +132,7 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 
 ### 程序化结果回收与效果验证
 
-**MVP 包含原工作流／角色适配器自动直传反馈，人工纠正作为补充。** 本节约定调用方怎样产生和恢复反馈；服务入口、幂等修订、覆盖率及效果汇总由 Decision Service 的[结果回收合同](https://github.com/CF-FE/decision-service/blob/main/docs/outcome-feedback.md)维护。当前模板尚无 `decision_id` 关联、反馈事件或恢复补传钩子，下述均为待实现合同。
+**MVP 包含原工作流／角色适配器自动直传反馈，人工纠正作为补充。** 本节约定调用方怎样产生和恢复反馈；服务入口、幂等修订、覆盖率及效果汇总由 Decision Service 的[结果回收合同](https://github.com/CF-FE/decision-service/blob/main/docs/outcome-feedback.md)维护。当前通过下述显式适配入口生成和补传；直接调用旧 runner 不会自动向服务发送反馈。
 
 在采用建议前，将 `decision_id`、本次候选与原项目／任务／流程运行、步骤、动作关联持久保存；发生执行后再补原生执行 attempt。当前模板没有独立 `run_id`，沿原检查点对应的项目／流程／任务及源码、输入摘要关联，不能只挂在会随推进清空的当前 action 上。没有 handoff 时允许无 action；判断重算 attempt 与实际执行 attempt 分开。确认尚未执行时记未发生，原生引用缺失或效果不明时保留 UNKNOWN；不为了填字段创建任务，也不把本地私有路径当对外任务 ID。两类反馈都保留来源、观察时间及本次对象版本：
 
@@ -141,7 +141,7 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 | `application` | 原适配器完成应用核对时，报告推荐候选与实际采用动作／模型配置、原生关联；未采用、过期、失败及效果未知分别记录原因。服务返回推荐不等于实际采用 |
 | `result` | 对应工作单元／执行 attempt 完成、失败或取消生效时，报告原产物／结果引用与已有质量结论；token／耗时／重试／返工仅附带现成可得数据。不等待角色退出；取消请求不冒充取消生效，终态未知保留待核 |
 
-**先保存关联和待传内容，再异步发送。** 本地应用成功但反馈尚未落盘时，恢复后从原决定、原动作与原生回执核实并补成反馈，不为填回执再次执行业务。原 `decide` 已保存的 choice/evidence 可用于核对采用，即使命令随后失败也不能据退出码推断未应用。反馈恢复先只读 `status` 及原生记录，按原步骤重建缺失事件；补传本身不调用 `decide`／`resume` 或重新派发，外部执行未知仍沿原入口对账。网络发送在工作流事务之外，待传事件随原运行状态保留，下一检查点、原恢复入口或运行结束时有界补传，不另建任务总线或等待云端已读。主流程完成也保留未传事件及补传责任；仅写“结束时上传”不能覆盖中断，本轮尚未实现自动恢复接线。
+**先保存关联和待传内容，再在事务外发送。** 本地应用成功但反馈尚未落盘时，恢复后从原决定、原动作与原生回执核实并补成反馈，不为填回执再次执行业务。原 `decide` 已保存的 choice/evidence 可用于核对采用，即使命令随后失败也不能据退出码推断未应用。反馈恢复先只读核原检查点及原生记录，按原步骤重建缺失事件；补传本身不调用 `decide`／`resume` 或重新派发，外部执行未知仍沿原入口对账。适配命令在业务操作后尝试发送，失败保留待传内容，由后续命令或显式 `reconcile` 补传；没有后台守护或新定时任务。主流程完成也保留未传事件及补传责任，网络失败不撤销已提交的业务状态。
 
 同一生产者事件及修订重投沿用稳定键与相同正文，服务已接收则读回原确认，正文不同则报告冲突。质量结论稍后取得或被更正时追加新修订，关联被更新的原事件；不改写已发送正文，也不让去重吞掉更正。用量按原工作单元／attempt 输出带计量范围的快照，新修订替换旧快照，不当作新增消耗累加。反馈缺失只表示尚未收回，不能推断失败、未采用或质量不合格。回传失败不阻塞业务，不启动新的制作／执行 attempt。
 
@@ -159,7 +159,52 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 | 本仓工具维护者 | 当前决定点的薄适配、原状态关联及 `decide` 导入；应用／结果反馈、原恢复入口补传和模型类型／型号／强度记录；现成消耗可附带，不新接 usage 采集。角色配置适配见[宿主合同](agent-hosts.md#decision-model-selection) |
 | 各项目负责人／工作流维护者 | 维护项目候选与现有操作、自然业务接入、后续计划接续及项目验收；不复制第二套任务状态机 |
 
-一条真实工作流以已有分支贯通选择、原检查点继续和后续角色配置实际应用，再由适配器自动回收 application／result、读回关联记录即可集中联调。反馈重投与恢复沿同一事件核对，不重复业务，不追加独立的定时／已读测试。基本恢复行为可用本地工程用例核实，不要求为验收中断真实生产；全量 Hindsight webhook／补偿扫描后置。反馈异步回收，云端Dot照常从信箱或 Project 感知实质进展并向公子汇报，项目验收仍归原验收者。
+真实采用时，以一条已有合法分支贯通选择、原检查点继续和角色配置实际应用，再由适配器回收 application／result、读回关联记录。反馈重投与恢复沿同一事件核对，不重复业务，不追加独立的定时／已读测试。基本恢复行为已用本地工程用例核实，不要求为验收中断真实生产；全量 Hindsight webhook／补偿扫描后置。云端Dot照常从信箱或 Project 感知实质进展并向公子汇报，项目验收仍归原验收者。
+
+### 已实现入口与工程证据
+
+入口为 [project_workflow_decision.py](../scripts/project_workflow_decision.py)，公共参数是 `--workflow <原生成的 workflow.py> --state <原私有检查点>`。服务地址、令牌与可选超时由 `DECISION_SERVICE_URL`、`DECISION_SERVICE_TOKEN`、`DECISION_SERVICE_TIMEOUT` 注入；令牌不写入任务、检查点或项目源码。新入口需使用本版生成的 workflow，旧在途批次沿原源码恢复。
+
+| 子命令 | 行为 |
+| --- | --- |
+| `choose` | 冻结候选、请求和当前状态，判断后调用原 `decide`；`--request-id` 沿已冻结输入恢复，不能顺带换上下文 |
+| `resume` / `receive` | 显式调用原业务命令，再独立尝试回传；原命令失败保留错误和已提交事实 |
+| `reconcile` | 从原状态重建反馈并补传，既不推进流程，也不重新派发 |
+| `record-result` | 以原端证据补充 `completed/failed/cancelled`；仅 `COLLECTED` 时执行结论保留 `unknown` |
+| `quality` | 给既有结果追加质量修订，与执行终态分开 |
+| `local-status` / `get` | 分别只读本地关联／原 handoff 单元，或查询服务记录，不发送反馈 |
+
+同一单元的每条建议单独报告 application，实际执行结果只产生一个稳定事件，可关联工作流和模型两个决策。未采用建议不覆盖单位实际进展；没有参与执行的过期建议只报告观察，不制造无法回收的结果预期。状态和质量未知不伪造完成。模型创建和读回见[宿主入口](agent-hosts.md#decision-model-selection)。
+
+2026-11-09 本地工程审查已通过。全仓 361 项测试中 357 项通过、4 项既有条件跳过，包含新增工作流 7 项和模型 6 项；结构及 diff 检查通过。两仓联调使用真实本地 HTTP／SQLite 和生成 runner，OpenAI、Hindsight、Herdr 与 rollout 均为隔离替身，覆盖回执丢失、处理中断、部分检索失败、同一单元联合结果和后补质量修订。真实 provider、宿主采用及业务验收尚未执行，不把局部回收率推广为生产完成。
+
+### 2026-11-09 实施拆分与审查
+
+公子已授权重新梳理方案并由 `gpt-6.1-sol` 实现会话并行开发；两仓原会话负责方案及审计复核，不编写实现或测试代码。本文沿用已接受的服务／原工作流归属，不新增架构或审批层。服务接口的路径、字段和错误语义由 Decision Service 主仓统一冻结；本节限定消费者交付，不另维护一份服务 schema。开发交付与宿主部署分别记录，本轮不自动部署或操作生产任务。
+
+采用服务核心、OpenAI／Hindsight 接入、Herdr 消费者三个实现会话。Herdr 的工作流 W 与角色 R 是同一实现者负责的两个切片，统一持有 HTTP 客户端、原单关联及反馈持久化，先贯通 W 再接入 R。相比拆成两个 Herdr 会话，此安排减少公共文件和反馈接口的交叉修改；服务及 provider 接入仍可并行。动态任务状态由 Decision Service 本轮任务队列统一维护，本节不复制进度表。
+
+| 切片 | 可验证交付 | 写入范围 |
+| --- | --- | --- |
+| W：原分支选择与反馈 | `status` → 持久冻结请求及候选 → HTTP 判断／原请求查询 → 核当前步骤 → 原 `decide` → 只读核采用；沿原检查点保存及补传 application／result | `scripts/project_workflow_template.py`；新增 `scripts/decision_service_client.py`、`scripts/project_workflow_decision.py`；`tests/test_project_workflow.py` 及新增对应 client／decision 测试 |
+| R：一个宿主的模型配置应用 | Mac Codex 候选 → 原 Herdr 创建者应用 → 原生目标与配置读回 → 按原工作单元回传；复用 W 客户端和反馈持久化入口 | 新增 `scripts/herdr_model_selection.py`、`tests/test_herdr_model_selection.py`；不改现任负责人冻结的恢复参数 |
+
+Herdr 实现者可按需调整 `scripts/project_workflow.py` 的生成拷贝范围；R 首版绑定原 workflow 工作单元，复用 W 的检查点关联和待传入口。文档由两仓主审整合。已有项目生成物、私有配置、在途检查点、审批模块及 `coordinator_goal_channel.py` 不在写入范围；`docs/status.md` 留主审汇总。新文件名是本次任务写权，尚非已发布命令。部署包若还需纳入入口，先给维护者精确清单，不顺带部署。
+
+W 与 R 共用客户端和原检查点的绑定／读取、排队／待传／确认能力。同一步的工作流选择与模型选择分别保存请求和决策关联；同一次执行结果只生成一个稳定事件，可关联多个 `decision_ids`。R 必须交可调用的原生应用及对账入口，并由本轮任务卡指明调用者；只有配置 helper 或启动准备稿不算完成接入。
+
+**开工前只冻结必要的消费接口。** 三个逻辑操作须有 HTTP 方法、路径、认证配置与示例；查询必须能凭原 `request_id` 找到首次响应丢失的请求。集成请求显式保存稳定请求 ID、预设、原任务／步骤／源码与输入摘要、候选映射及快照；服务响应回显这些关联，并给出 `decision_id`、处置状态及可空候选。反馈合同明确 `event_id/revision`、来源作用域、原单元及可得原生引用、接收确认、同键冲突与后补修订。具体字段名及序列化以服务唯一合同为准，消费者不得各自猜测。模拟 HTTP 与检查点实现可在合同冻结后并行，不等待服务部署、收益基线或用量补齐。
+
+**复用现有行为，避开四个接线误区。**
+
+1. `decisions[step]` 继续只含 `{choice, evidence}`；既有审批适配器精确核对该结构。服务关联和待传事件另存原检查点，不扩大旧对象，也不复制业务状态机。
+2. `decide` 提交选择后，后续 `advance` 仍可能失败。恢复先读原选择与证据；`action` 会随推进清空，关联须保留原步骤。`COLLECTED` 只表示结果收回，不能据此生成质量通过。
+3. 新增反馈登记、确认和纯补传入口直接结束，不落入 `advance`。HTTP 在事务外运行；查询只读，反馈失败不回滚业务，服务确认丢失沿同事件修订重传。
+4. Worker 库只生成准备稿，原角色恢复只接受冻结参数；二者均非动态模型执行器。R 须接实际原创建者入口，核安装版参数后只映射模型／强度。推荐配置、启动配置和可证实的生效配置分开保存，读不出实际值记未确认；启动效果未知时先查原目标，不重建。
+
+**审查和一次集中联调。** 两仓主审分别复核服务与消费者，并互审冻结合同。Herdr 专项覆盖合法选择／非执行出口、等待期间快照变化、选择已提交后失败、反馈确认丢失、质量修订、action 清空后的关联，以及补传不推进业务；模型切片另核非模型参数保持、原目标关联和推荐／实际值分离。采用真实生成的样例 workflow、临时 SQLite 与模拟 HTTP 验行为，最后与服务做一次集中联调。原任务回收范围须有带时间的单元状态观察，不能仅用已收到的 result 反推结果回收率。
+
+实现者运行受影响专项；整合后在本仓根执行 `python3 scripts/check_repository.py` 和 `python3 -m unittest discover -s tests -v`。需要触及 Worker 库时才另跑其 `check`。旧批次保留原 runner 与源码摘要，新代码先在新生成样例采用；不得改摘要绕过旧批次版本冲突。模拟与本地联调只能证明工程行为，实际模型／宿主采用以原生回执记录，无需为此重复生产或增加独立测试单。
 
 ## 自定义项目操作
 

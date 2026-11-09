@@ -25,6 +25,10 @@ def digest(value):
     return hashlib.sha256(encoded(value).encode("utf-8")).hexdigest()
 
 
+def decision_state_digest(run):
+    return digest({key: value for key, value in run.items() if key != "decision_integration"})
+
+
 def relative_file(root, name):
     require(isinstance(name, str) and name.strip(), "expected a project-relative file path")
     path = Path(name)
@@ -119,7 +123,9 @@ def advance_step(root, definition, operations, run):
         operation = step["operation"]
         require(operation in operations, f"unknown project operation: {operation}")
         with redirect_stdout(sys.stderr):
-            output = operations[operation](root, deepcopy(run))
+            output = operations[operation](root, deepcopy({
+                key: value for key, value in run.items() if key != "decision_integration"
+            }))
         run["outputs"][step_id] = output
         require(("next" in step) != ("routes" in step), "program requires either next or routes")
         if "routes" in step:
@@ -136,6 +142,8 @@ def advance_step(root, definition, operations, run):
         run.update(status="WAITING_RECEIPT", action={"id": digest(identity), "step": step_id,
                    "project": run["project"], "workflow": run["workflow"], "task": run["task"],
                    "instruction": step["instruction"], "memory": run["memory"]})
+        if "decision_integration" in run:
+            run["decision_integration"]["actions"][step_id] = run["action"]
     elif kind == "end":
         run["status"] = "FINISHED"
     else:
@@ -199,6 +207,8 @@ def import_record(db, definition, version, args):
         db.execute("BEGIN IMMEDIATE")
         run = read_run(db, version)
         if args.command == "decide":
+            if args.expected_state_digest is not None:
+                require(decision_state_digest(run) == args.expected_state_digest, "decision snapshot is stale")
             decision = {"choice": args.choice, "evidence": args.evidence}
             previous = run["decisions"].get(args.step)
             if previous is not None:
@@ -267,13 +277,15 @@ def main():
     decide.add_argument("--step", required=True)
     decide.add_argument("--choice", required=True)
     decide.add_argument("--evidence", required=True)
+    decide.add_argument("--expected-state-digest", help="fence a decision prepared from a frozen checkpoint")
     receive = commands.add_parser("receive")
     receive.add_argument("--action", required=True)
     receive.add_argument("--status", required=True, choices=("UNKNOWN", "COLLECTED"))
     receive.add_argument("--evidence", required=True)
     try:
         run = execute(parser.parse_args())
-        result = {k: v for k, v in run.items() if k not in ("input", "completed_steps")}
+        result = {k: v for k, v in run.items() if k not in ("input", "completed_steps", "decision_integration")}
+        result["decision_integration_version"] = 1
         if result["action"]:
             result["action"] = {**result["action"], "outputs": run["outputs"], "decisions": run["decisions"]}
         print(encoded(result))

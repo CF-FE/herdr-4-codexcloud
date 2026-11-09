@@ -4,7 +4,9 @@
 
 ## 当前结论
 
-**2026-11-08，Decision Service 的工作流、角色选型及结果反馈已形成文档方案，尚未开发或部署。** 先做跨 bank MVP，以现有合法分支和一条原生角色配置路径提高工作流效率与 token 利用率；不等待收益基线或全量能力目录。服务负责候选选择、反馈关联与效果汇总，本仓负责薄适配、实际采用、应用／结果回传及原恢复入口补传，各项目负责人维护流程及验收。当前模板只有固定分支／检查点，动态改图、自动模型／强度应用及反馈钩子仍是开发项。[工作流侧合同与分工](project-workflow-development.md#decision-service-接入先跑通现有决定点) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。本轮仅改文档，没有改变运行权限、启动服务或派发业务。
+**2026-11-08 22:55（北京时间），Win Hindsight 内部 Decision Models 已配置并完成一次 API 重载。** 沿现有 Hindsight API Slim 1.2.0 启用 `openai / gpt-6-luna`，显式用于 recall 与 consolidation；reflect 的 Decision provider 设为 `none`，普通 LLM 及知识页沿原 LLM 路径。公子提供的新密钥仅绑定 Luna，普通 LLM 的原密钥独立保留，未合并。一次不含项目／记忆数据的原生 Decisions 调用通过；写入前核到 4 个 bank 的异步 pending／running 均为 0。安装版配置解析通过，新 API 进程健康，PG／BGE 原进程保留；原 Q8 参数保留供回退，手动 UI 未改。未追加真实 recall、记忆写入或质量对比，业务效果留待自然调用观察。私有配置已备份，脱敏回执交关联维护会话复核；该内部路径与下述业务 Decision Service 独立，不代表业务服务部署或验收。[内部用途与配置边界](https://github.com/CF-FE/decision-service/blob/main/docs/hindsight-decision-models.md)
+
+**2026-11-09，Decision Service 的 Herdr 消费者首版已实现并通过工程审查，尚未部署。** 已贯通原 workflow 分支选择、Mac Codex 下一 handoff 单元配置、application／result 回传与显式恢复补传；原检查点及 `{choice,evidence}` 合同保持，任意在途改图和热切换仍后置。全仓 361 项测试中 357 项通过、4 项既有条件跳过，结构及 diff 检查通过；两仓真实本地 HTTP／SQLite 联调验证丢回执后不重执行业务、同一单元一次启动和联合结果、质量修订。OpenAI、Hindsight、Herdr 宿主及 rollout 均使用隔离替身，真实 provider、宿主采用和业务验收尚未做；服务侧审查与部署状态归[其主仓](https://github.com/CF-FE/decision-service)。未改变现有 Hindsight／Win／VPS 配置、密钥或角色绑定。[工作流入口与证据](project-workflow-development.md#已实现入口与工程证据) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。
 
 同日补充：模型类型／具体型号和推理强度必须留记录，区分推荐与实际生效，未确认或不适用明确标记。消耗降为低优先级，仅记录现成数据、缺失留空；不记现金费用，不为补数新增采集链路，也不阻塞 MVP 或反馈接收。
 
