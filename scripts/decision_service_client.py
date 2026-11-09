@@ -4,6 +4,8 @@ import json
 import math
 import os
 import re
+import subprocess
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
@@ -27,7 +29,7 @@ class DecisionService:
         "revision_conflict", "request_in_progress", "unavailable",
     }
 
-    def __init__(self, base_url, token, timeout=15):
+    def __init__(self, base_url, token, timeout=15, *, outcome_publisher=None):
         url = urlsplit(base_url)
         prefix = url.path.rstrip("/")
         if (url.scheme not in {"https", "http"} or not url.hostname or url.username is not None
@@ -44,11 +46,14 @@ class DecisionService:
         self.token = token
         self.timeout = timeout
         self.opener = build_opener(NoRedirects())
+        self.outcome_publisher = outcome_publisher
 
     @classmethod
     def from_env(cls):
+        publisher = (os.getenv("DECISION_OUTCOME_PYTHON"), os.getenv("DECISION_OUTCOME_CONFIG"))
         return cls(os.getenv("DECISION_SERVICE_URL", ""), os.getenv("DECISION_SERVICE_TOKEN", ""),
-                   float(os.getenv("DECISION_SERVICE_TIMEOUT", "15")))
+                   float(os.getenv("DECISION_SERVICE_TIMEOUT", "15")),
+                   outcome_publisher=publisher if any(publisher) else None)
 
     def request(self, path, payload=None):
         body = None if payload is None else json.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
@@ -87,9 +92,38 @@ class DecisionService:
         return self.request("/v1/decisions" + path)
 
     def feedback(self, event):
-        receipt = self.request("/v1/decision-feedback", event)
+        if event.get("kind") == "result" and self.outcome_publisher is not None:
+            receipt = self.publish_result(event)
+        else:
+            receipt = self.request("/v1/decision-feedback", event)
         if (receipt.get("event_id") != event["event_id"] or receipt.get("revision") != event["revision"]
                 or receipt.get("received") is not True or not isinstance(receipt.get("receipt_id"), str)
                 or not receipt["receipt_id"]):
             raise DecisionServiceError("invalid_feedback_receipt")
         return receipt
+
+    def publish_result(self, event):
+        interpreter, config = self.outcome_publisher
+        if not all(value and Path(value).is_absolute() for value in (interpreter, config)):
+            raise DecisionServiceError("outcome_config_invalid")
+        try:
+            proc = subprocess.run(
+                [interpreter, "-I", "-B", "-m", "decision_service.outcome_publisher", "--config", config],
+                input=json.dumps(event, ensure_ascii=False, allow_nan=False), text=True,
+                encoding="utf-8", capture_output=True, timeout=min(125, 4 * self.timeout + 5),
+                env={**os.environ, "DECISION_SERVICE_URL": self.base_url, "DECISION_SERVICE_TOKEN": self.token},
+            )
+            result = json.loads(proc.stdout)
+        except (OSError, subprocess.TimeoutExpired, ValueError):
+            raise DecisionServiceError("outcome_publication_unknown") from None
+        if not isinstance(result, dict):
+            raise DecisionServiceError("outcome_publication_unknown")
+        if proc.returncode or result.get("state") != "recorded":
+            state = result.get("state")
+            if not isinstance(state, str) or state not in {
+                "submitted", "awaiting_webhook", "awaiting_inbox", "compensation_queued", "pending", "processing",
+                "failed", "cancelled", "not_submitted", "access_blocked", "retry_exhausted", "rejected",
+            }:
+                state = "unknown"
+            raise DecisionServiceError("outcome_" + state)
+        return result
