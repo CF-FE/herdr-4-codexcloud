@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "agent-models",
-  "revision": 4,
+  "revision": 5,
   "status": "active",
   "owner_role": "project_coordinator",
   "default_environment_id": "mac-work",
@@ -127,6 +127,26 @@
       "model": "gpt-5.6-sol",
       "reasoning_effort": "ultra",
       "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "win-work",
+      "worker_id": "win-omp",
+      "backend_id": "cli-proxy-responses",
+      "provider": "cli-proxy-responses",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "high",
+      "evidence_ref": "config/allowlists/README.md#win-omp-盘点"
+    },
+    {
+      "environment_id": "win-work",
+      "worker_id": "win-omp",
+      "backend_id": "cli-proxy-responses",
+      "provider": "cli-proxy-responses",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "evidence_ref": "config/allowlists/README.md#win-omp-盘点"
     }
   ]
 }

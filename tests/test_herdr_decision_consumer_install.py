@@ -60,6 +60,11 @@ class DecisionConsumerInstallTests(unittest.TestCase):
             self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), digest)
             self.assertEqual(path.stat().st_mode & 0o777, 0o600)
         self.assertNotIn("app/local-runner-state.json", files)
+        for script in ("herdr_role_creation.py", "herdr_model_selection.py"):
+            app = self.destination / "app"
+            output = subprocess.check_output([receipt["python"], "-E", "-B", "-s",
+                                              str(app / "scripts" / script), "--help"], cwd=app)
+            self.assertIn(b"usage:", output)
 
     def test_does_not_overwrite_existing_destination(self):
         revision = self.commit()

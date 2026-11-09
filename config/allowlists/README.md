@@ -2,11 +2,11 @@
 
 本目录保存创建、选型等场景使用的版本化策略。每个实际场景维护一个 JSON 文件；共同字段只描述身份、版本、状态和维护责任，条目结构由该场景定义。新增场景时再增加对应文件和校验，不预建空清单或通用策略语言。
 
-公子已确认本次允许组合。Agent 策略在 Mac Codex `new-unit` 的候选筛选和原生启动前生效。图像模型清单已确认，调用接线与宿主验证待完成。
+公子已确认本次允许组合。Mac Codex 工作流 `new-unit` 沿原入口使用策略，组织角色技术新建沿共用入口使用同一策略。宿主安装及实际采用见[当前状态](../../docs/status.md#当前结论)。图像调用接线与宿主验证待完成。
 
 | 场景 | 唯一配置源 | 当前阶段 | 校验入口 |
 | --- | --- | --- | --- |
-| Agent 创建时的模型组合 | [agent-models.json](agent-models.json) | `active`，修订 4，Mac Codex `new-unit` 已接入 | [allowlists.py](../../scripts/allowlists.py) 的 `validate` / `preview` / `defaults` |
+| Agent 创建时的模型组合 | [agent-models.json](agent-models.json) | `active`，修订 5，包含 Mac Codex 与 Win OMP 精确组合 | [allowlists.py](../../scripts/allowlists.py) 的 `validate` / `preview` / `defaults` |
 | 图像生成与编辑选型 | [image-models.json](image-models.json) | `active`，修订 2，清单已确认，调用待接 | 同一工具，显式指定图像策略文件 |
 
 Git 中的 JSON 是唯一策略源。GitHub Project 记录维护任务和当前版本链接。创建端读取发布目录中的本地快照并记录修订号及摘要。环境能力事实仍由对应环境维护者提供。
@@ -81,11 +81,17 @@ OpenAI 将两款列为推理模型，接受文本和图像输入，直接输出�
 | Mac、Win Kimi Code | `kimi-for-coding-highspeed` | 声明支持 thinking，推理强度及支持档位 `UNKNOWN` |
 | Mac Kimi Code | `kimi / kimi-k2.6` | 默认强度和支持档位 `UNKNOWN` |
 | Win Kimi Code | `local-gpt / gpt-6.1-sol`，别名 `local-gpt/gpt-6.1-sol`，协议 `openai_responses` | 默认 `max`，支持 `high`、`max` |
-| Win OMP | 动态发现模型，`gpt-6-luna` 为历史回合样本 | 当前默认模型和推理强度 `UNKNOWN` |
+| Win OMP | `cli-proxy-responses` 下两款模型已有只读发现回执 | 策略默认值继承 Mac 基准。实际启动和生效档位沿原单取证。[Win OMP 盘点](#win-omp-盘点) |
 | Win Hermes | `cli-proxy / gpt-6-luna` | 当前默认 `high`，其余支持档位 `UNKNOWN` |
 | Codex Cloud | `ready`、`runnable`，绑定 Herdr 与 Decision Service 两仓的 `main` | 环境工具未暴露模型及强度，均为 `UNKNOWN` |
 
-Agent 条目限上节两个 Mac Codex 型号。其他入口仍需核对 Worker 与后端归属、型号及别名、模型类别和入口支持档位，再登记完整组合和接线。现有模板、默认值及旧回合沿原入口维护。[环境历史与原生回合](../../docs/local-agent-inventory.md#7-win-work-harness执行侧交接) · [现有环境与采用记录](../../docs/status.md#当前结论)
+Agent 条目覆盖 Mac Codex 和下述 Win OMP 精确组合。其他入口仍需核对 Worker 与后端归属、型号及别名、模型类别和入口支持档位，再登记完整组合和接线。现有模板、默认值及旧回合沿原入口维护。[环境历史与原生回合](../../docs/local-agent-inventory.md#7-win-work-harness执行侧交接) · [现有环境与采用记录](../../docs/status.md#当前结论)
+
+### Win OMP 盘点
+
+2026-11-09，Win OMP 18.15.0 的只读 `models cli-proxy-responses --json` 发现 `gpt-6.1-sol` 与 `gpt-5.6-sol`。两款均声明 `reasoning=true`，接受文本和图像，`contextWindow=1050000`，支持 `low`、`medium`、`high`、`xhigh`、`max`。Win 的 `models.yml` 未设置 `effortMap` 或 `omit` 覆盖。
+
+本轮只登记 `win-work / win-omp / cli-proxy-responses` 下两款各自的 `high` 组合，默认值继承 Mac 的 `gpt-6.1-sol / high`。受控创建的 OMP 适配参数为 `--model cli-proxy-responses/<model> --thinking high --session-dir <本次专用目录>`。能力发现和参数核对已有回执，模型调用、实际回合配置及业务验收沿各自原单取证。[组织角色受控创建](../../docs/agent-hosts.md#controlled-role-creation)
 
 Decision Service 与 Hindsight 内部使用的 `gpt-6-luna` 是独立的判断路径，不因此进入 Agent 创建白名单。本表不包含私有配置原件、连接地址或凭据。
 
@@ -134,7 +140,7 @@ python3 scripts/allowlists.py preview --file config/allowlists/image-models.json
 
 图像预览的 `capabilities` 行填写 `provider`、`model_type`、`model`、`operations` 和 `evidence_ref`。按实际调用入口或账号提供有明确型号的能力证据；仅能看见图像工具而底层型号未知时，可用空数组 `{"capabilities":[]}`，该工具不产生任何型号匹配。
 
-`validate` 返回场景、策略身份、修订号、状态、原文件摘要及条目数，Agent 场景另返回共享默认值及基准环境。`defaults` 按所查环境返回有效默认值和逐字段来源。`shared_default` 指向输出中的 `default_environment_id`，`environment_override` 表示该字段由所查环境设置。当前只有 `mac-work` 有默认组合条目，其余示例返回 `default_combination_not_allowlisted`。条目声明不等于已核 Worker 或能力，`defaults` 的 `worker_library_checked` 为 `false`，`capability_status` 为 `not_checked`。
+`validate` 返回场景、策略身份、修订号、状态、原文件摘要及条目数，Agent 场景另返回共享默认值及基准环境。`defaults` 按所查环境返回有效默认值和逐字段来源。`shared_default` 指向输出中的 `default_environment_id`，`environment_override` 表示该字段由所查环境设置。`mac-work` 与 `win-work` 有默认组合条目，缺精确条目的环境返回 `default_combination_not_allowlisted`。`defaults` 的 `worker_library_checked` 为 `false`，`capability_status` 为 `not_checked`。能力以实际宿主证据核验。
 
 `preview` 另返回 `matched_entries`、带原因的 `excluded_entries` 和能力来源。Agent 的 `default_matched_entries` 和 `default_excluded_scopes` 描述按环境默认型号和档位的筛选。图像匹配行用 `matched_operations` 给出逐操作来源，用 `excluded_operations` 标出同型号其余操作的能力缺口。匹配只表示输入文件声明相容，宿主可调用性及创建授权仍须分别确认。
 
@@ -146,7 +152,7 @@ python3 scripts/allowlists.py preview --file config/allowlists/image-models.json
 
 决策请求与启动意图各保存 `model_policy`，包含 `policy_id`、`revision` 和原文件 `policy_sha256`。目标就绪后、持久化启动意图前，程序从发布目录重新读取策略，核对冻结摘要及精确组合。策略变动或无法读取时返回 `stale` 和 `launch_outcome=not_started`。开始选型时缺少可用的 `active` 策略则返回 `policy_blocked`。已有启动意图的工作单元沿原绑定和冻结记录对账，原生启动、实际回合模型和业务验收分别取证。
 
-程序覆盖 Mac Codex `new-unit`。协调员、项目负责人和 Worker 若通过 Herdr 手工新建，仍须由创建者核对允许组合。Win、Cloud 和图像调用各自待接，图像清单的 `active` 表示型号与操作已确认。
+协调员、项目负责人和 Worker 技术新建使用[组织角色受控创建指南](../../docs/agent-hosts.md#controlled-role-creation)，按岗位凭据、宿主能力和当前策略操作。Mac Codex 支持三类角色，Win OMP 当前仅支持 Worker。Cloud 提交接口当前不支持模型与推理强度字段。图像清单的 `active` 表示型号与操作已确认，调用接线另验。
 
 ## 更新、接线与回退
 
