@@ -42,9 +42,9 @@
 
 ## 按任务选择模型配置
 
-2026-11-09，[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)的 Mac Codex 新工作单元选型与配置适配已实现，通过隔离宿主验证，尚未部署或在真实角色上采用。项目负责人或原获准创建者负责提供任务需求、选择／复用 Worker 并应用配置；Decision Service 只帮助选择 `candidate_id`，不创建角色、不变更任职。首版覆盖一条创建路径，不改造所有 Harness。
+2026-11-09，[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)的 Mac Codex 新工作单元适配已固定安装，并通过专用 Herdr 合成任务的真实启动、模型／强度读回和结果回传；未切换现任生产角色。项目负责人或原获准创建者负责提供任务需求、选择／复用 Worker 并应用配置；Decision Service 只帮助选择 `candidate_id`，不创建角色、不变更任职。首版覆盖一条创建路径，不改造所有 Harness。
 
-创建适配器首版经 HTTP API 调用；Agent 入口需要 MCP 时复用同一服务核心。消费者不直接读写服务主机的 SQLite，角色绑定和在途状态仍归原宿主。交付形式与数据归属见[工作流消费边界](project-workflow-development.md#decision-storage-boundary)，本节不代表入口已经上线。
+创建适配器经 HTTP API 调用；Agent 的 MCP 入口复用同一服务核心，各客户端采用另核。消费者不直接读写服务主机的 SQLite，角色绑定和在途状态仍归原宿主。交付形式与数据归属见[工作流消费边界](project-workflow-development.md#decision-storage-boundary)，本节仅记录已经验证的 Mac 创建路径。
 
 创建者从[环境能力台账](worker-library/README.md#environment-capabilities)、当前宿主支持和本任务约束整理候选。程序先筛除工具、模态、上下文、宿主、明确型号或预算不匹配项，再按任务歧义、依赖深度、验证难度及已观察到的质量选预计足够的配置。筛后无可用组合时返回 `unavailable` 和具体缺口，无需空跑模型。不一律选最高档，也不一律选最低档造成返工；权限、网络或工具故障按对应原因处理，不靠提高推理强度解决。
 
@@ -53,7 +53,7 @@
 | 当前入口 | 已有能力 | 接线与限制 |
 | --- | --- | --- |
 | `worker_library.py select / prepare` | 按 Worker 能力／宿主筛选，准备稿透传后端 `agent_args`，不启动；不是完整模型／强度目录 | 构造实际模型与强度候选，记录能力来源、候选版本及选择结果 |
-| `herdr_model_selection.py` 与原 Herdr 创建者 | 对下一 handoff 单元在已分配的空 shell pane 启动 Mac Codex，并沿原目标对账 | 只映射本次新启动的模型／强度，保留推荐、启动、实际读回三层；当前工程证据来自隔离宿主 |
+| `herdr_model_selection.py` 与原 Herdr 创建者 | 对下一 handoff 单元在已分配的空 shell pane 启动 Mac Codex，并沿原目标对账 | 只映射本次新启动的模型／强度；专用合成任务已实测，推荐、启动、实际读回三层分别记录 |
 | `herdr_role_contact.py` | 沿固定 `resume_argv` 与摘要恢复原线程；履职 profile 控制工具和沙箱 | 选型结果不能改写现有恢复摘要；需要换配置时沿宿主支持的空闲／下一任务单元交接办理 |
 | `coordinator_goal_channel.py` | 按冻结 capability manifest 创建／恢复受限目标 | 当前无动态 model／effort 接口；所需配置适配由本仓维护，原权限保持独立 |
 | Codex Cloud 路由 | 沿原环境和实际任务 ID 提交／回收 | 只暴露已核可配置项；未核模型／强度参数不进入可自动应用候选 |
@@ -65,6 +65,8 @@
 消耗为低优先级附带数据：现成 API 响应、原回执或已接入事件直接提供的 token／耗时等就记录，取不到留 `null`／“未提供”，不记为 0；不为补数新增 Harness 采集器、遥测或账单链路，也不阻塞 MVP 或反馈接收。现金费用及 API 等价估价均不采集、不记录；这不禁止普通业务上下文包含财务内容。可得数据保留原计量范围，不把角色全生命周期消耗归给最近一次决策。现有适配器不新增 usage 采集，待回传记录、后补质量修订及恢复补传共用[工作流反馈合同](project-workflow-development.md#decision-feedback)。
 
 首版入口为 [herdr_model_selection.py](../scripts/herdr_model_selection.py)，公共参数沿原 `--workflow` 和 `--state`。原 Mac 创建者从 `project_workflow_decision.py local-status` 取得当前 `handoff_unit`，提供仅本人可读的 `new-unit` 绑定文件（项目、原任务／单元／动作、授权引用、已分配 Herdr 目标、目录、provider 与原 Codex 参数）及本次已核能力候选。`apply --unit-id … --binding … --selection …` 先持久保存启动意图，再调用一次原生 `agent start`；同单元不能换一个合成键重复启动。
+
+新 pane 的创建回执不代表交互 shell 已就绪。原生创建者先等该目标通过 `check_empty`，保持目标与目录核对；本次合成验证在就绪检查退出后沿原 pane 有界只读等待并接续，没有重复创建或发送。遇到原 rollout 文件模式不满足私有证据要求时，可只对已绑定测试 thread 保存字节一致的私有快照，保持原会话文件不变，再核其原 thread／turn 与回复。
 
 `reconcile --request-id …` 仅定向核对原启动；首次线程绑定同时核原目标和启动参数，已绑定后不接受替代线程。按原单元明确提供 `--rollout … --turn-id …` 时，从该私有记录核原 thread／turn 的模型与强度；缺少证据保留 `unconfirmed`，不拿推荐值补齐。未决启动不再次发送，真实任务的 prompt／成果回收仍由原创建者和执行入口承担。本路径不热切换在途 Agent，不改现任负责人冻结的恢复参数。
 

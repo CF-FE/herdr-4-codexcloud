@@ -73,7 +73,7 @@ python3 workflows/batch-review/workflow.py --state "$RUN" resume
 
 ## Decision Service 接入：先跑通现有决定点
 
-2026-11-09，消费者首版已实现并通过本地隔离联调，尚未部署或用于真实任务。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)由独立项目维护，帮助选择下一步和角色模型配置，目标是提高整条工作流的推进效率与 token 利用率。先跑通包含跨 bank 检索的 MVP，再按实际使用迭代，不以收益基线、完整标签集或统一影子期作为开工前置。本文拥有工作流侧合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同。
+2026-11-09，Mac 消费者已固定安装，并与 VPS Decision Service、真实 Mac Herdr 完成一次合成工程闭环，生产业务尚未采用验收。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)由独立项目维护，帮助选择下一步和角色模型配置，目标是提高整条工作流的推进效率与 token 利用率。先跑通包含跨 bank 检索的 MVP，再按实际使用迭代，不以收益基线、完整标签集或统一影子期作为开工前置。本文拥有工作流侧合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同。
 
 ```mermaid
 flowchart LR
@@ -91,7 +91,7 @@ flowchart LR
 
 ### 最小调用与应用合同
 
-**首版程序入口为 HTTP API。** Herdr／项目适配器通过服务调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作，方法、路径与字段统一见服务的 [v1 合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md)。Agent 需要 MCP 时再复用同一核心；插件分发后置。当前已验证本地 HTTP 接线，不表示远端服务已经发布。
+**首版程序入口为 HTTP API。** Herdr／项目适配器通过服务调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作，方法、路径与字段统一见服务的 [v1 合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md)。Mac 安装版到 VPS HTTPS 的真实调用已验证；MCP、插件包及各客户端连接状态由服务主仓维护，不从 HTTP 成功推定其他入口已通过。
 
 调用者在真正需要判断时读取 `status`，以当前 `decision.choices` 构造有稳定 `candidate_id` 的候选，另提供“均不适合”的非执行出口，映射为 `needs_replan` 而不导入 `decide`。请求关联原项目、任务、流程、`step`、`source_sha256`、`input_sha256`，并保留本次相关状态和候选的摘要。关联、冻结请求和待传事件保存在原检查点的 `decision_integration` 中；它不进入业务状态摘要或项目 program 参数，也不改变原 `decisions[step]` 的 `{choice,evidence}` 结构。模板没有独立 `state_version` 或原生 `run_id`，适配器生成的 `unit_id` 显式标记来源。
 
@@ -176,11 +176,15 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 
 同一单元的每条建议单独报告 application，实际执行结果只产生一个稳定事件，可关联工作流和模型两个决策。未采用建议不覆盖单位实际进展；没有参与执行的过期建议只报告观察，不制造无法回收的结果预期。状态和质量未知不伪造完成。模型创建和读回见[宿主入口](agent-hosts.md#decision-model-selection)。
 
-2026-11-09 本地工程审查已通过。全仓 361 项测试中 357 项通过、4 项既有条件跳过，包含新增工作流 7 项和模型 6 项；结构及 diff 检查通过。两仓联调使用真实本地 HTTP／SQLite 和生成 runner，OpenAI、Hindsight、Herdr 与 rollout 均为隔离替身，覆盖回执丢失、处理中断、部分检索失败、同一单元联合结果和后补质量修订。真实 provider、宿主采用及业务验收尚未执行，不把局部回收率推广为生产完成。
+2026-11-09 本地工程审查已通过。全仓 363 项测试中 359 项通过、4 项既有条件跳过，包含新增工作流 9 项和模型 6 项；结构及 diff 检查通过。隔离联调使用真实本地 HTTP／SQLite 和生成 runner，上游、Herdr 与 rollout 使用替身，覆盖回执丢失、处理中断、部分检索失败、同一单元联合结果和后补质量修订。
+
+随后安装固定代码版本 `8612a9a` 到 `~/Library/Application Support/HerdrDecisionConsumer`，5 个脚本摘要与安装收据一致，旧 `a8edbea` 安装目录保留回退；原 ProjectWorkflowTools 和在途 runner 未覆盖。客户端支持 `/decision-service` 等干净的静态路径前缀，私有凭据留宿主，安装不等于所有 Harness 已加载。
+
+真实合成单元已从安装版 CLI 经 VPS HTTPS 取得 `gpt-6-luna` 选择、提交原分支；再沿专用 Herdr driver 执行一次纯文本标记任务，原生 thread／turn 确认 `openai / gpt-6.1-sol / low`。本机检查点核到 1 次启动意图、1 个真实回合、两个 application 均已采用；云端两条决策读回同一结果修订 2，workflow 为 `FINISHED`、待补传为 0。结果和质量仅针对这条合成工程任务，未操作生产资产或改变现任角色，不替代项目业务验收。跨 bank 实测与其他客户端授权另按服务主仓记录。
 
 ### 2026-11-09 实施拆分与审查
 
-公子已授权重新梳理方案并由 `gpt-6.1-sol` 实现会话并行开发；两仓原会话负责方案及审计复核，不编写实现或测试代码。本文沿用已接受的服务／原工作流归属，不新增架构或审批层。服务接口的路径、字段和错误语义由 Decision Service 主仓统一冻结；本节限定消费者交付，不另维护一份服务 schema。开发交付与宿主部署分别记录，本轮不自动部署或操作生产任务。
+公子已授权重新梳理方案并由 `gpt-6.1-sol` 实现会话并行开发；两仓原会话负责方案及审计复核，不编写实现或测试代码。本文沿用已接受的服务／原工作流归属，不新增架构或审批层。服务接口的路径、字段和错误语义由 Decision Service 主仓统一冻结；本节保留首轮工程派工边界，不另维护一份服务 schema。公子随后授权云端与本地安装、全链路测试，其安装及合成验证证据见上节；生产任务仍按原单授权与验收。
 
 采用服务核心、OpenAI／Hindsight 接入、Herdr 消费者三个实现会话。Herdr 的工作流 W 与角色 R 是同一实现者负责的两个切片，统一持有 HTTP 客户端、原单关联及反馈持久化，先贯通 W 再接入 R。相比拆成两个 Herdr 会话，此安排减少公共文件和反馈接口的交叉修改；服务及 provider 接入仍可并行。动态任务状态由 Decision Service 本轮任务队列统一维护，本节不复制进度表。
 
