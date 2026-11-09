@@ -1,0 +1,268 @@
+diff --git a/hindsight_api/engine/decision_model.py b/hindsight_api/engine/decision_model.py
+--- a/hindsight_api/engine/decision_model.py
++++ b/hindsight_api/engine/decision_model.py
+@@ -25,6 +25,7 @@
+ import json
+ import logging
+ import time
++from collections.abc import Collection
+ from typing import Any, Literal
+ 
+ from pydantic import BaseModel, Field
+@@ -72,6 +73,7 @@
+     noul: float | None = None
+     score: float | None = None
+     confidence: float | None = None
++    refused: bool = False
+ 
+ 
+ class DecisionUsage(BaseModel):
+@@ -159,12 +161,27 @@
+     return _OpenAIQuestion(type="score", name=name, instructions=instructions, levels=levels)
+ 
+ 
+-def _from_openai(response: _OpenAIResponse) -> DecisionResponse:
++def _from_openai(
++    response: _OpenAIResponse, *, expected_ranking_names: Collection[str] | None = None
++) -> DecisionResponse:
++    if expected_ranking_names is not None:
++        names = {answer.name for answer in response.answers}
++        if len(response.answers) != len(expected_ranking_names) or names != set(expected_ranking_names):
++            raise ValueError("OpenAI recall ranking answer names do not match the questions")
++        if any(
++            answer.type != "refusal"
++            and (answer.type != "predicate" or answer.probability is None or not 0 <= answer.probability <= 1)
++            for answer in response.answers
++        ):
++            raise ValueError("OpenAI recall ranking returned an invalid predicate answer")
++
+     answers: dict[str, DecisionAnswer] = {}
+     for answer in response.answers:
+         if answer.type == "refusal":
+-            raise DecisionRefusedError(f"decision model refused to answer {answer.name!r}")
+-        if answer.type == "predicate":
++            if expected_ranking_names is None:
++                raise DecisionRefusedError(f"decision model refused to answer {answer.name!r}")
++            answers[answer.name] = DecisionAnswer(refused=True)
++        elif answer.type == "predicate":
+             answers[answer.name] = DecisionAnswer(noul=answer.probability)
+         elif answer.type == "choice":
+             answers[answer.name] = DecisionAnswer(
+@@ -253,7 +270,12 @@
+         )
+ 
+     async def ask(
+-        self, state: str | dict[str, Any], questions: dict[str, DecisionQuestion], *, scope: str
++        self,
++        state: str | dict[str, Any],
++        questions: dict[str, DecisionQuestion],
++        *,
++        scope: str,
++        allow_rerank_refusals: bool = False,
+     ) -> DecisionResponse:
+         """Ask ``questions`` (keyed by caller-chosen ids) about ``state`` in one request.
+ 
+@@ -265,7 +287,7 @@
+         """
+         try:
+             return await acall_with_retry(
+-                lambda: self._ask_traced(state, questions, scope),
++                lambda: self._ask_traced(state, questions, scope, allow_rerank_refusals),
+                 policy=self.retry_policy,
+                 budget=self.retry_policy.new_budget(),
+                 provider=f"decision_model:{self.provider}",
+@@ -277,7 +299,8 @@
+         half = len(items) // 2
+         logger.warning(f"Decision model: {len(items)} questions overflowed the window, asking them in two halves")
+         first, second = await asyncio.gather(
+-            self.ask(state, dict(items[:half]), scope=scope), self.ask(state, dict(items[half:]), scope=scope)
++            self.ask(state, dict(items[:half]), scope=scope, allow_rerank_refusals=allow_rerank_refusals),
++            self.ask(state, dict(items[half:]), scope=scope, allow_rerank_refusals=allow_rerank_refusals),
+         )
+         return DecisionResponse(
+             answers={**first.answers, **second.answers},
+@@ -288,7 +311,12 @@
+         )
+ 
+     async def ask_all(
+-        self, state: str | dict[str, Any], questions: dict[str, DecisionQuestion], *, scope: str
++        self,
++        state: str | dict[str, Any],
++        questions: dict[str, DecisionQuestion],
++        *,
++        scope: str,
++        allow_rerank_refusals: bool = False,
+     ) -> dict[str, DecisionAnswer]:
+         """Ask ``questions`` in as many requests as it takes for each to fit the window.
+ 
+@@ -296,10 +324,14 @@
+         not a "no", and leaving it out would pass one off as the other. It used to be
+         logged and left out, and recall's decision reranker then quietly ranked every
+         candidate of a request Jev found too long behind the rest (#5715).
++        Recall ranking may opt in to explicitly marked OpenAI predicate refusals.
+         """
+         answers: dict[str, DecisionAnswer] = {}
+         for part in await asyncio.gather(
+-            *(self.ask(state, part, scope=scope) for part in self._split(state, questions))
++            *(
++                self.ask(state, part, scope=scope, allow_rerank_refusals=allow_rerank_refusals)
++                for part in self._split(state, questions)
++            )
+         ):
+             answers.update(part.answers)
+         return answers
+@@ -328,13 +360,17 @@
+         )
+ 
+     async def _ask_traced(
+-        self, state: str | dict[str, Any], questions: dict[str, DecisionQuestion], scope: str
++        self,
++        state: str | dict[str, Any],
++        questions: dict[str, DecisionQuestion],
++        scope: str,
++        allow_rerank_refusals: bool = False,
+     ) -> DecisionResponse:
+         started = time.monotonic()
+         answer: DecisionResponse | None = None
+         error: BaseException | None = None
+         try:
+-            answer = await self._ask_once(state, questions)
++            answer = await self._ask_once(state, questions, allow_rerank_refusals=allow_rerank_refusals)
+             return answer
+         except BaseException as e:
+             error = e
+@@ -353,7 +389,13 @@
+                 error=error,
+             )
+ 
+-    async def _ask_once(self, state: str | dict[str, Any], questions: dict[str, DecisionQuestion]) -> DecisionResponse:
++    async def _ask_once(
++        self,
++        state: str | dict[str, Any],
++        questions: dict[str, DecisionQuestion],
++        *,
++        allow_rerank_refusals: bool = False,
++    ) -> DecisionResponse:
+         if self.provider == "openai":
+             # The Decisions API takes text, not a structured state.
+             text = state if isinstance(state, str) else json.dumps(state, ensure_ascii=False)
+@@ -362,7 +404,8 @@
+                 "input": text,
+                 "questions": [_openai_question(name, q).model_dump(exclude_none=True) for name, q in questions.items()],
+             }
+-            return _from_openai(_OpenAIResponse.model_validate(await self._post("/v1/decisions", body)))
++            response = _OpenAIResponse.model_validate(await self._post("/v1/decisions", body))
++            return _from_openai(response, expected_ranking_names=questions.keys() if allow_rerank_refusals else None)
+ 
+         body = {
+             "model": self.model,
+diff --git a/hindsight_api/engine/search/decision_reranker.py b/hindsight_api/engine/search/decision_reranker.py
+--- a/hindsight_api/engine/search/decision_reranker.py
++++ b/hindsight_api/engine/search/decision_reranker.py
+@@ -15,16 +15,18 @@
+ 
+ import asyncio
+ import contextvars
++import logging
+ from dataclasses import dataclass
+ 
+ import numpy as np
+ 
+ from ...config import DecisionModelConfig
+ from ..cross_encoder import CrossEncoderModel
+-from ..decision_model import DecisionModel, DecisionQuestion
++from ..decision_model import DecisionModel, DecisionQuestion, DecisionRefusedError
+ from ..decision_rerank_interface import ALIKE_FROM
+ 
+ PROVIDER_NAME = "decision_model"
++logger = logging.getLogger(__name__)
+ 
+ # What every candidate in this rerank shares — the current date and the bank's own
+ # framing, which recall would otherwise paste onto each one. The decision model gets it in
+@@ -99,8 +101,10 @@
+     async def initialize(self) -> None:
+         pass
+ 
+-    async def _rerank(self, query: str, docs: list[str], indices: list[int], scores: list[float]) -> None:
+-        """Scores ``indices`` by position, best first."""
++    async def _rerank(
++        self, query: str, docs: list[str], indices: list[int], *, allow_rerank_refusals: bool = False
++    ) -> dict[int, float]:
++        """Scores original candidate slots by rank position."""
+         rerank = self._client.rerank_interface()
+         options = rerank_options.get()
+         subset = [docs[index] for index in indices]
+@@ -109,7 +113,21 @@
+         state = rerank.state(query, rerank_shared_context.get())
+         # Every memory is capped (see DecisionRerank.questions), so no single question can
+         # outgrow the window: a failed request now raises instead of ranking its candidates last.
+-        answers = await self._client.ask_all(state, questions, scope="decision_recall_rerank")
++        if allow_rerank_refusals:
++            answers = await self._client.ask_all(
++                state, questions, scope="decision_recall_rerank", allow_rerank_refusals=True
++            )
++            eligible = [slot for slot, question in enumerate(asked) if not answers[question.key].refused]
++            refused_count = len(asked) - len(eligible)
++            if refused_count:
++                logger.warning("Decision recall ranking received %d/%d explicit refusals", refused_count, len(asked))
++                if not eligible:
++                    raise DecisionRefusedError("decision model refused every recall ranking question")
++                indices = [indices[slot] for slot in eligible]
++                subset = [subset[slot] for slot in eligible]
++                asked = [asked[slot] for slot in eligible]
++        else:
++            answers = await self._client.ask_all(state, questions, scope="decision_recall_rerank")
+         # Stable on the caller's input order, so equal answers keep their RRF order.
+         nouls = [answers[question.key].noul if question.key in answers else None for question in asked]
+         ranked = rerank.pruned(nouls) if options.prune else rerank.scores(nouls)
+@@ -123,9 +141,19 @@
+                     {q.key: DecisionQuestion.model_validate(q.system_one()) for q in repeats},
+                     scope="decision_recall_dedup",
+                 )
++                if allow_rerank_refusals and (
++                    found.keys() != {question.key for question in repeats}
++                    or any(answer.noul is None for answer in found.values())
++                ):
++                    raise ValueError("OpenAI recall dedup returned missing or invalid predicate answers")
+                 ranked = rerank.deduped(ranked, repeats, {key: answer.noul for key, answer in found.items()})
+-        for slot, score in enumerate(ranked):
+-            scores[indices[slot]] = score
++        return dict(zip(indices, ranked, strict=True))
++
++    async def predict_recall(self, query: str, docs: list[str]) -> dict[int, float]:
++        """Return scores keyed by original slot, excluding explicit OpenAI ranking refusals."""
++        if self._client.provider != "openai":
++            return dict(enumerate(await self.predict([(query, doc) for doc in docs])))
++        return await self._rerank(query, docs, list(range(len(docs))), allow_rerank_refusals=True)
+ 
+     @staticmethod
+     async def _alike(
+@@ -157,6 +185,6 @@
+         by_query: dict[str, list[int]] = {}
+         for index, (query, _) in enumerate(pairs):
+             by_query.setdefault(query, []).append(index)
+-        scores = [0.0] * len(pairs)
+-        await asyncio.gather(*(self._rerank(query, docs, indices, scores) for query, indices in by_query.items()))
+-        return scores
++        batches = await asyncio.gather(*(self._rerank(query, docs, indices) for query, indices in by_query.items()))
++        scores = {slot: score for batch in batches for slot, score in batch.items()}
++        return [scores[slot] for slot in range(len(pairs))]
+diff --git a/hindsight_api/engine/search/reranking.py b/hindsight_api/engine/search/reranking.py
+--- a/hindsight_api/engine/search/reranking.py
++++ b/hindsight_api/engine/search/reranking.py
+@@ -469,8 +469,13 @@
+         )
+         try:
+             try:
+-                # The model takes 2-tuples; `pairs` is built as two-element lists.
+-                scores = await self.cross_encoder.predict([(a, b) for a, b in pairs])
++                if isinstance(self.cross_encoder, DecisionModelReranker):
++                    ranked = await self.cross_encoder.predict_recall(query, [doc for _, doc in pairs])
++                    candidates = [candidates[slot] for slot in ranked]
++                    scores = list(ranked.values())
++                else:
++                    # The model takes 2-tuples; `pairs` is built as two-element lists.
++                    scores = await self.cross_encoder.predict([(a, b) for a, b in pairs])
+             except RerankTimeoutError as exc:
+                 logger.warning(f"Reranking: {exc}; ranking the remainder by RRF order")
+                 unscored = {i for i, score in enumerate(exc.scores) if score is None}
