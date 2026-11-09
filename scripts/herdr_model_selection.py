@@ -10,6 +10,8 @@ import stat
 import subprocess
 import sys
 
+from allowlists import (DEFAULT_FILE, DEFAULT_ROOT, LibraryError, preview_agent, read_active_agent_policy,
+                        resolve_agent_default)
 from decision_service_client import DecisionService
 from project_workflow_decision import (MODEL_FIELDS, Checkpoint, add_checkpoint_arguments, freeze, handoff_unit,
                                        integration, model_application, reconcile, resolve)
@@ -18,6 +20,9 @@ from project_workflow_template import decision_state_digest, digest, encoded, re
 
 LOCATION = ("workspace_id", "tab_id", "pane_id", "terminal_id")
 HERDR = Path.home() / ".local/bin/herdr"
+MAC_ENVIRONMENT = "mac-work"
+MAC_WORKER = "mac-codex"
+MAC_BACKEND = "current-default"
 
 
 class HostError(ValueError):
@@ -39,8 +44,8 @@ def native(session, *command):
         raise HostError("native command outcome unconfirmed") from None
 
 
-def non_model_args(argv, cwd):
-    """Keep approved TUI startup options, replacing only model and effort overrides."""
+def non_model_args(argv, cwd, provider):
+    """Keep approved TUI options and reject a conflicting provider override."""
     switches = {"--no-daemon", "--no-alt-screen", "--strict-config"}
     values = {"-a", "--ask-for-approval", "-s", "--sandbox", "-C", "--cd", "-p", "--profile",
               "--add-dir", "--enable", "--disable", "-c", "--config", "-m", "--model"}
@@ -69,50 +74,58 @@ def non_model_args(argv, cwd):
         if key in {"-m", "--model"}:
             continue
         if key in {"-c", "--config"}:
-            config_key, equals, _ = value.partition("=")
-            require(equals and re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*", config_key.strip()),
+            config_key, equals, config_value = value.partition("=")
+            config_key = config_key.strip()
+            require(equals and re.fullmatch(r"[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*", config_key),
                     "unsupported Codex configuration key")
-            if config_key.strip() in {"model", "model_reasoning_effort"}:
+            if config_key == "model_provider":
+                require(config_value.strip() in (provider, json.dumps(provider), f"'{provider}'"),
+                        "Codex provider override conflicts with the authorized binding")
+                continue
+            if config_key in {"model", "model_reasoning_effort"}:
                 continue
         retained.extend(pair)
     require("--no-daemon" in retained, "the approved Mac Herdr Codex options must include --no-daemon")
     return retained
 
 
-def candidates(selection, provider):
-    """Build candidate pairs from the original creator's Mac backend capability observations."""
+def candidates(selection, provider, policy, policy_ref, library):
+    """Intersect the requested fields, current host capabilities and the exact policy entries."""
     needs = selection["requirements"]
     require(isinstance(needs, dict) and isinstance(selection["capabilities"], list)
             and type(needs.get("input_tokens", 0)) is int and needs.get("input_tokens", 0) >= 0,
             "invalid task requirements or capabilities")
     for key in ("tools", "modalities", "models", "providers", "efforts"):
         require(key not in needs or isinstance(needs[key], list), "task capability requirements must be arrays")
-    choices = {}
+    defaults = resolve_agent_default(policy, MAC_ENVIRONMENT)
+    models = needs.get("models", [defaults["model"]] if defaults["model"] is not None else [])
+    efforts = needs.get("efforts", [defaults["reasoning_effort"]] if defaults["reasoning_effort"] is not None else [])
+    capabilities = []
     for row in selection["capabilities"]:
-        if row["worker_id"] != "mac-codex" or row["backend_id"] != "current-default" or row["provider"] != provider:
+        require(isinstance(row, dict), "capabilities must contain objects")
+        if (row.get("environment_id", MAC_ENVIRONMENT) != MAC_ENVIRONMENT or row["worker_id"] != MAC_WORKER
+                or row["backend_id"] != MAC_BACKEND or row["provider"] != provider):
             continue
         if (not set(needs.get("tools", [])) <= set(row["tools"])
                 or not set(needs.get("modalities", [])) <= set(row["modalities"])
                 or needs.get("input_tokens", 0) > row["context_window"]
-                or ("models" in needs and row["model"] not in needs["models"])
+                or row["model"] not in models
                 or ("providers" in needs and row["provider"] not in needs["providers"])):
             continue
-        identity = {key: row[key] for key in MODEL_FIELDS if key != "reasoning_effort"}
-        require(all(isinstance(value, str) and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:/-]*", value)
-                    for value in identity.values()), "invalid Mac model identity")
-        require(isinstance(row["evidence_ref"], str) and row["evidence_ref"].strip(), "capability source required")
-        require(isinstance(row["supported_efforts"], list), "invalid effort capability")
-        for effort in row["supported_efforts"] or [None]:
-            require(effort is None or isinstance(effort, str) and re.fullmatch(r"[a-z][a-z0-9_-]*", effort),
-                    "invalid supported effort")
-            if "efforts" in needs and effort not in needs["efforts"]:
-                continue
-            model = dict(identity, reasoning_effort=effort)
-            key = "mac-codex-" + digest(model)
-            choices[key] = {"candidate_id": key, "description": f'{row["model"]} ({effort or "not applicable"})',
-                            "parameters": model, "metadata": {"worker_id": row["worker_id"],
-                            "backend_id": row["backend_id"], "capability_ref": row["evidence_ref"]}}
-    return [choices[key] for key in sorted(choices)]
+        capabilities.append(row)
+    matched, _, _ = preview_agent(policy, capabilities, library)
+    choices = []
+    for match in matched:
+        entry = match["entry"]
+        effort = entry["reasoning_effort"]
+        if effort not in efforts:
+            continue
+        model = {key: entry[key] for key in MODEL_FIELDS}
+        choices.append({"candidate_id": MAC_WORKER + "-" + digest(model),
+                        "description": f'{entry["model"]} ({effort or "not applicable"})',
+                        "parameters": model, "metadata": {"worker_id": MAC_WORKER, "backend_id": MAC_BACKEND,
+                        "capability_ref": match["capability_sources"][0], "model_policy": policy_ref}})
+    return sorted(choices, key=lambda choice: choice["candidate_id"])
 
 
 def check_empty(target, host):
@@ -134,7 +147,7 @@ def check_empty(target, host):
             "interactive shell is unconfirmed")
 
 
-def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
+def apply(checkpoint, client, unit_id, binding, selection, *, host=native, policy_path=DEFAULT_FILE):
     require(binding["mode"] == "new-unit", "this adapter creates an authorized new-unit agent")
     target = {key: binding[key] for key in ("session", "agent", "cwd", *LOCATION)}
     require(all(isinstance(value, str) and value.strip() and "\0" not in value for value in target.values())
@@ -143,7 +156,6 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
             and binding["provider"].strip(), "an approved native target, provider and authorization are required")
     require(all(not value.startswith("-") for key, value in target.items() if key != "cwd"),
             "invalid native target")
-    base_args = non_model_args(binding["codex_args"], target["cwd"])
     binding_digest = digest(binding)
     status = checkpoint.native("status")
     require(status.get("decision_integration_version") == 1, "workflow integration is unavailable")
@@ -162,9 +174,16 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
                     "new-unit creation requires the original pending handoff")
             unit = handoff_unit(run, data)
             require(unit["unit_id"] == unit_id, "unit is not associated with this handoff")
-            choices = candidates(selection, binding["provider"])
+            base_args = non_model_args(binding["codex_args"], target["cwd"], binding["provider"])
+            try:
+                policy, policy_ref, library = read_active_agent_policy(policy_path, DEFAULT_ROOT)
+            except LibraryError as error:
+                return {"status": "policy_blocked", "disposition": "unavailable",
+                        "reason": error.code, "launch_outcome": "not_started"}
+            choices = candidates(selection, binding["provider"], policy, policy_ref, library)
             if not choices:
-                return {"status": "complete", "disposition": "unavailable", "reason": "no_eligible_mac_codex_configuration"}
+                return {"status": "unavailable", "disposition": "unavailable", "launch_outcome": "not_started",
+                        "reason": "no_eligible_mac_codex_configuration", "model_policy": policy_ref}
             context = selection.get("context", {})
             require(isinstance(context, dict), "selection context must be an object")
             entry = freeze(run, "role_model_selection", unit, "Which eligible Mac Codex configuration fits this unit?",
@@ -172,6 +191,8 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
             request_id = entry["request"]["request_id"]
             require(entry.setdefault("binding_digest", binding_digest) == binding_digest,
                     "frozen model request belongs to another approved binding")
+            require(entry.setdefault("model_policy", policy_ref) == policy_ref,
+                    "model allowlist differs from the frozen request")
             data["actions"].setdefault(run["step"], run["action"])
     if existing is not None:
         return reconcile_model(checkpoint, client, request_id, host=host)
@@ -187,7 +208,7 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
         return {"request_id": request_id, "decision_id": decision["decision_id"], "status": "complete",
                 "disposition": decision["disposition"], "feedback": reconcile(checkpoint, client)}
 
-    argv = [*base_args, "-m", selected["model"]]
+    argv = [*base_args, "-m", selected["model"], "-c", "model_provider=" + json.dumps(selected["provider"])]
     if selected["reasoning_effort"] is not None:
         argv.extend(("-c", "model_reasoning_effort=" + json.dumps(selected["reasoning_effort"])))
     # Inspect the native target outside SQLite. The transaction then fences a
@@ -216,18 +237,30 @@ def apply(checkpoint, client, unit_id, binding, selection, *, host=native):
             if decision_state_digest(run) != entry["request"]["snapshot"]["state_digest"]:
                 model.update(application_status="stale", reason="snapshot_changed")
             else:
+                try:
+                    current_policy, current_ref, current_library = read_active_agent_policy(policy_path, DEFAULT_ROOT)
+                    allowed = current_ref == entry["model_policy"] and any(
+                        choice["parameters"] == selected for choice in
+                        candidates(selection, binding["provider"], current_policy, current_ref, current_library))
+                except LibraryError:
+                    allowed = False
+                if not allowed:
+                    model.update(application_status="stale", reason="agent_model_policy_changed")
+            if model["application_status"] != "stale":
                 require(not any(prior["target"]["session"] == target["session"] and
                                 (prior["target"]["pane_id"] == target["pane_id"] or
                                  prior["target"]["agent"] == target["agent"]) for prior in data["launches"].values()),
                         "target already has an original launch intent in this checkpoint")
                 data["launches"][unit_id] = {"request_id": request_id, "binding_digest": binding_digest,
-                                            "target": target, "argv_digest": digest(argv), "outcome": "unknown"}
+                                            "target": target, "argv_digest": digest(argv), "outcome": "unknown",
+                                            "model_policy": entry["model_policy"]}
                 model.update(launch_model=selected, application_status="unknown", reason="launch_unconfirmed")
             entry["model"] = model
     if existing is not None:
         return reconcile_model(checkpoint, client, existing["request_id"], host=host)
     if model["launch_model"] is None:
         return {"request_id": request_id, "decision_id": decision["decision_id"], "status": "stale",
+                "reason": model["reason"], "launch_outcome": "not_started", "model_policy": policy_ref,
                 "feedback": reconcile(checkpoint, client)}
     try:
         host(target["session"], "agent", "start", target["agent"], "--kind", "codex", "--pane", target["pane_id"],
@@ -336,6 +369,8 @@ def reconcile_model(checkpoint, client, request_id, *, rollout=None, turn_id=Non
                   "launch_outcome": launch["outcome"], "thread_id": launch.get("thread_id"),
                   **{key: model[key] for key in ("application_status", "reason", "recommended_model",
                                                 "launch_model", "effective_model")}}
+        if "model_policy" in launch:
+            output["model_policy"] = launch["model_policy"]
     output["feedback"] = reconcile(checkpoint, client)
     return output
 
@@ -374,7 +409,7 @@ def main(argv=None):
     except (ValueError, OSError, KeyError, TypeError, sqlite3.Error) as error:
         print(str(error), file=sys.stderr)
         return 1
-    return 0
+    return 1 if result.get("status") in {"policy_blocked", "stale"} else 0
 
 
 if __name__ == "__main__":
