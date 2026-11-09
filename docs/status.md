@@ -1,16 +1,27 @@
 # 本仓当前状态
 
-本页维护 Herdr 项目的当前采用摘要。最近一次共享记忆部署对齐核验于 **2026-11-05（北京时间）** 完成；协调员与 Mac 桥原部署记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
+本页维护 Herdr 项目的当前采用摘要。**2026-11-09** 已纳入 Decision Service 部署、消费者工程闭环及 Win 召回排序补丁的原回执；2026-11-05 共享记忆部署对齐、协调员与 Mac 桥的既有记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
 
 ## 当前结论
 
-**2026-11-08 22:55（北京时间），Win Hindsight 内部 Decision Models 已配置并完成一次 API 重载。** 沿现有 Hindsight API Slim 1.2.0 启用 `openai / gpt-6-luna`，显式用于 recall 与 consolidation；reflect 的 Decision provider 设为 `none`，普通 LLM 及知识页沿原 LLM 路径。公子提供的新密钥仅绑定 Luna，普通 LLM 的原密钥独立保留，未合并。一次不含项目／记忆数据的原生 Decisions 调用通过；写入前核到 4 个 bank 的异步 pending／running 均为 0。安装版配置解析通过，新 API 进程健康，PG／BGE 原进程保留；原 Q8 参数保留供回退，手动 UI 未改。未追加真实 recall、记忆写入或质量对比，业务效果留待自然调用观察。私有配置已备份，脱敏回执交关联维护会话复核；该内部路径与下述业务 Decision Service 独立，不代表业务服务部署或验收。[内部用途与配置边界](https://github.com/CF-FE/decision-service/blob/main/docs/hindsight-decision-models.md)
+**2026-11-09，Decision Service 已在 VPS 部署，HTTP（程序）与 MCP（Agent）共用判断核心、身份范围和持久 SQLite。** 本轮文档依据服务主仓固定版本 [`2e5ff940`](https://github.com/CF-FE/decision-service/tree/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs) 的[当前交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)及原交接回执，不重跑运行验证。Mac 插件 `0.1.1` 的原生 OAuth 与工具读回、云端 Decision Service Cloud `1.0.2` 的 OAuth、同记录查询及 Skill 显式加载已有确认；不代表所有旧会话已刷新。插件与 Skill 主源归 Decision Service 仓，本仓维护消费者。
+
+| 本次采用的版本证据 | 对应对象 |
+| --- | --- |
+| Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
+| VPS release `2df05a48` | 独立 Decision Service 运行发布 |
+| Herdr `8612a9a` | Mac 固定安装的工作流／角色消费者 |
+| Herdr `49e48b5c` | Win Hindsight 候选级拒答补丁，与 Mac 消费者分开安装 |
+
+**2026-11-09 15:29（北京时间），Win Hindsight 已应用候选级拒答补丁并继续使用 Luna。** 补丁仅在 recall 排序中排除明确拒答候选，保留正常答案及真实零概率；全部拒答仍失败。原 API 单独重载、源码与权限、健康及 PG／BGE 保全已有读回。在原 45 秒预算下，一次真实双 bank evaluate 于 14.873 秒完成，两库各返回 3 个带来源片段，最终 `complete / suggested` 且同记录读回一致。原拒答触发原因仍为 `UNKNOWN`；此前 Q8 备选试验未通过且已恢复，不是当前长期方案或自动回退路径。详细诊断与回执只维护于[服务主仓证据](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#luna-局部拒答补丁与真实验证2026-11-09)和 [Issue #6](https://github.com/CF-FE/decision-service/issues/6)，补丁归本仓 [decision-reranker](../mcp/hindsight-memory/decision-reranker/README.md)。
+
+Win 内部 `recall / consolidation` 的 `openai / gpt-6-luna` 配置自 11 月 8 日采用；reflect 及普通 LLM 路径保留。它与 Decision Service 的 Luna 业务判断、执行角色的实际模型是三层用途，分别配置和记录，不因同用 Luna 合并服务或密钥。[模型分工](hindsight-memory-integration.md#三层模型与凭据边界)
 
 **2026-11-09，Decision Service 消费者已在 Mac 固定安装 `8612a9a`，真实合成工程闭环通过。** 已贯通安装版 workflow → VPS HTTPS → `gpt-6-luna` 判断 → 原分支采用 → 专用 Herdr 单元 → `gpt-6.1-sol / low` 原生回合 → application／result 云端读回。原检查点复核为 1 次启动意图、2 条决策、`FINISHED`、待补传 0；两条决策共享同一结果的修订 2，实际配置取自原 thread／turn。此前 shell 就绪检查退出未产生启动或提示，沿原窗格接续后只执行了一回合；HTTP 回传错误沿原事件补传。全仓 363 项测试中 359 项通过、4 项既有条件跳过，结构及 diff 检查通过。该结果仅验收独立合成文本任务，原生产任务和现任角色未参与；不代表凡人或其他项目业务验收。服务侧部署、跨 bank 检索、插件及各客户端 OAuth 状态归[其主仓](https://github.com/CF-FE/decision-service)，不由本次 HTTP／Herdr 成功推定。[工作流入口与证据](project-workflow-development.md#已实现入口与工程证据) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。
 
 同日补充：模型类型／具体型号和推理强度必须留记录，区分推荐与实际生效，未确认或不适用明确标记。消耗降为低优先级，仅记录现成数据、缺失留空；不记现金费用，不为补数新增采集链路，也不阻塞 MVP 或反馈接收。
 
-同日已确认首版交付与存储选型：HTTP API 为程序入口，MCP 按实际需要共用核心，轻量 Skill 说明调用，插件分发后置；服务主机本地 SQLite 保存决策、反馈修订及关联。消费者不直接访问数据库，原工作流检查点和待回传责任保留。[具体边界](project-workflow-development.md#decision-storage-boundary)。选型已定，服务与适配仍未开发。
+服务与消费者已实现并取得上述工程回执：原执行器直传 `application / result`，SQLite 持久保存决策、反馈修订与关联，`get_decision` 只读对账。原工作流保留检查点、待传事件和显式恢复补传责任；消费者不直接访问服务数据库。实际跨 bank 读取走 Hindsight VPS `gateway`，`native` 是显式适配选项，不自动探测或换路。生产角色与自然业务尚未迁移，长期稳定性、质量和效率收益未证实；Hindsight retain、webhook 与自动补偿不是已启用的必经回路。[消费者与存储边界](project-workflow-development.md#decision-storage-boundary) · [检索接入](hindsight-memory-integration.md#3-项目身份与资料归属)
 
 **2026-11-06，审批子工作流及提案入口补丁已合并到 main，Mac 安装和运行接线已采用；自然单待验。** [Herdr PR #16](https://github.com/CF-FE/herdr-4-codexcloud/pull/16) 承接 [PR #15](https://github.com/CF-FE/herdr-4-codexcloud/pull/15)，当前固定发布为 `f63e3b8`；[Task Mailbox PR #7](https://github.com/CF-FE/task-mailbox-mcp/pull/7) 的 Mac 运行副本为 `1b3da867`，桥侧 14 项文件摘要一致。协调员以 `COORD_APPROVAL_PREPARE` 沿原生来源提交提案，由原 watcher 登记，不授予台账写权或扩大沙箱。原 watcher 已运行新版并每 60 秒收回完成回合的答复，原 waits、bridge-pump 已加载同一发布且首轮退出码为 0；policy 与两个原游标保留，未重新绑定。通知依赖下一次用户活动；本次无新审批、批准或测试单，真实 UI、自然审批接续及业务验收仍待自然单。原协调员已确认采用新登记入口，无新采用阻塞；未发测试提案。远端 collector 的既有 `AUTH_FAILED` 独立保留，未重新认证或启动。[设计与部署回执](approval-workflow.md#8-实现合同与候选采用)
 
@@ -33,7 +44,7 @@ Web 启动脚本为 `D:\Hindsight\scripts\Start-HindsightUI.cmd`，本机访问 
 
 截至 18:55:49，公子指定的 27 个 Skill、40 个源文件均已导入本项目 bank；27 项提取及子操作全部 `completed`，共 1,515 条记忆，原文、来源版本与 SHA-256 全部读回一致。自然语言召回在不含 Skill 名称、不加文档过滤时命中目标 Skill；初次观测首项排名第 3，随后进行了下述精排迭代。后台自动整合与来源文档提取分开记录，不把 1,515 当作长期固定计数。
 
-**Win Q8 CPU 精排已部署并复审通过。** 公子指定魔搭来源的 `bge-reranker-v2-m3`、Q8 和 CPU 推理，维护源码提交为 `c31e5bb`。原中文查询中目标 Skill 的整合摘要排第 1，直接回答可选字段的规则从原第 39 到第 4；对照查询的目标摘要也排第 1。相同冻结候选的离线对比另行确认重排收益。生产使用 4 线程、batch 8、并发 1、最多 100 个候选，两次实际 MCP 调用约 26–28 秒；这是节省 GPU 与排序、延迟的取舍，不是全库效果保证。9 份已安装维护文件及 7 份模型图／权重／分词器产物与回执对应，原 PG、GPU BGE-M3、记忆数据和 UI 手动启停方式保留。详见[精排来源、对比与回退](../mcp/hindsight-memory/reranker/README.md)。
+**2026-11-05 的 Win Q8 CPU 精排部署与复审记录（历史基线）。** 公子指定魔搭来源的 `bge-reranker-v2-m3`、Q8 和 CPU 推理，维护源码提交为 `c31e5bb`。原中文查询中目标 Skill 的整合摘要排第 1，直接回答可选字段的规则从原第 39 到第 4；对照查询的目标摘要也排第 1。相同冻结候选的离线对比另行确认重排收益。当时使用 4 线程、batch 8、并发 1、最多 100 个候选，两次实际 MCP 调用约 26–28 秒；这是节省 GPU 与排序、延迟的取舍，不是全库效果保证。9 份已安装维护文件及 7 份模型图／权重／分词器产物与回执对应，原 PG、GPU BGE-M3、记忆数据和 UI 手动启停方式保留。当前 recall 已改用 Luna，Q8 文件与配置只保留作备选，11 月 9 日的临时试验已结束；不据历史记录推定自动回退已启用。详见[精排来源、对比与回退](../mcp/hindsight-memory/reranker/README.md)。
 
 公子回报由云端提交的新操作 `bdd6bfea-0d24-4b52-884d-c1ded7869863` 于 18:59:08 完成，父子操作无错误；原文与来源读回一致，实际提取 1 条记忆。最初的 `9856142e…` 及 Skill 首次尝试 `0dded0a4…` 仍保留历史 `failed`，修复不会自动重跑旧操作。上述回执沿 [Issue #13](https://github.com/CF-FE/herdr-4-codexcloud/issues/13)维护；各 Harness 原生采用及长期稳定性在自然任务中补充，不追加本轮测试。
 
@@ -128,6 +139,10 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 后续同步按初始清单再逐次叠加增量，不重写历史摘要、不自动跨仓同步。2026-10-31 的候选 PR 与后续合并状态各保留其时点；源仓测试或旧 Lody 业务回执不作为本仓验收。
 
 ## 后续缺口
+
+公子已确认模型白名单并授权在合并后部署。仓库已接入 Mac Codex `new-unit` 的候选筛选和启动前复核，目标宿主安装及采用以回执为准。Win、Cloud 的原生模型参数与图像调用接线仍待完成。[白名单维护指南](../config/allowlists/README.md) · [创建职责](agent-hosts.md#decision-model-selection)
+
+公子已授权推进凡人的 Decision Service 接入 P1／P2／P3，实际接入和自然业务回执待原任务取证。P3 的 Hindsight webhook 已纳入执行计划，事件来源接线与生产启用仍待实施和验收。候选拒答原因、长期稳定性与端到端收益仍待验证。[既有服务路线图](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/roadmap.md)
 
 1. **传输稳定性**：沿服务仓原任务核长期运行、反向新任务与原异常原因，保留 UNKNOWN。
 2. **Dot 原生入口**：已有局部用户回报；具体工具发现、目标绑定、定向执行和回读仍按[专项评估](dot-mac-herdr-evaluation.md)取证，不由网络或桌面试点代证。

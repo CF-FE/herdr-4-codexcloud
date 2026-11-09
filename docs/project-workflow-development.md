@@ -1,6 +1,6 @@
 # 项目工作流生成工具 · 第一版开发文档
 
-2026-11-05。第一版已在独立本地项目完成工程验证。负责人使用生成器建立项目自己的流程，开发者按本文接口维护通用工具。采用到真实项目时，由该项目负责人选定首单。[设计依据](decisions/001-project-owned-workflows.md) · [生成器](../scripts/project_workflow.py) · [运行模板](../scripts/project_workflow_template.py)
+第一版于 2026-11-05 在独立本地项目完成工程验证；Decision Service 接入状态更新于 2026-11-09。负责人使用生成器建立项目自己的流程，开发者按本文接口维护通用工具。采用到真实项目时，由该项目负责人选定首单。[设计依据](decisions/001-project-owned-workflows.md) · [生成器](../scripts/project_workflow.py) · [运行模板](../scripts/project_workflow_template.py)
 
 ## 从一次批次复核开始
 
@@ -73,25 +73,32 @@ python3 workflows/batch-review/workflow.py --state "$RUN" resume
 
 ## Decision Service 接入：先跑通现有决定点
 
-2026-11-09，Mac 消费者已固定安装，并与 VPS Decision Service、真实 Mac Herdr 完成一次合成工程闭环，生产业务尚未采用验收。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)由独立项目维护，帮助选择下一步和角色模型配置，目标是提高整条工作流的推进效率与 token 利用率。先跑通包含跨 bank 检索的 MVP，再按实际使用迭代，不以收益基线、完整标签集或统一影子期作为开工前置。本文拥有工作流侧合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同。
+2026-11-09，Mac 消费者已固定安装，并与 VPS Decision Service、真实 Mac Herdr 完成一次合成工程闭环，生产业务尚未采用验收。服务侧的 HTTP／MCP、插件、跨 bank 检索也分别取得工程回执，见[固定交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)。[Decision Service](https://github.com/CF-FE/decision-service/blob/main/docs/architecture.md)帮助选择下一步和角色模型配置；服务、公共合同、插件和 Skill 由该独立项目维护。本文拥有候选构造、采用与恢复补传合同，[角色宿主](agent-hosts.md#decision-model-selection)拥有选型的实际应用合同；自然任务质量与效率收益仍待观察。
 
 ```mermaid
 flowchart LR
     S["原工作流状态＋已有合法选项"] --> C["原调用者：构造候选与快照"]
-    C --> D["Decision Service：选择 candidate_id"]
-    M["按需跨 bank 背景"] -.-> D
+    C -->|"HTTP evaluate"| D["Decision Service：业务 Luna 选择 candidate_id"]
+    D -->|"按需 gateway recall"| M["VPS 网关 → Win Hindsight"]
+    M -->|"带来源片段"| D
     D --> A["原调用者：取回候选并核当前步骤"]
     A -->|"现有分支"| W["原 decide → 程序继续"]
     A -->|"缺少合适候选"| P["原规划者补方案"]
     W --> H["原 handoff 与成果回收"]
     A -.->|"application"| F["原状态：待回传事件"]
     H -.->|"result"| F
-    F -.->|"事务外发送／恢复补传"| E["服务：精确关联与效果汇总"]
+    F -->|"application / result<br/>原 event_id / revision 补传"| D
+    D --> E[("服务私有 SQLite<br/>持久确认、修订与精确关联")]
+    Q["get_decision 只读对账"] --> D
 ```
 
 ### 最小调用与应用合同
 
-**首版程序入口为 HTTP API。** Herdr／项目适配器通过服务调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作，方法、路径与字段统一见服务的 [v1 合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md)。Mac 安装版到 VPS HTTPS 的真实调用已验证；MCP、插件包及各客户端连接状态由服务主仓维护，不从 HTTP 成功推定其他入口已通过。
+**程序入口为 HTTP API，Agent 入口为 MCP，共用同一核心与记录。** Herdr／项目适配器通过 HTTP 调用 `evaluate_decision`、`get_decision`、`record_decision_feedback` 三个逻辑操作，方法、路径与字段统一见服务的 [v1 合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md)。Mac 安装版到 VPS HTTPS 的真实调用已验证；本地插件安装、OAuth 和工具读回另有原生回执，Cloud 插件还确认了 Skill 显式加载。各入口分别取证，插件也不构成另一个执行器。
+
+当前服务按需通过 Hindsight VPS 网关取得带来源的片段，`native` 为显式适配选项，不自动切换。DS 的业务 Luna、Win Hindsight 内部 recall／consolidation Luna，以及被选中的实际执行模型是三层配置；选型只返回建议，角色创建仍由原创建者沿[有效任命与原生载体](agent-hosts.md#role-creation-responsibility)办理。[全局路径与数据归属](architecture.md#decision-service)
+
+模型候选须同时符合宿主可用能力和组织允许范围。Mac Codex `new-unit` 已在源码接入发布目录中的 `active` 策略。原端冻结策略修订与文件摘要，启动前复核同一策略和所选组合。已有启动意图的工作单元沿原检查点对账。[策略与接线范围](agent-hosts.md#decision-model-selection)
 
 调用者在真正需要判断时读取 `status`，以当前 `decision.choices` 构造有稳定 `candidate_id` 的候选，另提供“均不适合”的非执行出口，映射为 `needs_replan` 而不导入 `decide`。请求关联原项目、任务、流程、`step`、`source_sha256`、`input_sha256`，并保留本次相关状态和候选的摘要。关联、冻结请求和待传事件保存在原检查点的 `decision_integration` 中；它不进入业务状态摘要或项目 program 参数，也不改变原 `decisions[step]` 的 `{choice,evidence}` 结构。模板没有独立 `state_version` 或原生 `run_id`，适配器生成的 `unit_id` 显式标记来源。
 
@@ -153,13 +160,13 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 
 ### 两仓交付与一次联调
 
-| 维护方 | 后续开发交付 |
+| 维护方 | 维护与交付责任 |
 | --- | --- |
 | `CF-FE/decision-service` | 有限候选选择、跨 bank 检索、结果与反馈入口、幂等修订、精确关联查询／覆盖率和效果汇总；仅附带现成响应中的消耗，不设必备采集要求 |
 | 本仓工具维护者 | 当前决定点的薄适配、原状态关联及 `decide` 导入；应用／结果反馈、原恢复入口补传和模型类型／型号／强度记录；现成消耗可附带，不新接 usage 采集。角色配置适配见[宿主合同](agent-hosts.md#decision-model-selection) |
 | 各项目负责人／工作流维护者 | 维护项目候选与现有操作、自然业务接入、后续计划接续及项目验收；不复制第二套任务状态机 |
 
-真实采用时，以一条已有合法分支贯通选择、原检查点继续和角色配置实际应用，再由适配器回收 application／result、读回关联记录。反馈重投与恢复沿同一事件核对，不重复业务，不追加独立的定时／已读测试。基本恢复行为已用本地工程用例核实，不要求为验收中断真实生产；全量 Hindsight webhook／补偿扫描后置。云端Dot照常从信箱或 Project 感知实质进展并向公子汇报，项目验收仍归原验收者。
+真实采用时，以一条已有合法分支贯通选择、原检查点继续和角色配置实际应用，再由适配器回收 application／result、读回关联记录。反馈重投与恢复沿同一事件核对，不重复业务，不追加独立的定时／已读测试。基本恢复行为已用本地工程用例核实，不要求为验收中断真实生产。Hindsight webhook 已纳入执行计划，事件来源接线和生产启用待验。云端Dot照常从信箱或 Project 感知实质进展并向公子汇报，项目验收仍归原验收者。
 
 ### 已实现入口与工程证据
 
@@ -180,9 +187,13 @@ Decision Service 首版采用 SQLite，文件位于服务主机持久磁盘，�
 
 随后安装固定代码版本 `8612a9a` 到 `~/Library/Application Support/HerdrDecisionConsumer`，5 个脚本摘要与安装收据一致，旧 `a8edbea` 安装目录保留回退；原 ProjectWorkflowTools 和在途 runner 未覆盖。客户端支持 `/decision-service` 等干净的静态路径前缀，私有凭据留宿主，安装不等于所有 Harness 已加载。
 
-真实合成单元已从安装版 CLI 经 VPS HTTPS 取得 `gpt-6-luna` 选择、提交原分支；再沿专用 Herdr driver 执行一次纯文本标记任务，原生 thread／turn 确认 `openai / gpt-6.1-sol / low`。本机检查点核到 1 次启动意图、1 个真实回合、两个 application 均已采用；云端两条决策读回同一结果修订 2，workflow 为 `FINISHED`、待补传为 0。结果和质量仅针对这条合成工程任务，未操作生产资产或改变现任角色，不替代项目业务验收。跨 bank 实测与其他客户端授权另按服务主仓记录。
+白名单版发布由安装器从固定 Git 提交准备，随发布目录保存文件摘要和安装回执。Mac 的部署目标是 `~/Library/Application Support/HerdrDecisionConsumer`，实际采用版本沿状态页的宿主回执核对。[发布安装器](../scripts/install_herdr_decision_consumer.py) · [当前状态](status.md#当前结论)
+
+真实合成单元已从安装版 CLI 经 VPS HTTPS 取得 `gpt-6-luna` 选择、提交原分支；再沿专用 Herdr driver 执行一次纯文本标记任务，原生 thread／turn 确认 `openai / gpt-6.1-sol / low`。本机检查点核到 1 次启动意图、1 个真实回合、两个 application 均已采用；云端两条决策读回同一结果修订 2，workflow 为 `FINISHED`、待补传为 0。结果和质量仅针对这条合成工程任务，未操作生产资产或改变现任角色，不替代项目业务验收。Win Luna 候选级拒答补丁后的双 bank 实测另有一次成功回执；其范围与客户端授权见[服务交付证据](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)，不据此宣称自然业务效果或拒答原因已查明。
 
 ### 2026-11-09 实施拆分与审查
+
+本节保留首轮实施时的分工与约束；实际已交付入口、部署和工程结果以上节为准，不将当时的“尚非已发布”或待办描述作为当前状态。
 
 公子已授权重新梳理方案并由 `gpt-6.1-sol` 实现会话并行开发；两仓原会话负责方案及审计复核，不编写实现或测试代码。本文沿用已接受的服务／原工作流归属，不新增架构或审批层。服务接口的路径、字段和错误语义由 Decision Service 主仓统一冻结；本节保留首轮工程派工边界，不另维护一份服务 schema。公子随后授权云端与本地安装、全链路测试，其安装及合成验证证据见上节；生产任务仍按原单授权与验收。
 

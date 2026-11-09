@@ -1,35 +1,39 @@
 # Super-Agent 分享图
 
-为 2026-11-06 分享准备，内容观测截至 **2026-11-05**。全部为 **16:9**，提供可缩放 SVG 和 **3840 × 2160 PNG**；PPT 可直接插入 PNG，需缩放或编辑时使用 SVG。图中文字按已确认职责和实际接入边界编排，实时进展仍查[状态页](../status.md)。
+本轮文档与图稿更新于 **2026-11-09（北京时间）**，复用 11 月 6 日分享材料的版式。全部为 **16:9**，提供可缩放 SVG 和 **3840 × 2160 PNG**；PPT 可直接插入 PNG，编辑排版使用生成源。图示表达当前职责与已确认接入路径，工程样本不代证生产迁移或自然业务效果，实时进展查[状态页](../status.md)。
 
 | 顺序 | 讲什么 | SVG | 高清 PNG |
 | --- | --- | --- | --- |
-| 1 | 总架构：需求终端、两层 Agent、三类执行环境和共享基础设施 | [总架构图](super-agent-architecture.svg) | [下载 PNG](super-agent-architecture.png) |
-| 2 | 任务闭环：完整目标向下委派、负责人验收、两个入口异步回收、阻塞升级 | [任务闭环](task-lifecycle.svg) | [下载 PNG](task-lifecycle.png) |
-| 3 | 项目工作流：程序执行、模型决策、原生任务和跨 Worker 成果交接 | [动态工作流](project-workflow.svg) | [下载 PNG](project-workflow.png) |
-| 4 | Hindsight：云端／Mac／Win 共享项目经验，Web 管理端手动前台启停 | [记忆拓扑](hindsight-topology.svg) | [下载 PNG](hindsight-topology.png) |
+| 1 | 总架构：需求终端、Herdr 两层 Agent、独立 Decision Service 与共享记忆 | [总架构图](super-agent-architecture.svg) | [下载 PNG](super-agent-architecture.png) |
+| 2 | 任务闭环：向下委派、负责人验收、异步回收，以及三类角色由谁创建 | [任务闭环](task-lifecycle.svg) | [下载 PNG](task-lifecycle.png) |
+| 3 | 工作流：合法候选、有限判断、原端采用、结果反馈与数据归属 | [动态工作流](project-workflow.svg) | [下载 PNG](project-workflow.png) |
+| 4 | 记忆拓扑：实际网关路径、Win 共享记忆与三类模型的边界 | [记忆拓扑](hindsight-topology.svg) | [下载 PNG](hindsight-topology.png) |
 
 ## 讲解要点
 
-1. **双层 Agent 加需求终端。** 云端Dot调研、确定方案、委派和向公子汇报；下游为协调组织层与 Worker 层。项目默认由现任负责人验收。组织岗位和本地 Worker 在 Herdr；Codex Cloud 的具体托管作业沿独立路由执行。
-2. **弱连接下继续推进。** Task Mailbox 看原单，GitHub Project／Issue 看项目；进展可异步回填，不以云端Dot已读作为执行或验收门槛。明确项目归属的工作由负责人组织。
-3. **项目拥有流程。** 负责人维护 `workflows/`、集合 README 和项目规范；确定步骤由程序运行，新的判断交模型。运行检查点、项目状态、规范与可检索经验分别有自己的维护位置。
-4. **经验共享，状态沿原单。** Hindsight 同项目共享稳定 bank，Mac 经 LAN SSH，云端经 VPS／EasyTier。Web UI 已安装，脚本在可见终端前台运行，Ctrl+C 关闭，不自启。只读调用通过与成功提取入库是两项结果。
+1. **需求、组织与执行各有责任。** 云端Dot调研拆解、委派和向公子汇报；项目负责人默认业务验收。组织岗位与本地 Worker 在 Herdr，获准的具体 Codex Cloud 作业是宿主例外。协调员依有效任命由独立受信宿主管理入口初始化或恢复；协调员安排负责人创建、绑定或交接；负责人或获准唯一派发者按任务选择、复用或创建 Worker。任命、技术创建和原生接手分别核验，见[宿主与生命周期](../agent-hosts.md)。
+2. **判断建议沿原端采用。** 项目 workflow 或角色创建者提供合法候选。Mac Codex `new-unit` 已在源码接入本地策略快照，按宿主能力和允许组合筛选，启动前复核冻结策略。Decision Service 经 HTTP（程序）或 MCP（Agent）共用身份范围与判断核心，按需取记忆后使用业务 Luna 从合法候选中推荐。原执行器应用分支或模型配置。[白名单维护指南](../../config/allowlists/README.md) · [策略与接线范围](../agent-hosts.md#decision-model-selection)
+3. **结果有两条回收路径。** Task Mailbox 查原单，Project／Issue 查项目，进度和阻塞随时回填，不等待已读 ACK。原执行器另向 Decision Service 直传 application／result，按原事件与修订关联。服务 SQLite 保存已收决策和反馈，原端保有检查点、待传事件与恢复责任。Hindsight webhook 已纳入执行计划，事件来源与生产启用待取证。
+4. **三类模型分别看。** Decision Service 的业务 Luna、Win Hindsight recall／consolidation 的内部 Luna、角色实际执行模型与强度是三类用途，配置与凭据不合并。DS 实际使用 VPS gateway；native 是显式适配选项，无自动换路。Win 候选拒答补丁后继续 Luna，Q8 不是当前长期方案。
 
 ## 已验与待验
 
-| 内容 | 这批图采用的结论 |
+以下为本轮采用的既有回执，更新图稿没有重新调用模型、召回记忆或运行生产任务。
+
+| 范围 | 图稿采用的结论与边界 |
 | --- | --- |
-| Mac／VPS 部署 | Herdr main `84a68b2`、VPS main `da3356f`；Mac 共 11 文件、VPS 19 文件及 unit 已核一致，实际只读调用通过 |
-| Mac Codex | 用户级共享插件已安装启用，实际包入口发现 39 工具、`list_banks` 成功；各已打开会话不由此推定热加载 |
-| 云端客户端 | 已有项目级读取；公子回报的新写入经原操作独立核为 completed，文档原文与来源一致，提取 1 条记忆 |
-| Codex Cloud | 公子已回传云端读取结果；具体托管作业的环境与采用仍逐单记录，图中虚线表示按任务接入，不由一个客户端代证全部环境 |
-| Win Web UI | 官方 1.2.0 已安装并核已有 bank、配置、原操作页面；关闭后原 API／PG／BGE 保留。对应脚本新增不包含在上述 main 对齐回执中 |
-| 后端提取与召回 | 27 个 Skill／40 文件导入完成、1,515 条记忆及原文来源读回通过；后续已启用魔搭 BGE Q8 CPU 精排，两条查询的目标摘要均排第 1，实测约 26–28 秒。历史失败保留；[精排限制与回退](../../mcp/hindsight-memory/reranker/README.md)另述 |
+| Decision Service 服务 | VPS 独立 HTTP／MCP 服务及持久 SQLite 已部署，共享记录与反馈语义；长期稳定性、准确率与效率收益未证明 |
+| Herdr 消费者 | Mac 固定消费者 `8612a9a` 的真实合成工程闭环通过：原分支采用、原生模型／强度读回、联合结果修订和待传清零；生产角色与自然任务尚未迁移 |
+| 插件与 Skill | Mac 本地插件 `0.1.1` 已安装，OAuth 与原生工具读回通过；Cloud `1.0.2` 已确认 OAuth、工具及 Skill 显式加载；不推定所有旧会话自动刷新 |
+| Win Hindsight | `49e48b5c` 候选级拒答补丁于 11 月 9 日应用，继续 Luna；一次真实双 bank 判断与同记录读回通过。原始拒答原因仍 UNKNOWN，详细数字与范围沿[固定证据页](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#luna-局部拒答补丁与真实验证2026-11-09) |
+| 原记忆接入与 Web | 11 月 5 日 Mac／VPS 文件对齐与只读调用、Skill 导入和来源读回已有独立回执。Web 仍按需前台启停；具体 Cloud 托管作业接入逐单核验 |
+| 尚待自然使用证明 | 生产角色迁移、自然业务质量、整单效率与 token 收益、长期稳定性；Hindsight webhook／自动补偿未启用。生命周期图描述责任，不表示全部自动创建与恢复已实现 |
 
-来源：[总架构](../architecture.md)、[任务协作](../coordination-policy.md)、[项目工作流](../project-workflow-development.md)、[Hindsight 合同](../hindsight-memory-integration.md)、[Web 使用](../../mcp/hindsight-memory/control-plane/README.md)、[部署核验原记录](https://github.com/CF-FE/herdr-4-codexcloud/issues/13#issuecomment-6655425331)。图中不包含凭据、私有网络地址或会话配置。
+版本分别记录：本轮 Decision Service 资料固定于 [`2e5ff940`](https://github.com/CF-FE/decision-service/tree/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs)，VPS 服务发布 `2df05a48`、Mac 消费者 `8612a9a`、Win 补丁 [`49e48b5c`](https://github.com/CF-FE/herdr-4-codexcloud/commit/49e48b5c6a8a23d90d68a53dafbe9a37b680c6b3)属于不同版本轴，不把文档 HEAD 当作运行发布。
 
-动态环境能力在 [CF-FE Project #6「环境能力」](https://github.com/orgs/CF-FE/projects/6/views/3)维护。新增 `linux-herdr` 等环境时更新能力卡、核实际入口；不从图中的示例推定该环境已存在或通过验证。
+职责与权威说明：[总架构](../architecture.md)、[角色宿主](../agent-hosts.md)、[任务协作](../coordination-policy.md)、[工作流消费者](../project-workflow-development.md)、[Hindsight 合同](../hindsight-memory-integration.md)、[Web 使用](../../mcp/hindsight-memory/control-plane/README.md)。服务和插件主源归 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)；Win 接入与补丁归本仓；VPS 记忆薄网关仍归 [ghyghoo8/create-network-sh](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory)，上游引擎为 [vectorize-io/hindsight](https://github.com/vectorize-io/hindsight)。图中不含凭据、私有网络地址、bank 清单或记忆原文。
+
+动态环境能力在 CF-FE Project 维护。Project 对白名单工作记录任务与当前版本链接，策略条目按场景保存在仓库版本化 JSON 中。[CF-FE 环境能力看板](https://github.com/orgs/CF-FE/projects/6/views/3)
 
 ## 更新与导出
 
@@ -39,6 +43,6 @@
 python3 docs/share-doc/build_diagrams.py
 ```
 
-默认读取 Mac 的黑体字体；其他系统用 `--font /absolute/path/to/cjk-font.ttf` 指定已安装中文字体。SVG 保留文字，目标电脑字体不同可能改变显示，PNG 的排版固定。生成脚本仅输出本目录图片，不访问服务或调用模型。
+默认读取 Mac 的黑体字体；其他系统用 `--font /absolute/path/to/cjk-font.ttf` 指定已安装中文字体。SVG 保留文字，目标电脑字体不同可能改变显示，PNG 排版固定。生成脚本仅输出本目录图片，不访问服务或调用模型。
 
-更改分享内容时先核对应文档、固定提交与原任务证据，再更新排版源并同时导出两种格式。旧图中“云端Dot参与 Router、组织业务验收”等已失效表述已随本次总图更新；历史验收原件保持原版本。
+更改内容时先核对应文档、固定提交与原任务证据，同时导出两种格式，并实际查看中文、箭头、边界和遮挡。历史验收原件保持原版本。

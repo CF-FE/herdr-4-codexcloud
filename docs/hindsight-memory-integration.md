@@ -1,6 +1,6 @@
 # Hindsight 项目共享记忆接入与实施
 
-2026-11-05 · Mac／VPS main 对齐、实际读取、代理修复后的提取及来源文档读回已核；各 Harness 和 Codex Cloud 托管作业的采用分别记录。公子授权由现有 Hindsight 实施会话主责、连通性维护会话协助，原审核窗口负责工程审核验收；复用 `vps-vultr` 与已有 VPS ↔ win-work EasyTier，将云端Dot和 Codex Cloud 纳入接入范围。[ADR-002](decisions/002-shared-project-memory.md)记录取舍；本页拥有合同、分工与验收要求，最近观测集中在[状态总表](status.md#当前结论)。
+修订日期：2026-11-09。Mac／VPS 11 月 5 日部署对齐、读取、修复后的提取与来源读回已有回执；11 月 9 日 Decision Service 跨 bank 读取及 Win Luna 候选级拒答补丁已取得工程证据。各 Harness 和 Codex Cloud 托管作业的采用仍分别记录。公子授权由现有 Hindsight 实施会话主责、连通性维护会话协助，原审核窗口负责工程审核验收；复用 `vps-vultr` 与已有 VPS ↔ win-work EasyTier，将云端Dot和 Codex Cloud 纳入接入范围。[ADR-002](decisions/002-shared-project-memory.md)记录取舍；本页拥有合同、分工与验收要求，最近观测集中在[状态总表](status.md#当前结论)。
 
 ## 1. 目标与当前依据
 
@@ -16,15 +16,17 @@
 
 ```mermaid
 flowchart LR
-    dot["云端Dot · 项目只读已验"] -->|"HTTPS MCP / OAuth"| vps["vps-vultr · 认证与薄 MCP 接入"]
+    dot["云端Dot · 项目只读已验"] -->|"HTTPS MCP / OAuth"| vps["vps-vultr · 认证与薄 MCP / API 网关"]
     cloud["Codex Cloud · 托管作业逐单核采用"] -.->|"首选 MCP；获准 API 兜底"| vps
-    vps -->|"EasyTier / SSH 承载 stdio MCP"| proxy["Win MCP 代理"]
+    ds["VPS Decision Service<br/>HTTP / MCP 共用判断核心与私有 SQLite"] -->|"按需只读 recall · 显式 gateway 模式"| vps
+    vps -->|"EasyTier / 固定 SSH"| proxy["Win MCP 代理 / API relay"]
     mac["Mac Herdr 内实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| proxy
     win["Win Herdr 内实际 Harness"] -->|"本机 stdio MCP"| proxy
-    proxy -->|"本机 MCP / API"| memory["win-work · Hindsight 项目 bank"]
+    proxy -->|"本机 MCP / API"| memory["win-work · Hindsight 项目 bank<br/>原 PostgreSQL / BGE / Luna 排序"]
     browser["浏览器 · 按需访问"] -->|"本机；Mac 用 LAN SSH 隧道"| ui["Win Web 管理端<br/>可见终端前台运行 / Ctrl+C 关闭"]
     ui -->|"本机 API / 原 tenant 认证"| memory
     repo["项目仓 · 规范、工作流、记忆入口"] --> task["原任务输入与证据引用"]
+    memory -."带来源证据".-> ds
     memory -."按需召回".-> task
     task --> cloud
     task --> mac
@@ -51,17 +53,30 @@ UI 监听 Win loopback；Mac 浏览经现有 LAN SSH 隧道，不走 VPS 或 Eas
 
 项目内角色可用固定 bank 连接；跨项目入口显式传 bank。固定绑定或原任务提供项目；缺失时报告缺口，不静默写 `default`。bank 路由不代替认证与项目授权。
 
-**Decision Service 跨 bank 读取设计（2026-11-08，待接入）。** 服务与调用入口的可读范围一次配置，调用时可从有效范围选择本项目、共享及相关项目 bank，无需逐次审批或先搬到共享库；来源项目未知的路由问题也可使用入口已有可见目录。写入仍须明确目标 bank。检索不是每次判断的必经步骤，必要片段保留 bank、文档来源和观察时间；当前输入足够时可直接判断。首版程序化应用／结果反馈及人工纠正保存在 Decision Service 自己的记录中，沿原执行引用精确关联，不依赖 webhook、语义召回找全或其他 bank 写权。现有 VPS 网关的 bank 范围与主体 mutations 分开检查，尚非逐 bank 的读写权限矩阵；首版只读配置无需为反馈扩大这些权限。服务合同由[其主仓](https://github.com/CF-FE/decision-service/blob/main/docs/hindsight-integration.md)维护，本文不表示运行配置已经变更。
+**Decision Service 跨 bank 读取已接入（2026-11-09 工程验证）。** 服务与调用入口的有效可读范围预先配置，调用时可从中选择本项目、共享及相关项目 bank；检索不是每次判断的必经步骤，输入足够时直接判断。实际部署使用 `gateway` 模式，经既有 VPS 网关、固定 SSH 与 Win MCP／API relay 访问原 Hindsight；`native` 是显式配置的原生适配选项，不自动探测或切换地址。一次真实双 bank 查询已取得带来源片段和最终判断，并完成同记录读回；该样本不证明长期相关性或自然业务效果。状态与原始拒答原因的 `UNKNOWN` 见[固定交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)。
+
+只读范围不因反馈而扩大：原执行器的 `application / result` 和带来源纠正直接进入 Decision Service 自己的 SQLite，沿同一事件／修订和原执行引用精确关联；原端保留待传与恢复，服务查询只读对账。该闭环不依赖 retain 写回、webhook、语义召回找全或其他 bank 写权。必要检索片段保留 bank、文档来源和可得观察时间；bank 清单与私有正文不进入公开文档。VPS 网关的 bank 范围与主体 mutations 分开检查，尚非逐 bank 的读写权限矩阵；后续写回／webhook 扩展仍由原维护者办理。[检索合同](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/hindsight-integration.md) · [适配模式](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/provider-integration.md#hindsight-vps-网关) · [消费者反馈](project-workflow-development.md#decision-feedback)
 
 | 信息 | 原维护位置 | Hindsight 的用途 |
 | --- | --- | --- |
 | 正式规范、工作流、长期设计决定 | 项目仓库 | 可索引并保存原版本引用，原文只维护一处 |
 | 经验、失败原因、历史背景、决定理由 | Hindsight | 带来源和观察时间供接手与判断 |
 | 本次输入、输出、决定及待处理动作 | 原任务和执行检查点 | 只提炼可复用经验，不接管执行状态 |
+| 有限判断、已收反馈修订与关联 | Decision Service 私有 SQLite | 仅在需要时提供带来源背景，不接管反馈接收或原端恢复 |
 | 项目进展、正式验收 | GitHub Project／Issue 及验收原件 | 可留历史摘要，当前结论沿原件确认 |
 | 投递与结果回传 | 原 Task Mailbox／桥 | 保存关联，不新增一套传输或 ACK 状态 |
 
 仓库已有 README、AGENTS 或记忆文件继续作为短入口，补 bank 映射、规范与任务引用，不逐条复制经验，不双向自动改写。现有 workflow `start` 固定的是入口文件摘要，不是整个 bank 的版本。实际采用的召回摘要及来源留在本次输入／检查点，不改变在途运行定义。
+
+### 三层模型与凭据边界
+
+| 用途 | 当前采用及边界 |
+| --- | --- |
+| Decision Service 业务判断 | 服务自己的 Luna 根据合法候选作有限判断；服务独立凭据，输出由原 workflow／角色创建者采用 |
+| Win Hindsight 内部处理 | recall／consolidation 使用独立配置的 Luna；recall 已应用本仓候选级拒答补丁。reflect 及普通 LLM 沿原路径，普通 LLM 密钥独立保留 |
+| 执行角色实际模型 | 由原创建者按宿主能力应用并读回；`gpt-6.1-sol / low` 是专用工程样例，不是所有角色的默认配置 |
+
+三者不组成一个共享模型服务，也不合并密钥。11 月 9 日 Win 补丁保留 Luna 正常答案、仅排除明确拒答候选；正常零概率仍有效，全拒答仍失败。Q8 备选试验已经结束并恢复 Luna，未启用自动 Q8 切换；触发拒答的原因仍未知。内部模型、补丁与拒答的详细说明归[Decision Service 文档 v1.2](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/hindsight-decision-models.md)，本仓拥有[Win 补丁材料](../mcp/hindsight-memory/decision-reranker/README.md)。
 
 ## 4. 角色使用规则
 
@@ -74,7 +89,7 @@ UI 监听 Win loopback；Mac 浏览经现有 LAN SSH 隧道，不走 VPS 或 Eas
 
 普通经验直接贡献，不逐条要求人工或负责人批准；正式规范与业务验收沿原责任。只传任务相关摘要和证据引用，不因接入而复制原始音视频、凭据或无关会话。
 
-Herdr承载角色，MCP／Skill配置到实际 Harness。已有会话可能有启动覆盖或需重启，只在自然创建／恢复时采用，不为验证工具打断生产。云端Dot和 Codex Cloud 分别取证，不用本机 CLI 成功代证。
+Herdr承载角色，MCP／Skill配置到实际 Harness。Decision Service 插件与 Skill 由其主仓维护；它的 Cloud Skill 显式加载成功不代证 Hindsight Cloud Skill 已打包或所有客户端已采用。已有会话可能有启动覆盖或需重启，只在自然创建／恢复时采用，不为验证工具打断生产。云端Dot和 Codex Cloud 分别取证，不用本机 CLI 成功代证。
 
 ## 5. 最小调用合同与弱连接
 
@@ -110,7 +125,7 @@ API 兜底针对 MCP 发现、协议或会话故障，或已核实当前宿主�
 
 ## 6. 实施顺序与写入分工
 
-本轮原任务为 [Issue #13](https://github.com/CF-FE/herdr-4-codexcloud/issues/13)。本页编号用于合同引用，不是第二份实时队列；执行进展及验收待项沿该 Issue 回填，审核窗口收回证据。两个既有工程会话承担本次开发协作，不重新任命组织角色。
+本节保留 11 月 5 日接入工作的分工和验收要求，不作为新的部署授权。原任务为 [Issue #13](https://github.com/CF-FE/herdr-4-codexcloud/issues/13)。本页编号用于合同引用，不是第二份实时队列；执行进展及验收待项沿该 Issue 回填，审核窗口收回证据。两个既有工程会话承担本次开发协作，不重新任命组织角色。
 
 | 工作包 | 执行者与写入归属 | 输入、动作与交付 |
 | --- | --- | --- |
@@ -119,11 +134,11 @@ API 兜底针对 MCP 发现、协议或会话故障，或已核实当前宿主�
 | M3 云端采用 | 主实施者负责云端Dot；协助者负责Codex Cloud环境 | 首选原生 MCP；有明确故障或宿主入口缺口时用已授权 API 兜底，分别记录实际模式。两端均需原生云端执行证据，不用本机请求代证，不把 API 成功称为 MCP 已验 |
 | M4 统一审核验收 | 原审核窗口 | 审代码、真实调用、来源和故障行为；复用未变更基线，本轮改变的部署或启动链只补最小验证，不重跑生产流程 |
 
-本仓维护协议、Win／本地客户端适配与可分发 Skill，按实际分发需要归入 `mcp/hindsight-memory/`、`skill/hindsight-memory/`。VPS 服务源码与部署按公子明确指定放在 [create-network-sh/fastmcp](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp)，该既有仓实际 owner 为 `ghyghoo8`，不因组织默认规则自动迁移。已有实现先核归属和固定来源，避免临时脚本成为唯一维护源；跨仓只固定版本引用，不导入共享运行目录。网络规范仍在[网络文档](networking-plan.md)。
+本仓维护协议、Win／本地客户端适配与可分发 Skill，按实际分发需要归入 `mcp/hindsight-memory/`、`skill/hindsight-memory/`。VPS 服务源码与部署按公子明确指定放在 [create-network-sh/fastmcp/hindsight-memory](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory)，该既有仓实际 owner 为 `ghyghoo8`，不因组织默认规则自动迁移。上游引擎仍归 [vectorize-io/hindsight](https://github.com/vectorize-io/hindsight)；本仓维护接入和补丁，不复制维护整套引擎。已有实现先核归属和固定来源，避免临时脚本成为唯一维护源；跨仓只固定版本引用，不导入共享运行目录。网络规范仍在[网络文档](networking-plan.md)。
 
 主实施者负责本仓实现分支及整合，协助者负责指定部署仓的独立提交，两者以固定接口和版本交付，避免同时切共享 checkout 分支。审核窗口先交文档与 ADR，之后退出实现文件写入，复审问题交原写者修正。
 
-M1与M2只读核对可并行，M2配置等M1上游合同，M3真实采用等M2入口。服务与EasyTier是有效起点；云端账号工具准入、认证兼容、实际Cloud环境仍待核明，不声称整条链已通过。若必须由公子在账号界面完成一次安装／授权，实施者先备具体连接信息，审核窗口说明唯一必要动作；不要求公子转发业务消息。普通配置、诊断与修复沿本次有效授权推进。
+原实施依赖为 M2 配置等 M1 上游合同、M3 实际采用等 M2 入口。已有入口、客户端样本及后续 Decision Service 跨 bank 证据见[状态总表](status.md#当前结论)；各 Harness 的实际加载、完整 Cloud 作业采用和长期运行仍分别取证，不由一个入口成功代证整条业务链。若必须由公子在账号界面完成一次安装／授权，实施者先备具体连接信息，审核窗口说明唯一必要动作；不要求公子转发业务消息。普通配置、诊断与修复沿本次有效授权推进。
 
 ## 7. 集中验收与交付
 

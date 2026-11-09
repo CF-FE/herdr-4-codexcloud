@@ -68,7 +68,7 @@ def canvas(number, title, subtitle):
     text(ax, 64, 143, subtitle, 22, MUTED)
     text(ax, 1536, 43, f"{number:02d} / 04", 18, MUTED, align="right")
     ax.plot([64, 1536], [838, 838], color=LINE, linewidth=0.9)
-    foot = text(ax, 64, 855, "依据：架构与状态文档 · 观测截至 2026-11-05 · 连线不代表全链路业务验收", 16, MUTED)
+    foot = text(ax, 64, 855, "依据：架构与状态文档 · 证据截至 2026-11-09 · 连线不代表全链路业务验收", 16, MUTED)
     foot.set_url("https://github.com/CF-FE/herdr-4-codexcloud/blob/main/docs/architecture.md")
     text(ax, 1536, 855, "程序负责执行 · 模型负责决策", 17, TEAL, align="right")
     return fig, ax
@@ -85,123 +85,124 @@ def export(fig, ax, name, description):
     svg = ROOT / f"{name}.svg"
     fig.savefig(svg, facecolor=fig.get_facecolor(),
                 metadata={"Title": description, "Description": description,
-                          "Date": "2026-11-05", "Creator": "CF-FE"})
+                          "Date": "2026-11-09", "Creator": "CF-FE"})
     svg.write_text("\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n")
     plt.close(fig)
     print(f"{name}: SVG + 3840x2160 PNG")
 
 
 def architecture():
-    fig, ax = canvas(1, "一套系统，职责明确的两层 Agent", "终端发起目标；协调层组织和验收；Worker 执行任务单元。")
-    text(ax, 64, 223, "需求与汇报终端", 21, BLUE, "bold")
-    box(ax, 248, 195, 360, 108, "公子", "目标 · 授权 · 关键取舍", PALE_BLUE)
-    box(ax, 650, 195, 886, 108, "云端Dot", "调研与方案 · 委派 · 感知进展 · 向公子汇报；不承担业务验收", PALE_BLUE)
-    arrow(ax, [(611, 249), (645, 249)])
-    arrow(ax, [(1090, 306), (1090, 345)])
-    text(ax, 1110, 313, "完整目标与验收标准", 16, MUTED)
-    text(ax, 64, 381, "01  协调组织层", 21, TEAL, "bold")
-    text(ax, 64, 420, "岗位由 Herdr 承载", 17, MUTED)
-    box(ax, 248, 350, 1288, 221, color=PALE_TEAL)
-    box(ax, 270, 373, 354, 115, "项目协调员", "负责人 · 跨项目资源 · 执行路线", accent=TEAL, title_size=25, body_size=18)
-    box(ax, 663, 373, 570, 115, "项目负责人 · 默认验收者", "细化任务 · 维护流程 · 安排 Worker · 核收成果", accent=TEAL, title_size=25)
-    box(ax, 1272, 373, 242, 115, "Codex 路由", "唯一原生提交者\n具体 Cloud 作业例外", accent=TEAL, title_size=24, body_size=17)
-    arrow(ax, [(626, 429), (657, 429)], TEAL)
-    arrow(ax, [(1235, 429), (1266, 429)], TEAL, True)
-    text(ax, 277, 518, "项目自有 workflows/ 代码 + README  ·  程序执行确定步骤，模型处理新判断", 22, TEAL)
-    arrow(ax, [(947, 573), (947, 594), (448, 594), (448, 614)], TEAL)
-    arrow(ax, [(947, 594), (888, 594), (888, 614)], TEAL)
-    arrow(ax, [(1393, 573), (1393, 614)], TEAL, True)
-    text(ax, 64, 647, "02  Worker 层", 21, BLUE, "bold")
-    text(ax, 64, 685, "成果与原生证据交接", 17, MUTED)
-    box(ax, 248, 619, 400, 124, "mac-herdr", "本地 Agent · Codex 主力\n开发、工具与项目资产", PALE_BLUE, body_size=19)
-    box(ax, 688, 619, 400, 124, "win-herdr", "本地 Agent · 媒体执行\nFFmpeg、本地模型与项目资产", PALE_BLUE, body_size=19)
-    box(ax, 1128, 619, 408, 124, "Codex Cloud", "按授权建立托管作业\n任务 ID 关联产物与回传", PALE_BLUE, body_size=19)
-    text(ax, 64, 790, "共享基础设施", 19, MUTED, "bold")
-    for x, title in [(248, "Task Mailbox · 单件进展"), (688, "GitHub Project · 项目与能力"), (1128, "Hindsight · 项目共享经验")]:
-        box(ax, x, 773, 400 if x != 1128 else 408, 47, title, title_size=20, accent=INK)
-    export(fig, ax, "super-agent-architecture", "Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。")
+    fig, ax = canvas(1, "两层 Agent，共用判断与记忆能力", "云端Dot交办和汇报；负责人组织执行与验收；Decision Service 提供有限判断。")
+    box(ax, 64, 207, 260, 109, "公子", "目标 · 授权 · 关键取舍", PALE_BLUE, body_size=19)
+    box(ax, 364, 207, 720, 109, "云端Dot", "调研与拆解 · 委派 · 感知进展 · 向公子汇报；不业务验收", PALE_BLUE, body_size=19)
+    arrow(ax, [(327, 261), (359, 261)])
+    arrow(ax, [(724, 320), (724, 357)])
+    text(ax, 745, 328, "完整目标与验收标准", 16, MUTED)
+    box(ax, 64, 362, 1020, 194, color=PALE_TEAL)
+    text(ax, 85, 378, "01  协调组织层 · Herdr 原生岗位", 21, TEAL, "bold")
+    box(ax, 85, 416, 330, 118, "项目协调员", "统筹负责人、资源与路线\n依有效任命安排负责人绑定", accent=TEAL, title_size=24, body_size=18)
+    box(ax, 456, 416, 606, 118, "项目负责人 · 默认验收者", "维护项目工作流 · 选择、复用或创建 Worker\n安排执行与复核 · 决定成果是否放行", accent=TEAL, title_size=24, body_size=19)
+    arrow(ax, [(418, 472), (451, 472)], TEAL)
+    arrow(ax, [(759, 559), (759, 582), (224, 582), (224, 608)], TEAL)
+    arrow(ax, [(759, 582), (574, 582), (574, 608)], TEAL)
+    arrow(ax, [(759, 582), (924, 582), (924, 608)], TEAL, True)
+    text(ax, 64, 580, "02  Worker 层", 17, BLUE, "bold")
+    for x, title, body, dashed in [
+            (64, "Mac Herdr", "本地 Worker · 项目资产\n原生模型与强度读回", False),
+            (414, "Win Herdr", "本地 Worker · 媒体等任务\n按单核实际执行能力", False),
+            (764, "Codex Cloud 作业", "获准唯一路由原生提交\n仅具体作业是宿主例外", True)]:
+        box(ax, x, 612, 320, 123, title, body, PALE_BLUE, title_size=24, body_size=18, dashed=dashed)
+    box(ax, 1134, 207, 402, 349, "Decision Service · VPS", "HTTP（程序）/ MCP（Agent）\n同一身份范围与判断核心\n业务判断：Luna\n\n原调用方给合法候选\n原执行器采用与回传结果", PALE_AMBER, AMBER, 25, 19)
+    box(ax, 1155, 466, 360, 69, "私有 SQLite · 决策与已收反馈", title_size=19, accent=AMBER)
+    arrow(ax, [(1087, 435), (1128, 435)], AMBER)
+    arrow(ax, [(1128, 505), (1087, 505)], AMBER)
+    text(ax, 1108, 404, "候选", 13, AMBER, align="center")
+    text(ax, 1108, 480, "建议", 13, AMBER, align="center")
+    box(ax, 1134, 612, 402, 123, "Hindsight · Win 项目记忆", "DS 按需经 VPS 网关召回\n内部 Luna：recall / consolidation", PALE_TEAL, TEAL, 23, 18)
+    arrow(ax, [(1285, 559), (1285, 608)], TEAL)
+    arrow(ax, [(1390, 608), (1390, 559)], TEAL)
+    text(ax, 1406, 578, "经原网关回传", 14, TEAL)
+    box(ax, 64, 773, 718, 47, "Task Mailbox 查原单  ·  Project / Issue 查项目", title_size=20, accent=INK)
+    box(ax, 814, 773, 722, 47, "角色创建：任命、技术创建与原生接手分开核验", title_size=20, accent=INK)
+    export(fig, ax, "super-agent-architecture", "Super-Agent 总架构：Herdr 协调层和本地 Worker、获准 Cloud 作业、独立 Decision Service 与 Win Hindsight；判断不授予派发、任命或验收权限。")
 
 
 def lifecycle():
-    fig, ax = canvas(2, "向下委派，异步回收", "云端Dot可以暂时离线；确定步骤按本地流程推进，进度恢复后再回收。")
+    fig, ax = canvas(2, "向下委派，异步回收", "完整目标沿现任绑定交办；独立工作继续，阻塞沿负责人、协调员和云端Dot升级。")
     text(ax, 64, 205, "向下交办  /  一次给清目标、输入、约束和验收者", 22, BLUE, "bold")
     xs = [64, 440, 816, 1192]
     for x, title, body in zip(xs,
             ["云端Dot", "项目协调员", "项目负责人", "Worker"],
-            ["调研、拆解、澄清确定性\n提交可委派实施方案", "核项目与现任负责人\n安排环境和资源", "维护工作流与任务单元\n指定执行者和交期", "沿 Herdr／Cloud 原生入口\n执行并交付成果"]):
+            ["调研、拆解与发起委派\n指定验收者、向公子汇报", "核项目与现任负责人\n安排环境、资源与路线", "维护工作流与任务单元\n选择、复用或创建 Worker", "沿 Herdr 原生入口执行\nCloud 仅为获准具体作业"]):
         box(ax, x, 246, 344, 137, title, body, PALE_BLUE, body_size=20)
     for x in xs[:-1]:
         arrow(ax, [(x + 347, 314), (x + 371, 314)])
-    text(ax, 800, 412, "日常推进不等待云端Dot在线或已读 ACK", 24, TEAL, "bold", "center")
-    text(ax, 64, 463, "异步回收  /  成果验收与向用户汇报各负其责", 22, TEAL, "bold")
+    text(ax, 800, 405, "日常推进不等待云端Dot在线或已读 ACK", 24, TEAL, "bold", "center")
+    text(ax, 64, 456, "向上回收  /  过程进展与验收结论分别回填", 22, TEAL, "bold")
     for x, title, body in zip(xs,
-            ["执行者交付", "负责人验收", "两个进度入口", "云端Dot汇报"],
-            ["版本、产物、自检与未决项\n保留原生执行引用", "组织复核并决定业务放行\n另有指定则由该验收者决定", "Task Mailbox 查原单\nProject／Issue 查项目", "主动感知实质进展\n向公子汇报结果与需决策事项"]):
-        box(ax, x, 504, 344, 145, title, body, PALE_TEAL, accent=TEAL, body_size=20)
-    for x in xs[:-1]:
-        arrow(ax, [(x + 347, 576), (x + 371, 576)], TEAL)
-    text(ax, 800, 666, "进行中与阻塞随时回填；验收只决定业务放行。", 21, TEAL, align="center")
-    box(ax, 64, 698, 1472, 111, color=PALE_AMBER)
-    text(ax, 87, 718, "阻塞升级", 23, AMBER, "bold")
-    text(ax, 278, 718, "Worker → 项目负责人 → 协调员 → 云端Dot → 公子", 25, INK)
-    text(ax, 278, 763, "权限内就地解决；原 Issue 留责任、影响、处置和下次检查点，独立工作继续。", 21, MUTED)
-    export(fig, ax, "task-lifecycle", "任务闭环：完整目标向下委派，项目负责人验收，信箱与GitHub异步回收；阻塞逐级解决与留痕。")
+            ["过程进展与阻塞", "验收结论", "两个回收入口", "云端Dot汇报"],
+            ["执行中随时回填\n保留版本与原生执行引用", "指定验收者独立记录结论\n项目负责人默认验收", "Task Mailbox 查原单\nProject / Issue 查项目", "分别读取进展和验收结论\n向公子汇报，不业务验收"]):
+        box(ax, x, 495, 344, 139, title, body, PALE_TEAL, accent=TEAL, body_size=20)
+    arrow(ax, [(236, 492), (236, 482), (988, 482), (988, 492)], TEAL)
+    for x in xs[1:-1]:
+        arrow(ax, [(x + 347, 564), (x + 371, 564)], TEAL)
+    text(ax, 800, 654, "原执行器另向 Decision Service 直传采用与结果，业务验收结论沿原任务记录。", 20, TEAL, align="center")
+    for x, width, title, body in [
+            (64, 464, "协调员怎样建立", "有效任命方定职责；独立受信宿主管理入口\n在 Herdr 初始化 / 恢复，核原生接手"),
+            (568, 464, "负责人怎样建立", "协调员依有效任命安排创建、绑定或交接\n获准入口技术执行，核本人接手"),
+            (1072, 464, "Worker 怎样建立", "负责人 / 获准唯一派发者按任务决定\n复用或沿获准入口创建，核实际接手")]:
+        box(ax, x, 704, width, 113, title, body, PALE_AMBER, AMBER, 23, 17)
+    export(fig, ax, "task-lifecycle", "任务闭环与角色创建职责：目标向下委派、成果按指定验收者验收、信箱与项目记录异步回收；任命、技术创建、原生接手分别确认。")
 
 
 def workflow():
-    fig, ax = canvas(3, "程序负责执行，模型负责决策", "每个项目拥有自己的工作流代码，负责人初始化、评审并持续迭代。")
-    for x, title, body in [(64, "负责人设计", "定义任务单元、决定点、交接与证据"),
-                          (568, "项目仓版本化", "workflows/ + README + 规范与记忆入口"),
-                          (1072, "项目独立运行", "源码、输入与原检查点支持恢复接手")]:
-        box(ax, x, 211, 464, 120, title, body, PALE_BLUE, body_size=20)
-    arrow(ax, [(531, 269), (563, 269)])
-    arrow(ax, [(1035, 269), (1067, 269)])
-    text(ax, 64, 380, "一个任务单元的运行与交接", 23, TEAL, "bold")
-    xs = [64, 364, 664, 964, 1264]
-    titles = ["程序节点", "模型决定 · 按需", "原生交办", "结果回收", "成果交接"]
-    bodies = ["核输入、规则与资产\n确定步骤直接执行", "保存问题与证据\n选择允许的后续分支", "Herdr／Cloud 路线\n绑定稳定动作引用", "沿原动作查回执\n不明先对账再继续", "下一单元实际接手\n负责人核收与验收"]
-    for x, title, body in zip(xs, titles, bodies):
-        box(ax, x, 432, 272, 142, title, body, PALE_TEAL, TEAL, 24, 19)
-    for x in xs[:-1]:
-        arrow(ax, [(x + 275, 502), (x + 295, 502)], TEAL)
-    text(ax, 800, 605, "决定与原生回执保存在检查点；一次有效决定后，确定性步骤继续推进。", 23, TEAL, align="center")
-    for x, title, body in [(64, "Git：正式规则与代码", "各项目独立维护，不依赖协调仓在线"),
-                          (568, "检查点：本次执行状态", "执行侧私有目录，恢复原任务与动作"),
-                          (1072, "Hindsight：共享经验", "带来源按需召回，重要经验随单元沉淀")]:
-        box(ax, x, 679, 464, 126, title, body, title_size=25, body_size=20, accent=INK)
-    export(fig, ax, "project-workflow", "项目动态工作流：负责人设计并版本化，程序运行，按需模型决定，原生交办、回收与跨Worker成果交接。")
+    fig, ax = canvas(3, "判断交服务，执行与恢复留在原端", "项目拥有 workflows/ 与检查点；固定规则直接运行，需要判断时提交合法候选。")
+    box(ax, 64, 226, 400, 181, "1  原 workflow / 创建者", "任务快照 + 合法动作 / 模型候选\n模型候选须可用且获组织允许\nMac new-unit 校验发布快照", PALE_BLUE, title_size=24, body_size=20)
+    box(ax, 568, 226, 464, 181, "2  Decision Service · VPS", "HTTP / MCP 共用核心与身份范围\n按需取记忆 → 业务 Luna 有限判断\n返回候选建议，保留来源", PALE_AMBER, AMBER, 24, 20)
+    box(ax, 1136, 226, 400, 181, "3  原执行器采用", "沿合法分支 / 原生宿主执行\n角色实际模型 / 强度单独读回\n工程例：gpt-6.1-sol / low", PALE_BLUE, title_size=24, body_size=20)
+    arrow(ax, [(467, 316), (562, 316)])
+    text(ax, 516, 277, "合法候选", 17, MUTED, align="center")
+    arrow(ax, [(1035, 316), (1130, 316)], AMBER)
+    text(ax, 1083, 277, "建议", 17, AMBER, align="center")
+    box(ax, 64, 484, 400, 149, "原端检查点", "执行状态 · 决策关联 · 待传事件\n显式恢复 / 后续适配入口补传\n未知先对账，不重跑业务", accent=INK, title_size=24, body_size=19)
+    arrow(ax, [(264, 410), (264, 479)], BLUE)
+    box(ax, 568, 484, 464, 149, "按需召回 · Hindsight", "实际经 VPS gateway → Win 项目记忆\n返回带来源片段；内部 Luna 独立\nnative 仅显式适配，无自动换路", PALE_TEAL, TEAL, 24, 19)
+    arrow(ax, [(745, 410), (745, 479)], TEAL)
+    arrow(ax, [(855, 479), (855, 410)], TEAL)
+    text(ax, 800, 444, "检索 / 证据", 16, TEAL, align="center")
+    box(ax, 1136, 484, 400, 149, "4  原执行器直传反馈", "application / result：采用、结果与质量\n先存原端待传，再在事务外发送\n沿 event_id / revision 回传与补传", PALE_BLUE, title_size=24, body_size=18)
+    arrow(ax, [(1336, 410), (1336, 479)])
+    box(ax, 64, 704, 400, 113, "业务验收仍归原任务", "项目负责人 / 本单指定验收者决定\nDS 不任命、不派发、不审批或验收", accent=INK, title_size=24, body_size=18)
+    box(ax, 568, 704, 968, 113, "5  Decision Service 接收反馈 → 私有 SQLite", "持久保存后确认；get_decision 只读对账。库只保存已收事实，原端保有待传与恢复。\nHindsight retain 不是必经步骤；webhook / 自动补偿尚未启用。", PALE_AMBER, AMBER, 24, 19)
+    arrow(ax, [(1336, 636), (1336, 699)], AMBER)
+    text(ax, 1356, 660, "原事件 / 修订", 16, AMBER)
+    export(fig, ax, "project-workflow", "Decision Service 接入项目工作流：合法候选、按需记忆和 Luna 判断、原执行器采用、application/result 直传、SQLite 持久与只读对账；原端拥有执行检查点、待传和恢复。")
 
 
 def memory():
-    fig, ax = canvas(4, "共享项目记忆，一库多端", "MCP 优先、API 获准兜底；同项目共享 bank，记忆不接管任务状态或验收。")
-    box(ax, 64, 235, 300, 114, "云端Dot", "HTTPS MCP / OAuth\n项目级只读已验", PALE_BLUE)
-    box(ax, 64, 398, 300, 114, "Codex Cloud", "首选 MCP / API 兜底\n托管作业逐单核采用", dashed=True, accent=AMBER)
-    box(ax, 450, 235, 330, 141, "vps-vultr", "认证与薄适配\n有界预算、重试与协议切换\n不复制库、不运行模型", PALE_BLUE, body_size=18)
-    box(ax, 900, 235, 270, 141, "Win 代理", "stdio MCP\nAPI relay", PALE_TEAL, TEAL, 26, 21)
-    box(ax, 1250, 235, 286, 266, "Win Hindsight", "显式项目 bank\n\nAPI + PostgreSQL + BGE\n\n经验、背景与来源", PALE_TEAL, TEAL, 26, 19)
-    arrow(ax, [(368, 292), (445, 292)])
-    arrow(ax, [(368, 455), (410, 455), (410, 345), (445, 345)], AMBER, True)
-    arrow(ax, [(783, 306), (895, 306)])
-    text(ax, 838, 265, "EasyTier / SSH", 16, MUTED, align="center")
-    arrow(ax, [(1173, 306), (1245, 306)], TEAL)
-    text(ax, 1211, 265, "本机 MCP/API", 14, MUTED, align="center")
-    box(ax, 450, 510, 330, 117, "Mac Codex 插件", "App / CLI 共用安装\nLAN 客户端 · 只读已验", PALE_BLUE, body_size=19)
-    arrow(ax, [(784, 561), (838, 561), (838, 403), (975, 403), (975, 380)], TEAL)
-    text(ax, 687, 467, "LAN SSH 承载 stdio MCP", 18, TEAL, align="center")
-    box(ax, 900, 510, 270, 117, "Win Harness", "本机 stdio MCP\n各客户端采用分别核验", PALE_TEAL, TEAL, 25, 17)
-    arrow(ax, [(1093, 506), (1093, 380)], TEAL)
-    box(ax, 1250, 607, 286, 124, "Web 管理端", "脚本前台启动 · Ctrl+C 关闭\n按需使用，不隐藏、不自启", PALE_AMBER, AMBER, 26, 17)
-    arrow(ax, [(1393, 602), (1393, 505)], AMBER)
-    text(ax, 1409, 548, "原 API / 认证", 17, MUTED)
-    box(ax, 900, 669, 270, 62, "浏览器", title_size=23, accent=INK)
-    arrow(ax, [(1174, 699), (1245, 699)], AMBER)
-    text(ax, 1210, 652, "本机 / SSH 隧道", 14, MUTED, align="center")
-    text(ax, 64, 561, "Mac ↔ Win：局域网", 19, MUTED)
-    text(ax, 64, 598, "VPS ↔ Win：EasyTier", 19, MUTED)
-    text(ax, 64, 636, "API 不能绕过共同网络故障。", 18, MUTED)
-    box(ax, 64, 774, 1472, 43, color=PALE_AMBER)
-    text(ax, 86, 785, "已验：Mac／VPS 链路、Skill 导入及召回样本；各端采用分别记录；Web 前台手动启停。", 20, AMBER)
-    export(fig, ax, "hindsight-topology", "Hindsight拓扑：云端经VPS与EasyTier，Mac经LAN SSH，Win本机接入共享bank；Web管理端仅按需前台运行。")
+    fig, ax = canvas(4, "共享记忆与三类模型，边界分开", "Decision Service 实际经 VPS 网关取证据；记忆、业务判断、执行角色各有独立职责与配置。")
+    box(ax, 64, 225, 304, 128, "云端Dot / Cloud", "Dot：已有项目级读取\nCloud：逐单核工具与权限", PALE_BLUE, title_size=24, body_size=19)
+    box(ax, 466, 225, 340, 128, "VPS 记忆薄网关", "认证、范围与传输适配\n不复制 Win 记忆数据库", PALE_BLUE, title_size=24, body_size=19)
+    box(ax, 908, 225, 250, 128, "Win 代理", "stdio MCP\nAPI relay", PALE_TEAL, TEAL, 25, 20)
+    box(ax, 1238, 225, 298, 257, "Win Hindsight", "项目记忆与带来源片段\nAPI + PostgreSQL + BGE\n\n内部 Luna\nrecall / consolidation\nreflect 沿原 LLM 路径", PALE_TEAL, TEAL, 24, 18)
+    arrow(ax, [(371, 284), (460, 284)])
+    arrow(ax, [(809, 284), (902, 284)])
+    text(ax, 857, 246, "EasyTier / SSH", 14, MUTED, align="center")
+    arrow(ax, [(1161, 284), (1232, 284)], TEAL)
+    text(ax, 1198, 246, "MCP / API", 14, MUTED, align="center")
+    box(ax, 64, 431, 304, 194, "Decision Service · VPS", "业务 Luna 有限判断\nHTTP / MCP 同核心\n私有 SQLite 存决策与反馈\n\n不拥有 Win 记忆库", PALE_AMBER, AMBER, 23, 18)
+    arrow(ax, [(371, 472), (410, 472), (410, 381), (584, 381), (584, 357)], AMBER)
+    arrow(ax, [(694, 357), (694, 399), (428, 399), (428, 554), (371, 554)], TEAL)
+    text(ax, 466, 435, "按需召回 / 经原网关带来源返回", 17, AMBER)
+    box(ax, 466, 491, 340, 134, "Mac / Win Harness", "Mac：插件经 LAN SSH\nWin：本机 stdio MCP\n各端采用分别核验", PALE_BLUE, title_size=24, body_size=18)
+    arrow(ax, [(809, 553), (857, 553), (857, 393), (1033, 393), (1033, 357)], TEAL)
+    box(ax, 908, 491, 250, 134, "执行角色模型", "独立于两个 Luna 用途\n按宿主实际配置读回\n模型 / 强度分别留证", accent=INK, title_size=22, body_size=17)
+    box(ax, 1238, 551, 298, 134, "Web 管理端", "脚本前台启动 · Ctrl+C 关闭\n本机浏览 / Mac LAN 隧道\n按需使用，不自启", PALE_AMBER, AMBER, 24, 17)
+    arrow(ax, [(1387, 546), (1387, 487)], AMBER)
+    text(ax, 1405, 506, "原 API / 认证", 15, MUTED)
+    box(ax, 64, 699, 742, 118, "三类模型分别配置，凭据不合并", "业务选择用 DS Luna；记忆排序 / 整合用 Win 内部 Luna；\n角色执行模型单独选择和读回。补丁后继续 Luna，无自动 Q8 切换。", title_size=23, body_size=18, accent=INK)
+    box(ax, 846, 723, 690, 94, "工程链路已验；自然业务效果仍待观察", "拒答原因仍 UNKNOWN。webhook 已入计划，事件接线待验。", PALE_AMBER, AMBER, 23, 17)
+    export(fig, ax, "hindsight-topology", "Hindsight 和 Decision Service 拓扑：VPS 薄网关接入 Win 记忆，DS 按需取证后独立使用业务 Luna；Win 内部 recall/consolidation Luna 与执行角色模型分别配置。")
 
 
 def main():
@@ -213,7 +214,7 @@ def main():
         parser.error("Supply --font with an installed CJK font file.")
     FONT = FontProperties(fname=args.font)
     matplotlib.rcParams["svg.fonttype"] = "none"
-    matplotlib.rcParams["svg.hashsalt"] = "cf-fe-herdr-share-20261105"
+    matplotlib.rcParams["svg.hashsalt"] = "cf-fe-herdr-share-20261109"
     architecture()
     lifecycle()
     workflow()
