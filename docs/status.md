@@ -9,23 +9,34 @@
 | 本次采用的版本证据 | 对应对象 |
 | --- | --- |
 | Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
-| VPS release `2df05a48` | 独立 Decision Service 运行发布 |
-| Herdr `701cd01` | Mac 当前安装的工作流／角色消费者，覆盖 Codex `new-unit` 的模型白名单接线 |
+| VPS release `c38f58e` | Decision Service 当前运行发布；凡人单 bank 的历史结果回收已验，首期工程发布为 `2df05a48` |
+| Herdr `3e90b459` | Mac 当前安装的消费者，包含组织角色受控创建入口和 Win OMP Worker 适配 |
+| Herdr `701cd01` | 此前接入 Mac Codex 工作流 `new-unit` 白名单的发布，原目录独立保留作回退 |
 | Herdr `8612a9a` | 此前的 Mac 合成工程闭环版本，原安装目录独立保留作回退 |
 | Herdr `49e48b5c` | Win Hindsight 候选级拒答补丁，与 Mac 消费者分开安装 |
 
+<a id="role-creation-deployment"></a>
+
+**2026-11-09 18:49:13（北京时间），Mac 的 `HerdrDecisionConsumer` 原入口已切换到组织角色受控创建版。** 合并版本的 30 个安装文件与固定 Git 对象逐字节一致，`herdr_role_creation.py --help` 可从安装路径导入并显示用法。切换前该消费者在途调用为 0，旧 `701cd01` 目录独立保留，原工作流和负责人台账状态保持原位。本次切换新建角色、发送 prompt 与模型回合均为 0。[PR #18](https://github.com/CF-FE/herdr-4-codexcloud/pull/18) · [固定发布 `3e90b459`](https://github.com/CF-FE/herdr-4-codexcloud/commit/3e90b459521c52fa5a4de2a387d4a4806f3369b3)
+
+Agent 策略 rev 5 为 `active`，含 Mac Codex 12 条及 Win OMP 2 条精确组合。文件 SHA-256 为 `4c038d57de00e511f1b834b546b9c8dc48643b9d713aaa9ce1f172884d086c41`。Mac 与 Win 的策略默认组合为 `gpt-6.1-sol / high`。Mac 入口支持协调员、项目负责人和 Worker，Win OMP 仅支持 Worker，Win 的协调员和负责人请求在启动前拒绝。Cloud 只继承策略期望，当前远端请求缺少模型与强度参数，相关约束为 `unsupported`。真实新建、实际回合及岗位接手仍分别取证。[受控创建指南](agent-hosts.md#controlled-role-creation) · [白名单维护指南](../config/allowlists/README.md)
+
+**18:46:24.941 至 18:46:31.526（北京时间），Win 已安装官方 OMP 会话集成 v10。** 同一既有账号使用固定 Herdr 0.9.5 二进制，原生状态回读为 `current`（v10）。扩展 SHA-256 为 `e3c650752bb9c2eb8bc1eecc9ce845c27434f6b7331af161353dd06ca6de48b7`，`models.yml` 前后相同。初次传输未执行，经原状态核对确认零效果后改用短 stdin，安装器实际执行一次。Herdr server 保持原进程，本次安装触发的 Agent、模型和业务动作均为 0。Win OMP 的真实启动与模型回合待原单验证。[官方 OMP 集成资产](https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/src/integration/assets/omp/herdr-agent-state.ts)
+
+**18:51:01（北京时间），Mac 全局组织协作 Skill 已升级至 `2.3.0`。** 三个更新文件与同一固定提交一致，原 `2.2.0` 已备份，现任角色未重启。`allowlist-management` 作为仓库源码导航交付。全仓检查共 413 项，409 项通过、4 项既有条件跳过。独立复审、Skill 校验、仓库结构、Worker 库和差异检查均通过。[组织协作源码](../skill/organization-collaboration/SKILL.md)
+
 <a id="mac-model-allowlist-deployment"></a>
 
-**2026-11-09 18:13:26（北京时间），Mac 的 `HerdrDecisionConsumer` 原绝对入口已切换到白名单版。** [PR #17](https://github.com/CF-FE/herdr-4-codexcloud/pull/17) 已合并，安装回执确认 26 个文件的 SHA-256 与固定 main 提交的 Git 对象一致。全仓检查 397 项，393 项通过、4 项既有条件跳过。[固定发布 `701cd01`](https://github.com/CF-FE/herdr-4-codexcloud/commit/701cd01b97130460c27493b24ad8b7e1d9884e29)
+**2026-11-09 18:13:26（北京时间），Mac 工作流 `new-unit` 白名单版首次切换（历史回执）。** [PR #17](https://github.com/CF-FE/herdr-4-codexcloud/pull/17) 合并后切换到 `701cd01`，26 个安装文件的 SHA-256 与固定 Git 对象一致。全仓检查 397 项，393 项通过、4 项既有条件跳过。[此前发布 `701cd01`](https://github.com/CF-FE/herdr-4-codexcloud/commit/701cd01b97130460c27493b24ad8b7e1d9884e29)
 
 | 随发布安装的策略 | 修订及状态 | 文件 SHA-256 |
 | --- | --- | --- |
 | `agent-models.json` | rev 4 `active` | `54079e5af6b3232999a59a58edc0139d1e737878b78f9a9ec6e06d7f4418f280` |
 | `image-models.json` | rev 2 `active` | `e5280464326e2d3ca695d2a8b4a7879bf3f8486b2068c3114d46bb3eefc8e74c` |
 
-切换前在途消费者调用为 0，旧 `8612a9a` 发布独立保留，原工作流状态仍在原处。本次切换中新建角色、模型任务和线上决策均为 0。安装后 CLI 导入与 `active` 策略读回通过，26 个文件再次与固定 Git 对象逐字节核对一致；新版本原生回合待实际采用取证。
+当时切换前在途消费者调用为 0，旧 `8612a9a` 发布独立保留，原工作流状态仍在原处。该次切换中新建角色、模型任务和线上决策均为 0。安装后 CLI 导入与 `active` 策略读回通过，26 个文件再次与固定 Git 对象逐字节核对一致。
 
-程序接线范围为 Mac Codex `new-unit` 的候选筛选和原生启动前复核。手工创建协调员、项目负责人和 Worker，以及 Win、Cloud 的原生模型参数和图像调用均待接线。当前 Cloud CLI 的实际提交请求缺少模型和推理强度字段。导航 Skill 的交付形式为仓库源码。[白名单维护指南](../config/allowlists/README.md) · [创建职责](agent-hosts.md#decision-model-selection)
+该版接线覆盖 Mac Codex 工作流 `new-unit` 的候选筛选和原生启动前复核。当前组织角色创建范围见[后续部署回执](#role-creation-deployment)。
 
 **2026-11-09 15:29（北京时间），Win Hindsight 已应用候选级拒答补丁并继续使用 Luna。** 补丁仅在 recall 排序中排除明确拒答候选，保留正常答案及真实零概率；全部拒答仍失败。原 API 单独重载、源码与权限、健康及 PG／BGE 保全已有读回。在原 45 秒预算下，一次真实双 bank evaluate 于 14.873 秒完成，两库各返回 3 个带来源片段，最终 `complete / suggested` 且同记录读回一致。原拒答触发原因仍为 `UNKNOWN`；此前 Q8 备选试验未通过且已恢复，不是当前长期方案或自动回退路径。详细诊断与回执只维护于[服务主仓证据](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#luna-局部拒答补丁与真实验证2026-11-09)和 [Issue #6](https://github.com/CF-FE/decision-service/issues/6)，补丁归本仓 [decision-reranker](../mcp/hindsight-memory/decision-reranker/README.md)。
 
@@ -88,7 +99,7 @@ Mac 日常原生交办有独立的[原任务待办与恢复入口](project-coord
 | Mac → Win Herdr | TUI 0.9.5 原生 saved-machine／LAN SSH 的保存连接、reachable 及定向 Agent 清单回读通过 | Win Herdr 内模型派发、业务产物回收与生产写权切换 |
 | VPS ↔ Win／Mac → VPS 网络 | EasyTier 双节点、Win 限定主机转发、Mac 主机路由、分段 SSH 及一次网络服务重建后的恢复已验 | 主机重启、持续质量、容量或所有拒绝规则的验收 |
 | Win OMP／Hermes／Kimi | 执行侧报告 SSH 下原生 CLI 短对话通过；[具体版本和入口](local-agent-inventory.md#7-win-work-harness执行侧交接)分列 | 本评审直接重验、Herdr 派发、工具／生产业务验收；Windows Codex 不在当前采用范围 |
-| 本仓技能与协作规范 | [组织协作 2.2.0](../skill/organization-collaboration/SKILL.md)、Projects 1.1.0。云端Dot指派验收者，项目负责人维护[主仓和项目级规范](coordination-policy.md#项目主仓与项目级规范)。协调员直接联系现任者，GitHub 评论可[暂存并独立回填](project-coordinator.md#nonblocking-contact)。 | 各端实际加载和新关系的采用需分端核对。协调员自动创建 Cloud 作业并回收成果的链路仍待验证。 |
+| 本仓技能与协作规范 | [组织协作 2.3.0](../skill/organization-collaboration/SKILL.md)、Projects 1.1.0。Mac 全局组织协作 Skill 已按[部署回执](#role-creation-deployment)更新。云端Dot指派验收者，项目负责人维护[主仓和项目级规范](coordination-policy.md#项目主仓与项目级规范)。协调员直接联系现任者，GitHub 评论可[暂存并独立回填](project-coordinator.md#nonblocking-contact)。 | 各端实际加载和新关系的采用需分端核对。协调员自动创建 Cloud 作业并回收成果的链路仍待验证。 |
 | 云端Dot与 Mac 项目协调员 | 采用既有定时查信。[凡人负责人答复的定时读回](project-coordinator.md#fanren-scheduled-read)和[原计划首发、Mac 自动回传](project-coordinator.md#scheduled-first-submit)已验证 | 长期运行稳定性 |
 | Codex Cloud 环境 | 11 月 3 日经原生环境清单核实，`herdr-4-codexcloud` 已发布，状态 `ready`、`runnable=true`。唯一仓库绑定按仓库 ID 与 GitHub 核对，指向本仓 `main`；11 月 4 日本次 Cloud 工作区已进行仓库文档编辑与[离线检查](#本地检查) | 协调员触发 Cloud、Cloud 信箱接入、指定接收者的成果读回及生产业务；本次工具权限不推广到其他任务 |
 
@@ -154,9 +165,9 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 
 ## 后续缺口
 
-Mac 白名单版已切换至原入口。新版本原生回合、手工创建入口、Win 与 Cloud 原生模型参数及图像调用仍分别取证。[部署回执与接线范围](#mac-model-allowlist-deployment)
+组织角色受控创建已部署，Mac 与 Win OMP 的实际新建、原生回合及角色接手仍分别取证。Cloud 的模型与强度约束及图像调用仍待对应入口接线。[部署回执与支持范围](#role-creation-deployment)
 
-公子已授权推进凡人的 Decision Service 接入 P1／P2／P3，实际接入和自然业务回执待原任务取证。P3 的 Hindsight webhook 已纳入执行计划，事件来源接线与生产启用仍待实施和验收。候选拒答原因、长期稳定性与端到端收益仍待验证。[既有服务路线图](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/roadmap.md)
+凡人的 Decision Service P3 单 bank 回调已启用，已从一条负责人验收过的历史源身份核对结果完成真实回收、同 ID 补偿及重启读回，原有未匹配来源缺口仍保留。该回顾关联没有 application 或模型调用，不计为 P1／P2 自然采用，也不表示整集验收。公子随后授权工作流自动发布及 P1／P2，继续由原执行会话实施、原岗位接手。运行与配置证据归[服务固定交付记录](https://github.com/CF-FE/decision-service/blob/ff3721ddf0ec42765f73e38eddc8cf2849042962/docs/evidence-and-open-questions.md#凡人单-bank-生产回收2026-11-09)。候选拒答原因、长期稳定性与端到端收益仍待验证。
 
 1. **传输稳定性**：沿服务仓原任务核长期运行、反向新任务与原异常原因，保留 UNKNOWN。
 2. **Dot 原生入口**：已有局部用户回报；具体工具发现、目标绑定、定向执行和回读仍按[专项评估](dot-mac-herdr-evaluation.md)取证，不由网络或桌面试点代证。
