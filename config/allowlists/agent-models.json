@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "agent-models",
+  "revision": 4,
+  "status": "active",
+  "owner_role": "project_coordinator",
+  "default_environment_id": "mac-work",
+  "default_model": "gpt-6.1-sol",
+  "default_reasoning_effort": "high",
+  "entries": [
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "low",
+      "evidence_ref": "https://github.com/CF-FE/herdr-4-codexcloud/blob/49e48b5c6a8a23d90d68a53dafbe9a37b680c6b3/docs/agent-hosts.md#decision-model-selection"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "medium",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "high",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "xhigh",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "max",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-6.1-sol",
+      "reasoning_effort": "ultra",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "low",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "medium",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "high",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "xhigh",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "max",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    },
+    {
+      "environment_id": "mac-work",
+      "worker_id": "mac-codex",
+      "backend_id": "current-default",
+      "provider": "openai",
+      "model_type": "reasoning",
+      "model": "gpt-5.6-sol",
+      "reasoning_effort": "ultra",
+      "evidence_ref": "config/allowlists/README.md#mac-codex-盘点"
+    }
+  ]
+}

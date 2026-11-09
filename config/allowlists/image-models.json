@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "image-models",
+  "revision": 2,
+  "status": "active",
+  "owner_role": "project_coordinator",
+  "entries": [
+    {
+      "provider": "openai",
+      "model_type": "image_generation",
+      "model": "gpt-image-2.5-sunburst",
+      "reasoning_effort": null,
+      "operations": [
+        "generate",
+        "edit"
+      ],
+      "evidence_ref": "https://developers.openai.com/api/docs/models/gpt-image-2.5-sunburst"
+    },
+    {
+      "provider": "openai",
+      "model_type": "image_generation",
+      "model": "gpt-image-2.5-flare",
+      "reasoning_effort": null,
+      "operations": [
+        "generate",
+        "edit"
+      ],
+      "evidence_ref": "https://developers.openai.com/api/docs/models/gpt-image-2.5-flare"
+    }
+  ]
+}

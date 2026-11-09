@@ -46,6 +46,17 @@ def strings(value, name):
 
 
 def read_json(path):
+    return parse_json(read_json_bytes(path), path.name)
+
+
+def read_json_bytes(path):
+    try:
+        return path.read_bytes()
+    except OSError as error:
+        raise LibraryError("INVALID_JSON", f"Cannot read {path.name}: {error}") from error
+
+
+def parse_json(data, name):
     def unique(pairs):
         result = {}
         for key, value in pairs:
@@ -57,11 +68,13 @@ def read_json(path):
         raise LibraryError("INVALID_JSON", f"Nonfinite JSON value: {value}")
 
     try:
-        result = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique,
+        result = json.loads(data.decode("utf-8"), object_pairs_hook=unique,
                             parse_constant=reject_constant)
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise LibraryError("INVALID_JSON", f"Cannot read {path.name}: {error}") from error
-    require(isinstance(result, dict), f"{path.name}: expected JSON object")
+    except LibraryError:
+        raise
+    except (ValueError, RecursionError) as error:
+        raise LibraryError("INVALID_JSON", f"Cannot read {name}: {error}") from error
+    require(isinstance(result, dict), f"{name}: expected JSON object")
     return result
 
 

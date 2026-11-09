@@ -2,14 +2,14 @@
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
   "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg xmlns:xlink="http://www.w3.org/1999/xlink" width="1152pt" height="648pt" viewBox="0 0 1152 648" xmlns="http://www.w3.org/2000/svg" version="1.1">
- <title>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</title>
+ <title>Super-Agent 总架构：Herdr 协调层和本地 Worker、获准 Cloud 作业、独立 Decision Service 与 Win Hindsight；判断不授予派发、任命或验收权限。</title>
  <metadata>
   <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
    <cc:Work>
     <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
-    <dc:title>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</dc:title>
-    <dc:date>2026-11-05</dc:date>
-    <dc:description>Super-Agent 总架构：终端、协调组织层、Worker 层与共享基础设施；云端Dot不负责业务验收。</dc:description>
+    <dc:title>Super-Agent 总架构：Herdr 协调层和本地 Worker、获准 Cloud 作业、独立 Decision Service 与 Win Hindsight；判断不授予派发、任命或验收权限。</dc:title>
+    <dc:date>2026-11-09</dc:date>
+    <dc:description>Super-Agent 总架构：Herdr 协调层和本地 Worker、获准 Cloud 作业、独立 Decision Service 与 Win Hindsight；判断不授予派发、任命或验收权限。</dc:description>
     <dc:format>image/svg+xml</dc:format>
     <dc:creator>
      <cc:Agent>
@@ -35,346 +35,397 @@ z
    <g id="line2d_1">
     <path d="M 46.08 603.36
 L 1105.92 603.36
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #ccd7df; stroke-width: 0.9; stroke-linecap: square"/>
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #ccd7df; stroke-width: 0.9; stroke-linecap: square"/>
    </g>
    <g id="patch_2">
-    <path d="M 188.64 140.4
-L 427.68 140.4
-Q 437.76 140.4 437.76 150.48
-L 437.76 208.08
-Q 437.76 218.16 427.68 218.16
-L 188.64 218.16
-Q 178.56 218.16 178.56 208.08
-L 178.56 150.48
-Q 178.56 140.4 188.64 140.4
+    <path d="M 56.16 149.04
+L 223.2 149.04
+Q 233.28 149.04 233.28 159.12
+L 233.28 217.44
+Q 233.28 227.52 223.2 227.52
+L 56.16 227.52
+Q 46.08 227.52 46.08 217.44
+L 46.08 159.12
+Q 46.08 149.04 56.16 149.04
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_3">
-    <path d="M 478.08 140.4
-L 1095.84 140.4
-Q 1105.92 140.4 1105.92 150.48
-L 1105.92 208.08
-Q 1105.92 218.16 1095.84 218.16
-L 478.08 218.16
-Q 468 218.16 468 208.08
-L 468 150.48
-Q 468 140.4 478.08 140.4
+    <path d="M 272.16 149.04
+L 770.4 149.04
+Q 780.48 149.04 780.48 159.12
+L 780.48 217.44
+Q 780.48 227.52 770.4 227.52
+L 272.16 227.52
+Q 262.08 227.52 262.08 217.44
+L 262.08 159.12
+Q 262.08 149.04 272.16 149.04
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_4">
-    <path d="M 188.64 252
-L 1095.84 252
-Q 1105.92 252 1105.92 262.08
-L 1105.92 401.04
-Q 1105.92 411.12 1095.84 411.12
-L 188.64 411.12
-Q 178.56 411.12 178.56 401.04
-L 178.56 262.08
-Q 178.56 252 188.64 252
+    <path d="M 56.16 260.64
+L 770.4 260.64
+Q 780.48 260.64 780.48 270.72
+L 780.48 390.24
+Q 780.48 400.32 770.4 400.32
+L 56.16 400.32
+Q 46.08 400.32 46.08 390.24
+L 46.08 270.72
+Q 46.08 260.64 56.16 260.64
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #eaf5f1; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #eaf5f1; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_5">
-    <path d="M 204.48 268.56
-L 439.2 268.56
-Q 449.28 268.56 449.28 278.64
-L 449.28 341.28
-Q 449.28 351.36 439.2 351.36
-L 204.48 351.36
-Q 194.4 351.36 194.4 341.28
-L 194.4 278.64
-Q 194.4 268.56 204.48 268.56
+    <path d="M 71.28 299.52
+L 288.72 299.52
+Q 298.8 299.52 298.8 309.6
+L 298.8 374.4
+Q 298.8 384.48 288.72 384.48
+L 71.28 384.48
+Q 61.2 384.48 61.2 374.4
+L 61.2 309.6
+Q 61.2 299.52 71.28 299.52
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_6">
-    <path d="M 487.44 268.56
-L 877.68 268.56
-Q 887.76 268.56 887.76 278.64
-L 887.76 341.28
-Q 887.76 351.36 877.68 351.36
-L 487.44 351.36
-Q 477.36 351.36 477.36 341.28
-L 477.36 278.64
-Q 477.36 268.56 487.44 268.56
+    <path d="M 338.4 299.52
+L 754.56 299.52
+Q 764.64 299.52 764.64 309.6
+L 764.64 374.4
+Q 764.64 384.48 754.56 384.48
+L 338.4 384.48
+Q 328.32 384.48 328.32 374.4
+L 328.32 309.6
+Q 328.32 299.52 338.4 299.52
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_7">
-    <path d="M 925.92 268.56
-L 1080 268.56
-Q 1090.08 268.56 1090.08 278.64
-L 1090.08 341.28
-Q 1090.08 351.36 1080 351.36
-L 925.92 351.36
-Q 915.84 351.36 915.84 341.28
-L 915.84 278.64
-Q 915.84 268.56 925.92 268.56
+    <path d="M 56.16 440.64
+L 266.4 440.64
+Q 276.48 440.64 276.48 450.72
+L 276.48 519.12
+Q 276.48 529.2 266.4 529.2
+L 56.16 529.2
+Q 46.08 529.2 46.08 519.12
+L 46.08 450.72
+Q 46.08 440.64 56.16 440.64
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_8">
-    <path d="M 188.64 445.68
-L 456.48 445.68
-Q 466.56 445.68 466.56 455.76
-L 466.56 524.88
-Q 466.56 534.96 456.48 534.96
-L 188.64 534.96
-Q 178.56 534.96 178.56 524.88
-L 178.56 455.76
-Q 178.56 445.68 188.64 445.68
+    <path d="M 308.16 440.64
+L 518.4 440.64
+Q 528.48 440.64 528.48 450.72
+L 528.48 519.12
+Q 528.48 529.2 518.4 529.2
+L 308.16 529.2
+Q 298.08 529.2 298.08 519.12
+L 298.08 450.72
+Q 298.08 440.64 308.16 440.64
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_9">
-    <path d="M 505.44 445.68
-L 773.28 445.68
-Q 783.36 445.68 783.36 455.76
-L 783.36 524.88
-Q 783.36 534.96 773.28 534.96
-L 505.44 534.96
-Q 495.36 534.96 495.36 524.88
-L 495.36 455.76
-Q 495.36 445.68 505.44 445.68
+    <path d="M 560.16 440.64
+L 770.4 440.64
+Q 780.48 440.64 780.48 450.72
+L 780.48 519.12
+Q 780.48 529.2 770.4 529.2
+L 560.16 529.2
+Q 550.08 529.2 550.08 519.12
+L 550.08 450.72
+Q 550.08 440.64 560.16 440.64
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #edf2fd; stroke-dasharray: 6.25,5; stroke-dashoffset: 0; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_10">
-    <path d="M 822.24 445.68
-L 1095.84 445.68
-Q 1105.92 445.68 1105.92 455.76
-L 1105.92 524.88
-Q 1105.92 534.96 1095.84 534.96
-L 822.24 534.96
-Q 812.16 534.96 812.16 524.88
-L 812.16 455.76
-Q 812.16 445.68 822.24 445.68
+    <path d="M 826.56 149.04
+L 1095.84 149.04
+Q 1105.92 149.04 1105.92 159.12
+L 1105.92 390.24
+Q 1105.92 400.32 1095.84 400.32
+L 826.56 400.32
+Q 816.48 400.32 816.48 390.24
+L 816.48 159.12
+Q 816.48 149.04 826.56 149.04
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #edf2fd; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #fcf3e2; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_11">
-    <path d="M 188.64 556.56
-L 456.48 556.56
-Q 466.56 556.56 466.56 566.64
-L 466.56 580.32
-Q 466.56 590.4 456.48 590.4
-L 188.64 590.4
-Q 178.56 590.4 178.56 580.32
-L 178.56 566.64
-Q 178.56 556.56 188.64 556.56
+    <path d="M 841.68 335.52
+L 1080.72 335.52
+Q 1090.8 335.52 1090.8 345.6
+L 1090.8 375.12
+Q 1090.8 385.2 1080.72 385.2
+L 841.68 385.2
+Q 831.6 385.2 831.6 375.12
+L 831.6 345.6
+Q 831.6 335.52 841.68 335.52
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_12">
-    <path d="M 505.44 556.56
-L 773.28 556.56
-Q 783.36 556.56 783.36 566.64
-L 783.36 580.32
-Q 783.36 590.4 773.28 590.4
-L 505.44 590.4
-Q 495.36 590.4 495.36 580.32
-L 495.36 566.64
-Q 495.36 556.56 505.44 556.56
+    <path d="M 826.56 440.64
+L 1095.84 440.64
+Q 1105.92 440.64 1105.92 450.72
+L 1105.92 519.12
+Q 1105.92 529.2 1095.84 529.2
+L 826.56 529.2
+Q 816.48 529.2 816.48 519.12
+L 816.48 450.72
+Q 816.48 440.64 826.56 440.64
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+" clip-path="url(#p9c620497a3)" style="fill: #eaf5f1; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_13">
-    <path d="M 822.24 556.56
+    <path d="M 56.16 556.56
+L 552.96 556.56
+Q 563.04 556.56 563.04 566.64
+L 563.04 580.32
+Q 563.04 590.4 552.96 590.4
+L 56.16 590.4
+Q 46.08 590.4 46.08 580.32
+L 46.08 566.64
+Q 46.08 556.56 56.16 556.56
+z
+" clip-path="url(#p9c620497a3)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
+   </g>
+   <g id="patch_14">
+    <path d="M 596.16 556.56
 L 1095.84 556.56
 Q 1105.92 556.56 1105.92 566.64
 L 1105.92 580.32
 Q 1105.92 590.4 1095.84 590.4
-L 822.24 590.4
-Q 812.16 590.4 812.16 580.32
-L 812.16 566.64
-Q 812.16 556.56 822.24 556.56
+L 596.16 590.4
+Q 586.08 590.4 586.08 580.32
+L 586.08 566.64
+Q 586.08 556.56 596.16 556.56
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
-   </g>
-   <g id="patch_14">
-    <path d="M 441.91916 179.28
-Q 452.159303 179.28 460.386986 179.28
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 455.186986 176.68
-L 460.386986 179.28
-L 455.186986 181.88
-z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #ffffff; stroke: #ccd7df; stroke-width: 1.25; stroke-linejoin: miter"/>
    </g>
    <g id="patch_15">
-    <path d="M 784.8 222.318369
-Q 784.8 234.357882 784.8 244.384933
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 787.4 239.184933
-L 784.8 244.384933
-L 782.2 239.184933
+    <path d="M 237.439687 187.92
+Q 246.959453 187.92 254.466757 187.92
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 249.266757 185.32
+L 254.466757 187.92
+L 249.266757 190.52
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_16">
-    <path d="M 452.722588 308.88
-Q 461.881792 308.88 469.028536 308.88
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 463.828536 306.28
-L 469.028536 308.88
-L 463.828536 311.48
+    <path d="M 521.28 232.399951
+Q 521.28 243.719876 521.28 253.02734
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 523.88 247.82734
+L 521.28 253.02734
+L 518.68 247.82734
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #345ed5; stroke: #345ed5; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_17">
-    <path d="M 891.202588 308.88
-Q 900.361792 308.88 907.508536 308.88
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 902.308536 306.28
-L 907.508536 308.88
-L 902.308536 311.48
+    <path d="M 302.958369 339.84
+Q 312.839031 339.84 320.707233 339.84
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 315.507233 337.24
+L 320.707233 339.84
+L 315.507233 342.44
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_18">
-    <path d="M 681.84 412.56
-L 681.84 427.68
-L 322.56 427.68
-L 322.56 440.067539
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 325.16 434.867539
-L 322.56 440.067539
-L 319.96 434.867539
+    <path d="M 546.48 402.48
+L 546.48 419.04
+L 161.28 419.04
+L 161.28 435.747539
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 163.88 430.547539
+L 161.28 435.747539
+L 158.68 430.547539
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_19">
-    <path d="M 681.84 427.68
-L 639.36 427.68
-L 639.36 440.067539
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 641.96 434.867539
-L 639.36 440.067539
-L 636.76 434.867539
+    <path d="M 546.48 419.04
+L 413.28 419.04
+L 413.28 435.747539
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 415.88 430.547539
+L 413.28 435.747539
+L 410.68 430.547539
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="patch_20">
-    <path d="M 1002.96 414.559951
-Q 1002.96 427.32056 1002.96 438.068707
-" clip-path="url(#p9e7b6d9dd5)" style="fill: none; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
-    <path d="M 1005.56 432.868707
-L 1002.96 438.068707
-L 1000.36 432.868707
+    <path d="M 546.48 419.04
+L 665.28 419.04
+L 665.28 435.747539
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 667.88 430.547539
+L 665.28 435.747539
+L 662.68 430.547539
 z
-" clip-path="url(#p9e7b6d9dd5)" style="fill: #137f75; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke-dasharray: 9,7.2; stroke-dashoffset: 0; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_21">
+    <path d="M 784.639951 313.2
+Q 797.40056 313.2 808.148707 313.2
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #9f681b; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 802.948707 310.6
+L 808.148707 313.2
+L 802.948707 315.8
+z
+" clip-path="url(#p9c620497a3)" style="fill: #9f681b; stroke: #9f681b; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_22">
+    <path d="M 810.160049 363.6
+Q 797.39944 363.6 786.651293 363.6
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #9f681b; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 791.851293 366.2
+L 786.651293 363.6
+L 791.851293 361
+z
+" clip-path="url(#p9c620497a3)" style="fill: #9f681b; stroke: #9f681b; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_23">
+    <path d="M 925.2 404.482588
+Q 925.2 420.119966 925.2 433.744882
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 927.8 428.544882
+L 925.2 433.744882
+L 922.6 428.544882
+z
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+   </g>
+   <g id="patch_24">
+    <path d="M 1000.8 435.757412
+Q 1000.8 420.120034 1000.8 406.495118
+" clip-path="url(#p9c620497a3)" style="fill: none; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
+    <path d="M 998.2 411.695118
+L 1000.8 406.495118
+L 1003.4 411.695118
+z
+" clip-path="url(#p9c620497a3)" style="fill: #137f75; stroke: #137f75; stroke-width: 1.8; stroke-linecap: round"/>
    </g>
    <g id="text_1">
     <text style="fill: #137f75; font: 700 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="37.2744" transform="rotate(-0 46.08 37.2744)">SUPER-AGENT  /  CF-FE</text>
    </g>
    <g id="text_2">
-    <text style="fill: #172f40; font: 700 30.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="82.392975" transform="rotate(-0 46.08 82.392975)">一套系统，职责明确的两层 Agent</text>
+    <text style="fill: #172f40; font: 700 30.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="82.296225" transform="rotate(-0 46.08 82.296225)">两层 Agent，共用判断与记忆能力</text>
    </g>
    <g id="text_3">
-    <text style="fill: #526577; font: 15.84px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="115.837425" transform="rotate(-0 46.08 115.837425)">终端发起目标；协调层组织和验收；Worker 执行任务单元。</text>
+    <text style="fill: #526577; font: 15.84px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="115.7904" transform="rotate(-0 46.08 115.7904)">云端Dot交办和汇报；负责人组织执行与验收；Decision Service 提供有限判断。</text>
    </g>
    <g id="text_4">
     <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end" x="1105.92" y="41.4576" transform="rotate(-0 1105.92 41.4576)">01 / 04</text>
    </g>
    <g id="text_5">
     <a xlink:href="https://github.com/CF-FE/herdr-4-codexcloud/blob/main/docs/architecture.md">
-     <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="625.0464" transform="rotate(-0 46.08 625.0464)">依据：架构与状态文档 · 观测截至 2026-11-05 · 连线不代表全链路业务验收</text>
+     <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="625.0464" transform="rotate(-0 46.08 625.0464)">依据：架构与状态文档 · 证据截至 2026-11-09 · 连线不代表全链路业务验收</text>
     </a>
    </g>
    <g id="text_6">
     <text style="fill: #137f75; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: end" x="1105.92" y="625.5144" transform="rotate(-0 1105.92 625.5144)">程序负责执行 · 模型负责决策</text>
    </g>
    <g id="text_7">
-    <text style="fill: #345ed5; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="172.8072" transform="rotate(-0 46.08 172.8072)">需求与汇报终端</text>
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="61.92" y="177.1632" transform="rotate(-0 61.92 177.1632)">公子</text>
    </g>
    <g id="text_8">
-    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="168.5232" transform="rotate(-0 194.4 168.5232)">公子</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="61.92" y="204.068587" transform="rotate(-0 61.92 204.068587)">目标 · 授权 · 关键取舍</text>
    </g>
    <g id="text_9">
-    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="196.01325" transform="rotate(-0 194.4 196.01325)">目标 · 授权 · 关键取舍</text>
+    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="277.92" y="177.1632" transform="rotate(-0 277.92 177.1632)">云端Dot</text>
    </g>
    <g id="text_10">
-    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="483.84" y="168.5232" transform="rotate(-0 483.84 168.5232)">云端Dot</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="277.92" y="204.136987" transform="rotate(-0 277.92 204.136987)">调研与拆解 · 委派 · 感知进展 · 向公子汇报；不业务验收</text>
    </g>
    <g id="text_11">
-    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="483.84" y="196.08525" transform="rotate(-0 483.84 196.08525)">调研与方案 · 委派 · 感知进展 · 向公子汇报；不承担业务验收</text>
+    <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="536.4" y="245.4912" transform="rotate(-0 536.4 245.4912)">完整目标与验收标准</text>
    </g>
    <g id="text_12">
-    <text style="fill: #526577; font: 11.52px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="799.2" y="234.6912" transform="rotate(-0 799.2 234.6912)">完整目标与验收标准</text>
+    <text style="fill: #137f75; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="61.2" y="284.4072" transform="rotate(-0 61.2 284.4072)">01  协调组织层 · Herdr 原生岗位</text>
    </g>
    <g id="text_13">
-    <text style="fill: #137f75; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="286.5672" transform="rotate(-0 46.08 286.5672)">01  协调组织层</text>
+    <text style="fill: #137f75; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="77.04" y="326.4768" transform="rotate(-0 77.04 326.4768)">项目协调员</text>
    </g>
    <g id="text_14">
-    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="312.3144" transform="rotate(-0 46.08 312.3144)">岗位由 Herdr 承载</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(77.04 353.9376)">统筹负责人、资源与路线</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(77.04 370.095075)">依有效任命安排负责人绑定</text>
    </g>
    <g id="text_15">
-    <text style="fill: #137f75; font: 700 18px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="210.24" y="296.1" transform="rotate(-0 210.24 296.1)">项目协调员</text>
+    <text style="fill: #137f75; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="344.16" y="326.4768" transform="rotate(-0 344.16 326.4768)">项目负责人 · 默认验收者</text>
    </g>
    <g id="text_16">
-    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="210.24" y="322.9776" transform="rotate(-0 210.24 322.9776)">负责人 · 跨项目资源 · 执行路线</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(344.16 354.5208)">维护项目工作流 · 选择、复用或创建 Worker</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(344.16 371.298893)">安排执行与复核 · 决定成果是否放行</text>
    </g>
    <g id="text_17">
-    <text style="fill: #137f75; font: 700 18px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="493.2" y="296.1" transform="rotate(-0 493.2 296.1)">项目负责人 · 默认验收者</text>
+    <text style="fill: #345ed5; font: 700 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="427.5144" transform="rotate(-0 46.08 427.5144)">02  Worker 层</text>
    </g>
    <g id="text_18">
-    <text style="fill: #526577; font: 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="493.2" y="324.144" transform="rotate(-0 493.2 324.144)">细化任务 · 维护流程 · 安排 Worker · 核收成果</text>
+    <text style="fill: #345ed5; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="61.92" y="467.5968" transform="rotate(-0 61.92 467.5968)">Mac Herdr</text>
    </g>
    <g id="text_19">
-    <text style="fill: #137f75; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="931.68" y="295.5168" transform="rotate(-0 931.68 295.5168)">Codex 路由</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(61.92 495.0576)">本地 Worker · 项目资产</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(61.92 510.952635)">原生模型与强度读回</text>
    </g>
    <g id="text_20">
-    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(931.68 322.3944)">唯一原生提交者</text>
-    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(931.68 337.406377)">具体 Cloud 作业例外</text>
+    <text style="fill: #345ed5; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="313.92" y="467.5968" transform="rotate(-0 313.92 467.5968)">Win Herdr</text>
    </g>
    <g id="text_21">
-    <text style="fill: #137f75; font: 15.84px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="199.44" y="386.376975" transform="rotate(-0 199.44 386.376975)">项目自有 workflows/ 代码 + README  ·  程序执行确定步骤，模型处理新判断</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(313.92 495.0576)">本地 Worker · 媒体等任务</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(313.92 510.952635)">按单核实际执行能力</text>
    </g>
    <g id="text_22">
-    <text style="fill: #345ed5; font: 700 15.12px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="478.0872" transform="rotate(-0 46.08 478.0872)">02  Worker 层</text>
+    <text style="fill: #345ed5; font: 700 17.28px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="565.92" y="467.5968" transform="rotate(-0 565.92 467.5968)">Codex Cloud 作业</text>
    </g>
    <g id="text_23">
-    <text style="fill: #526577; font: 12.24px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="503.1144" transform="rotate(-0 46.08 503.1144)">成果与原生证据交接</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(565.92 495.0576)">获准唯一路由原生提交</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(565.92 510.952635)">仅具体作业是宿主例外</text>
    </g>
    <g id="text_24">
-    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="473.8032" transform="rotate(-0 194.4 473.8032)">mac-herdr</text>
+    <text style="fill: #9f681b; font: 700 18px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="832.32" y="176.58" transform="rotate(-0 832.32 176.58)">Decision Service · VPS</text>
    </g>
    <g id="text_25">
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(194.4 500.845387)">本地 Agent · Codex 主力</text>
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(194.4 517.62348)">开发、工具与项目资产</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 204.7248)">HTTP（程序）/ MCP（Agent）</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 221.502892)">同一身份范围与判断核心</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 238.280985)">业务判断：Luna</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 255.059078)"/>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 271.83717)">原调用方给合法候选</text>
+    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 288.635462)">原执行器采用与回传结果</text>
    </g>
    <g id="text_26">
-    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="511.2" y="473.8032" transform="rotate(-0 511.2 473.8032)">win-herdr</text>
+    <text style="fill: #9f681b; font: 700 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="847.44" y="359.5608" transform="rotate(-0 847.44 359.5608)">私有 SQLite · 决策与已收反馈</text>
    </g>
    <g id="text_27">
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(511.2 500.830425)">本地 Agent · 媒体执行</text>
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(511.2 517.738371)">FFmpeg、本地模型与项目资产</text>
+    <text style="fill: #9f681b; font: 9.36px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle" x="797.76" y="298.4616" transform="rotate(-0 797.76 298.4616)">候选</text>
    </g>
    <g id="text_28">
-    <text style="fill: #345ed5; font: 700 18.72px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="828" y="473.8032" transform="rotate(-0 828 473.8032)">Codex Cloud</text>
+    <text style="fill: #9f681b; font: 9.36px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: middle" x="797.76" y="353.1816" transform="rotate(-0 797.76 353.1816)">建议</text>
    </g>
    <g id="text_29">
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(828 500.6808)">按授权建立托管作业</text>
-    <text style="fill: #526577; font: 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(828 517.643573)">任务 ID 关联产物与回传</text>
+    <text style="fill: #137f75; font: 700 16.56px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="832.32" y="467.0136" transform="rotate(-0 832.32 467.0136)">Hindsight · Win 项目记忆</text>
    </g>
    <g id="text_30">
-    <text style="fill: #526577; font: 700 13.68px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="46.08" y="579.8808" transform="rotate(-0 46.08 579.8808)">共享基础设施</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 495.0576)">DS 按需经 VPS 网关召回</text>
+    <text style="fill: #526577; font: 12.96px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif" transform="translate(832.32 511.496651)">内部 Luna：recall / consolidation</text>
    </g>
    <g id="text_31">
-    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="194.4" y="581.184" transform="rotate(-0 194.4 581.184)">Task Mailbox · 单件进展</text>
+    <text style="fill: #137f75; font: 10.08px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="1012.32" y="424.3248" transform="rotate(-0 1012.32 424.3248)">经原网关回传</text>
    </g>
    <g id="text_32">
-    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="511.2" y="581.184" transform="rotate(-0 511.2 581.184)">GitHub Project · 项目与能力</text>
+    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="61.92" y="581.73075" transform="rotate(-0 61.92 581.73075)">Task Mailbox 查原单  ·  Project / Issue 查项目</text>
    </g>
    <g id="text_33">
-    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="828" y="581.29875" transform="rotate(-0 828 581.29875)">Hindsight · 项目共享经验</text>
+    <text style="fill: #172f40; font: 700 14.4px 'DejaVu Sans', 'Bitstream Vera Sans', 'Computer Modern Sans Serif', 'Lucida Grande', 'Verdana', 'Geneva', 'Lucid', 'Arial', 'Helvetica', 'Avant Garde', sans-serif; text-anchor: start" x="601.92" y="581.4" transform="rotate(-0 601.92 581.4)">角色创建：任命、技术创建与原生接手分开核验</text>
    </g>
   </g>
  </g>
  <defs>
-  <clipPath id="p9e7b6d9dd5">
+  <clipPath id="p9c620497a3">
    <rect x="0" y="0" width="1152" height="648"/>
   </clipPath>
  </defs>

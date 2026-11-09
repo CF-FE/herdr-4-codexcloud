@@ -1,6 +1,6 @@
 # 架构与范围
 
-修订日期：2026-11-08。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
+修订日期：2026-11-09。本页维护稳定职责、当前拓扑和组件归属；最新采用状态见[状态总表](status.md)，逐轮证据见[历史记录](history/status-through-2026-11-03.md)。当前采用 **Herdr TUI**，以公子确认的 **Mac 持续在线** 为前提，不部署 hc／Herdr App。
 
 ## 初始化决定
 
@@ -77,6 +77,8 @@ graph TD
 
 每项目有责任边界，不要求每项目常驻一个进程。现有 Cloud 或旧 Lody 任务沿原入口收尾；同一执行和待写资产只能有一个实际控制入口及当前写者，UNKNOWN 不换池重做。
 
+**角色由谁创建。** 协调员的职责由有效任命方确定，技术初始化／恢复由独立受信宿主管理入口执行；协调员依据有效任命安排项目负责人的创建、绑定或交接；负责人或获准唯一派发者按任务单元决定 Worker 的复用、恢复或创建。组织岗位与本地 Worker 落在 Herdr 原生绑定，只有获准的具体 Codex Cloud 作业使用云端原生载体。任命、技术创建和实际接手分别核证，工具返回 ID 不代表角色已履职。完整责任表见[创建职责与载体](agent-hosts.md#role-creation-responsibility)，自动化已实现范围见[生命周期](project-coordinator.md#agent-lifecycle)。
+
 源码和方法沿 Git 固定版本，模型、原件与大产物按所属机器保管。ChatGPT Space 供获准资料、交接与精选成果使用，不视为所有 Worker 自动挂载的共享盘；页面、原件和工具权限逐边核验。具体任务路由与资料交接见[协作迭代指引](collaboration-iteration-guide.md)。
 
 ### 项目自有动态工作流
@@ -87,15 +89,53 @@ graph TD
 
 需要新增授权的节点按已实现并在 Mac 采用的[审批子工作流](approval-workflow.md)接续：当前绑定协调员以 `COORD_APPROVAL_PREPARE` 提案，原 watcher 登记；hook 在用户活动时提示，受信主会话记录者的答复由原 watcher 回流并接续原检查点。项目负责人定义触发条件及后继，已有授权直接继续；通知不即时，真实 UI、自然审批及业务验收仍待自然单。[ADR-003](decisions/003-approval-workflow.md)
 
-### Decision Service：辅助推进与模型选型（真实合成闭环已验）
+<a id="decision-service"></a>
+<a id="decision-service辅助推进与模型选型真实合成闭环已验"></a>
 
-独立项目 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)为工作流和角色创建者提供有限候选选择。原调用方给出当前状态、合法动作或实际可用的模型／推理强度配置；服务按需跨 bank 取背景并选择候选；原执行入口在既有授权内采用。它是程序能力，不新增组织 Agent，不接管任务状态、任命或业务验收。
+### Decision Service：判断、采用与结果回收
 
-服务核心与 HTTP／MCP 共用决策记录，并以轻量 Skill 说明调用规范；插件及各客户端连接进展由服务主仓维护。内部 SQLite 放服务主机持久磁盘，仅服务访问，保存决策、已收反馈及关联／已知缺口；消费者通过 API／MCP 调用。Hindsight 保留经验，原工作流保留业务状态、产物权威、待传事件与恢复责任。服务库不代表尚未回传的业务事实。[消费者与存储边界](project-workflow-development.md#decision-storage-boundary)
+独立项目 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)提供有限候选判断。原 workflow／角色创建者提交合法动作或宿主实际可用的模型／推理强度组合；服务按需取带来源的记忆，用业务 Luna 选择；原执行器在原授权内采用。服务不创建角色、不派发任务，不接管审批、工作流检查点或业务验收。固定规则直接运行，普通判断不逐步审批。
 
-首版已在 Mac 固定安装，贯通 VPS HTTPS 判断、原工作流分支采用、Mac Codex 新工作单元创建及原生模型／强度读回，真实合成工程闭环通过。目标是减少无效模型回合、重复上下文与等待，再按整单耗时、token 和返工改进，尚无生产收益或业务验收结论。固定规则直接运行，普通判断不逐步审批。当前模板不支持任意在途改图，新单元创建不等于在途角色热切换。工作流合同、跨仓分工与证据见[工作流接入](project-workflow-development.md#decision-service-接入先跑通现有决定点)，模型应用见[宿主合同](agent-hosts.md#decision-model-selection)。服务接口与路线由其主仓维护，本仓保留消费者合同。
+```mermaid
+flowchart LR
+    C["原 workflow／角色创建者<br/>当前状态＋合法候选"] -->|"evaluate：HTTP 程序／MCP Agent"| S["VPS Decision Service<br/>同一身份范围与判断核心"]
+    S -->|"按需 recall · 实际 gateway 适配"| G["Hindsight VPS 薄网关"]
+    G -->|"固定 SSH / Win relay"| H["Win Hindsight<br/>返回必要片段与来源"]
+    H -->|"沿原网关返回证据"| S
+    S --> L["业务判断：Luna"]
+    L -->|"有限答案"| S
+    S -->|"建议／decision_id"| A["原执行器核当前状态并采用<br/>原宿主执行、原验收者核成果"]
+    A --> P["原检查点<br/>关联、待传事件、恢复责任"]
+    P -->|"application / result<br/>同 event_id / revision 补传"| S
+    S -->|"决策与反馈持久后确认"| DB[("服务私有 SQLite")]
+    Q["get_decision 只读对账"] --> S
+    DB -->|"已有记录与已知缺口"| S
+```
 
-MVP 已实现[程序化反馈](project-workflow-development.md#decision-feedback)：原适配器将实际采用和工作单元结果直接回传，原状态保存关联及待传事件，显式恢复时补传而不重跑业务；服务精确关联质量证据。模型类型／型号与推理强度必须记录，推荐、启动与实际配置分开；消耗低优先级，只记现成值、缺失留空，不扩展采集，不记现金费用。人工纠正可补充，质量沿原验收，不新增逐次人工评分。Hindsight 负责经验召回，完整 webhook 回收后置；真实合成单元已核两条决策共享同一结果、待补传为零，生产业务仍归原项目验收。
+HTTP 与 MCP 已在 VPS 部署，共用 `evaluate_decision`、`get_decision`、`record_decision_feedback`、身份范围和 SQLite；OAuth 状态独立保存。Skill 说明何时调用、怎样提交和反馈，插件分发 MCP 与同一 Skill，主源均在 Decision Service 仓。实际部署通过 Hindsight VPS 网关检索；`native` 只是显式可配置适配，不自动探测或换路。[公共合同](https://github.com/CF-FE/decision-service/blob/main/docs/api-contract.md) · [适配与分发](https://github.com/CF-FE/decision-service/blob/main/docs/provider-integration.md)
+
+`application` 报实际采用或未采用，`result` 报原工作单元结果和已有质量证据；同一执行可关联多条决策，后补质量使用新修订。原端先持久留事件，再直传，失败沿同事件补传，不重跑业务。只读 `get_decision` 不触发业务或补传，服务库也不能证明原端尚未回传的事实。当前由显式适配命令及 `reconcile` 接续，未自动改造旧 runner。[消费者反馈合同](project-workflow-development.md#decision-feedback)
+
+| 数据或状态 | 拥有者 |
+| --- | --- |
+| 判断输入、候选、实际采用的检索片段与来源，已收反馈及修订 | VPS Decision Service 私有 SQLite，消费者只走 HTTP／MCP |
+| 执行状态、原生动作、待传事件与恢复 | 原项目 workflow／Herdr 私有检查点 |
+| 项目经验与记忆库 | Win Hindsight／PostgreSQL；VPS 薄网关不复制记忆数据库 |
+| 原件、质量证据与业务验收结论 | 原项目资产、指定验收者与原 Issue／Project；信箱负责持久传输 |
+
+### 三类模型分别配置
+
+| 用在哪里 | 做什么 | 当前证据与边界 |
+| --- | --- | --- |
+| Decision Service 的业务 Luna | 在原调用方合法候选中做有限判断 | VPS 判断与记录读回已验；不执行所选动作 |
+| Win Hindsight 内部 Luna | recall 候选排序、consolidation 内部判断 | 已应用候选级拒答补丁并继续 Luna；reflect 沿原普通 LLM 路径，Q8 不自动接管 |
+| 原宿主中的执行模型／推理强度 | 完成 Worker 的实际任务 | 合成工程样例为 `gpt-6.1-sol / low`，推荐、启动与实际配置分记；不代表生产角色已迁移 |
+
+三者是独立调用与配置边界，不合并密钥。模型类型、型号与推理强度留记录；消耗仅附现成值、缺失留空，不记现金费用。选型实际应用见[宿主合同](agent-hosts.md#decision-model-selection)，内部 Luna 与拒答处理见[主仓说明](https://github.com/CF-FE/decision-service/blob/main/docs/hindsight-decision-models.md)。
+
+环境可用能力沿 CF-FE Project 维护。组织白名单按场景在本仓保存版本化 JSON。Mac Codex `new-unit` 已在源码接线，筛选和启动前复核均使用发布目录中的 `active` 策略快照。Win、Cloud 和图像调用仍各有待接入口。[策略与接线范围](agent-hosts.md#decision-model-selection) · [宿主采用证据](status.md#当前结论)
+
+**截至 2026-11-09 的证据范围：** VPS HTTP／MCP 同记录读回已验；Mac 插件安装、OAuth 和工具读回有回执，Cloud 插件另已确认 OAuth、工具读回及显式 Skill 加载。Mac workflow 和模型配置的真实合成闭环通过。Win 候选级拒答补丁后，一次双 bank 判断及同记录读回通过。生产角色迁移、自然业务效果、长期稳定性与效率收益仍未证实，原始 refusal 原因仍为 UNKNOWN。Hindsight retain、webhook 与自动补偿不是当前直传闭环的必经步骤，webhook 尚未配置或验证；当前模板也不支持任意在途改图或角色热切换。采用事实来自 [Decision Service 固定资料 2e5ff940](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)，各部署版本轴集中见[当前状态](status.md#当前结论)。
 
 ### 项目共享记忆
 
@@ -105,6 +145,7 @@ Hindsight 为上述角色提供按项目共享的经验与背景，不承担派�
 flowchart LR
     D["云端Dot · 项目只读调用已验"] -->|"HTTPS MCP / OAuth"| V["vps-vultr · 认证与薄适配"]
     C["Codex Cloud · 托管作业逐单核采用"] -.->|"首选 MCP，获准 API 兜底"| V
+    DS["VPS Decision Service<br/>业务 Luna 判断"] -->|"按需 recall · gateway 适配"| V
     V -->|"EasyTier / SSH 承载 stdio MCP"| M["Win MCP 代理 / API relay"]
     A["Mac Codex App / CLI 插件<br/>其他实际 Harness"] -->|"局域网 SSH 承载 stdio MCP"| M
     W["Win 实际 Harness"] -->|"本机 stdio MCP"| M
@@ -154,9 +195,10 @@ Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动
 | 组件 | mac-work | VPS | win-work |
 | --- | --- | --- | --- |
 | Herdr TUI／`herdr` | 托管协调层 Agent 和 Mac 执行者，原生连接 Win | 保留旧 CLI／profile；无本地 pane 用途时不启本地 server | 既有 `collab`、完整 Windows 包及 ConPTY 附属文件 |
-| Agent CLI | 复用既有 Codex／Kimi | 不部署项目 Lead、模型或桌面 Agent | 本轮候选 OMP／Hermes／Kimi；Windows Codex 暂不纳入 |
+| Agent CLI | 复用既有 Codex／Kimi | 不部署项目 Lead、本地推理模型或桌面 Agent | 本轮候选 OMP／Hermes／Kimi；Windows Codex 暂不纳入 |
 | HerdrExecutionAdapter | 独立安装，显式控制获准 Mac 既有 Agent | 不部署 | 首版不支持 |
 | Task Mailbox／Mac 协调桥 | 专用桥及其 OAuth／台账／collector／hook | 独立信箱、SQLite、OAuth；保留原 Gitee 服务 | 不作为本轮执行接入前置 |
+| Decision Service | workflow／模型消费者；本地插件用 OAuth 调用 MCP | 独立 HTTP／MCP、判断核心、私有持久 SQLite；按需经 Hindsight 网关召回 | 不部署业务服务；内部 Hindsight Luna 单独配置 |
 | Hindsight 项目记忆 | Codex App／CLI 共享本地插件与 LAN 客户端；其他 Harness 分别配置 | 独立 HTTPS MCP／API 薄入口，经 EasyTier 到原 Win 服务 | 原 Hindsight、PostgreSQL、BGE 与 MCP 代理；按项目 bank 共享 |
 | Hindsight Web 管理端 | 浏览器经可见 LAN SSH 隧道按需访问 | 不承载 UI | 官方 Control Plane 1.2.0，脚本前台运行、Ctrl+C 关闭，不自启 |
 | ngrok／Caddy | 客户端使用 HTTPS | 复用公网入口并按服务分路 | 非机器执行前置 |
@@ -183,11 +225,15 @@ Codex Cloud 仅在具体任务实际具备信箱 MCP 工具、OAuth 身份和动
 
 VPS 承载独立 FastMCP 服务、Task Mailbox 持久状态和 ngrok／Caddy 接入；Gitee 保留原认证及路径。旧 Herdr CLI、profile、SSH 与 EasyTier 用于原任务对账，不常驻项目规划 Codex 或本地模型，不作为 Mac → Win 中转。服务维护、安装归属和容量见[VPS 专项指引](vps-control-pilot.md)。
 
+Decision Service 在 VPS 独立运行 HTTP／MCP 服务，调用业务 Luna，持久保存自己的 SQLite；它与信箱和 Hindsight 网关各自维护身份及数据。部署与插件主源归 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)，Herdr 只维护消费者与原宿主应用。
+
 Hindsight 使用独立 HTTPS MCP／API 路由及认证，经既有 EasyTier／SSH 访问 Win；对应薄适配唯一维护于公子指定的 [ghyghoo8/create-network-sh/fastmcp/hindsight-memory](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory)。它与信箱分别部署，不复制数据库或模型。
 
 ### Codex Cloud：托管 Worker
 
 Cloud 沿获准原生任务入口使用已准备的仓库、环境、依赖和工具。信箱与 Pages／Space 都以该任务实际提供的工具、OAuth 及资源权限为条件，不能从 Mac 或 Dot 配置推定继承；本轮不配置 Cloud VPN，不为普通 Cloud Worker 安装另一套 Herdr 或桌面应用。Cloud 执行扩展仍未由适配器首版验收覆盖。
+
+Decision Service Cloud 插件的原生 OAuth、工具读回及显式 Skill 加载已有独立回执；这证明该客户端访问服务，不证明协调员自动创建 Cloud 作业、Hindsight Cloud Skill 已打包或每个托管作业自动继承连接。
 
 ### win-work／其他执行机：具体执行
 
@@ -217,8 +263,10 @@ Mac 持续在线是公子确认的部署前提；当前不建设离线接管、�
 | Worker／角色定义 | [worker-library](worker-library/README.md)，独立版本与资源正文 |
 | 技能及复制来源 | `skill/<id>/`、[初始清单](copy-manifest.json)、[增量记录](copy-updates.json) |
 | 信箱与 Mac 桥 | 外部 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) |
+| Decision Service 服务、公共合同、SQLite、插件与 Skill | 外部 [CF-FE/decision-service](https://github.com/CF-FE/decision-service)；本仓只维护 [workflow 消费者](project-workflow-development.md)与[宿主应用](agent-hosts.md#decision-model-selection) |
 | Hindsight 本地合同、Win 代理、Mac 客户端与 Web 启停脚本 | 本仓 [mcp/hindsight-memory](../mcp/hindsight-memory/README.md)；Mac Codex 分发在 [plugin/hindsight-memory](../plugin/hindsight-memory/README.md) |
 | Hindsight VPS 接入 | 指定的 [ghyghoo8/create-network-sh/fastmcp/hindsight-memory](https://github.com/ghyghoo8/create-network-sh/tree/main/fastmcp/hindsight-memory) |
+| Hindsight 引擎／本地候选拒答补丁 | 上游 [vectorize-io/hindsight](https://github.com/vectorize-io/hindsight)／本仓 [Win 补丁与回退](../mcp/hindsight-memory/decision-reranker/README.md) |
 | 项目工作流、规范与记忆入口／动态经验 | 各项目主仓 `workflows/` 及记忆入口／同项目 Hindsight bank；实时能力仍在组织环境能力看板 |
 | Gitee MCP 来源／项目业务资产 | 对应所属仓库；各项目正式状态仍留原入口 |
 
