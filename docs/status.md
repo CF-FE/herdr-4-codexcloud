@@ -10,14 +10,28 @@
 | --- | --- |
 | Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
 | VPS release `2df05a48` | 独立 Decision Service 运行发布 |
-| Herdr `8612a9a` | Mac 固定安装的工作流／角色消费者 |
+| Herdr `701cd01` | Mac 当前安装的工作流／角色消费者，覆盖 Codex `new-unit` 的模型白名单接线 |
+| Herdr `8612a9a` | 此前的 Mac 合成工程闭环版本，原安装目录独立保留作回退 |
 | Herdr `49e48b5c` | Win Hindsight 候选级拒答补丁，与 Mac 消费者分开安装 |
+
+<a id="mac-model-allowlist-deployment"></a>
+
+**2026-11-09 18:13:26（北京时间），Mac 的 `HerdrDecisionConsumer` 原绝对入口已切换到白名单版。** [PR #17](https://github.com/CF-FE/herdr-4-codexcloud/pull/17) 已合并，安装回执确认 26 个文件的 SHA-256 与固定 main 提交的 Git 对象一致。全仓检查 397 项，393 项通过、4 项既有条件跳过。[固定发布 `701cd01`](https://github.com/CF-FE/herdr-4-codexcloud/commit/701cd01b97130460c27493b24ad8b7e1d9884e29)
+
+| 随发布安装的策略 | 修订及状态 | 文件 SHA-256 |
+| --- | --- | --- |
+| `agent-models.json` | rev 4 `active` | `54079e5af6b3232999a59a58edc0139d1e737878b78f9a9ec6e06d7f4418f280` |
+| `image-models.json` | rev 2 `active` | `e5280464326e2d3ca695d2a8b4a7879bf3f8486b2068c3114d46bb3eefc8e74c` |
+
+切换前在途消费者调用为 0，旧 `8612a9a` 发布独立保留，原工作流状态仍在原处。本次切换中新建角色、模型任务和线上决策均为 0。安装后 CLI 导入与 `active` 策略读回通过，26 个文件再次与固定 Git 对象逐字节核对一致；新版本原生回合待实际采用取证。
+
+程序接线范围为 Mac Codex `new-unit` 的候选筛选和原生启动前复核。手工创建协调员、项目负责人和 Worker，以及 Win、Cloud 的原生模型参数和图像调用均待接线。当前 Cloud CLI 的实际提交请求缺少模型和推理强度字段。导航 Skill 的交付形式为仓库源码。[白名单维护指南](../config/allowlists/README.md) · [创建职责](agent-hosts.md#decision-model-selection)
 
 **2026-11-09 15:29（北京时间），Win Hindsight 已应用候选级拒答补丁并继续使用 Luna。** 补丁仅在 recall 排序中排除明确拒答候选，保留正常答案及真实零概率；全部拒答仍失败。原 API 单独重载、源码与权限、健康及 PG／BGE 保全已有读回。在原 45 秒预算下，一次真实双 bank evaluate 于 14.873 秒完成，两库各返回 3 个带来源片段，最终 `complete / suggested` 且同记录读回一致。原拒答触发原因仍为 `UNKNOWN`；此前 Q8 备选试验未通过且已恢复，不是当前长期方案或自动回退路径。详细诊断与回执只维护于[服务主仓证据](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#luna-局部拒答补丁与真实验证2026-11-09)和 [Issue #6](https://github.com/CF-FE/decision-service/issues/6)，补丁归本仓 [decision-reranker](../mcp/hindsight-memory/decision-reranker/README.md)。
 
 Win 内部 `recall / consolidation` 的 `openai / gpt-6-luna` 配置自 11 月 8 日采用；reflect 及普通 LLM 路径保留。它与 Decision Service 的 Luna 业务判断、执行角色的实际模型是三层用途，分别配置和记录，不因同用 Luna 合并服务或密钥。[模型分工](hindsight-memory-integration.md#三层模型与凭据边界)
 
-**2026-11-09，Decision Service 消费者已在 Mac 固定安装 `8612a9a`，真实合成工程闭环通过。** 已贯通安装版 workflow → VPS HTTPS → `gpt-6-luna` 判断 → 原分支采用 → 专用 Herdr 单元 → `gpt-6.1-sol / low` 原生回合 → application／result 云端读回。原检查点复核为 1 次启动意图、2 条决策、`FINISHED`、待补传 0；两条决策共享同一结果的修订 2，实际配置取自原 thread／turn。此前 shell 就绪检查退出未产生启动或提示，沿原窗格接续后只执行了一回合；HTTP 回传错误沿原事件补传。全仓 363 项测试中 359 项通过、4 项既有条件跳过，结构及 diff 检查通过。该结果仅验收独立合成文本任务，原生产任务和现任角色未参与；不代表凡人或其他项目业务验收。服务侧部署、跨 bank 检索、插件及各客户端 OAuth 状态归[其主仓](https://github.com/CF-FE/decision-service)，不由本次 HTTP／Herdr 成功推定。[工作流入口与证据](project-workflow-development.md#已实现入口与工程证据) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。
+**2026-11-09，Mac 消费者此前以 `8612a9a` 完成真实合成工程闭环。** 已贯通安装版 workflow → VPS HTTPS → `gpt-6-luna` 判断 → 原分支采用 → 专用 Herdr 单元 → `gpt-6.1-sol / low` 原生回合 → application／result 云端读回。原检查点复核为 1 次启动意图、2 条决策、`FINISHED`、待补传 0；两条决策共享同一结果的修订 2，实际配置取自原 thread／turn。此前 shell 就绪检查退出未产生启动或提示，沿原窗格接续后只执行了一回合；HTTP 回传错误沿原事件补传。全仓 363 项测试中 359 项通过、4 项既有条件跳过，结构及 diff 检查通过。该结果仅验收独立合成文本任务，原生产任务和现任角色未参与；不代表凡人或其他项目业务验收。服务侧部署、跨 bank 检索、插件及各客户端 OAuth 状态归[其主仓](https://github.com/CF-FE/decision-service)，不由本次 HTTP／Herdr 成功推定。[工作流入口与证据](project-workflow-development.md#已实现入口与工程证据) · [程序化反馈](project-workflow-development.md#decision-feedback) · [模型配置应用](agent-hosts.md#decision-model-selection)。
 
 同日补充：模型类型／具体型号和推理强度必须留记录，区分推荐与实际生效，未确认或不适用明确标记。消耗降为低优先级，仅记录现成数据、缺失留空；不记现金费用，不为补数新增采集链路，也不阻塞 MVP 或反馈接收。
 
@@ -140,7 +154,7 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 
 ## 后续缺口
 
-公子已确认模型白名单并授权在合并后部署。仓库已接入 Mac Codex `new-unit` 的候选筛选和启动前复核，目标宿主安装及采用以回执为准。Win、Cloud 的原生模型参数与图像调用接线仍待完成。[白名单维护指南](../config/allowlists/README.md) · [创建职责](agent-hosts.md#decision-model-selection)
+Mac 白名单版已切换至原入口。新版本原生回合、手工创建入口、Win 与 Cloud 原生模型参数及图像调用仍分别取证。[部署回执与接线范围](#mac-model-allowlist-deployment)
 
 公子已授权推进凡人的 Decision Service 接入 P1／P2／P3，实际接入和自然业务回执待原任务取证。P3 的 Hindsight webhook 已纳入执行计划，事件来源接线与生产启用仍待实施和验收。候选拒答原因、长期稳定性与端到端收益仍待验证。[既有服务路线图](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/roadmap.md)
 
