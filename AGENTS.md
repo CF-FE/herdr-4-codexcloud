@@ -1,5 +1,11 @@
 # 仓库开发约定
 
+## GitHub Organization
+
+本仓及本组织所有现有、后续新增角色共同遵循[GitHub 组织规范](skill/organization-collaboration/SKILL.md#github-organization)：默认组织为 `CF-FE`，各项目使用自己的仓库。完整规则由组织协作技能统一维护，岗位正文、专业模板与任务包继承，不另设相互竞争的组织路由。
+
+## 开发与协作
+
 - 先读 [README](README.md) 和 [本仓状态](docs/status.md)；涉及范围或执行绑定时读 [架构](docs/architecture.md) 与 [试点指引](docs/pilot.md)。
 - 本仓独立维护。需要复用时复制明确版本并记录来源；不建立软链接、子模块、跨仓库导入、共享运行目录或自动同步。
 - 能力源码按 `skill/<id>/`、`mcp/<id>/` 归属；`plugin/<id>/` 仅在存在明确分发目标时新增。受限组织工具位于 `mcp/project-coordinator-tools/`，使用同一固定发布的协调模块；源码存在不代表宿主启用。`plugin/` 包含 Hindsight 本地分发及 marketplace 元数据，按其 README 核安装与实际工具加载，不手改宿主缓存。

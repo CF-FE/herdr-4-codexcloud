@@ -2,6 +2,8 @@
 
 公子确定目标和授权，云端Dot沿自己的原生入口交办、查进度、向公子汇报。本仓组织中的协调员、项目负责人和本地执行／审查 Agent 实际履职时，由 **Herdr** 编排。唯一的执行例外是 **Codex 路由提交的 Codex Cloud 作业**，只有该作业在云端运行。下表用来找到已有目标，任职与权限仍以原项目的有效记录为准。[组织宿主规则](../skill/organization-collaboration/references/context-and-reporting.md#组织-agent-的原生宿主) · [协作分工](coordination-policy.md)
 
+各角色的创建、恢复、交接及本页 Herdr／Cloud 任务提示均继承[共同 GitHub 组织规范](../skill/organization-collaboration/SKILL.md#github-organization)。派发者按[上下文交接](../skill/organization-collaboration/references/context-and-reporting.md#绑定与确认)提供接收端可读的固定版本引用或适用条款，岗位专用提示不省略这份共同上下文。
+
 ## 谁发起、谁实际工作、谁验收
 
 | 组织岗位 | 实际形态与调用关系 |
