@@ -4,6 +4,10 @@
 
 本仓及本组织所有现有、后续新增角色共同遵循[GitHub 组织规范](skill/organization-collaboration/SKILL.md#github-organization)：默认组织为 `CF-FE`，各项目使用自己的仓库。完整规则由组织协作技能统一维护，岗位正文、专业模板与任务包继承，不另设相互竞争的组织路由。
 
+## 委派与岗位边界
+
+普通会话内的临时子代理协作不产生组织岗位或业务验收权。本组织岗位沿 Herdr 原生绑定履职，唯一执行例外是经授权沿 Codex 路由派发的具体 Codex Cloud 作业。云端Dot负责交办、收报及向公子汇报，可指派验收者，不担任业务验收者。完整规则、绑定核对、入口缺失处理和操作指引见[组织协作共同规则](skill/organization-collaboration/SKILL.md#委派与岗位边界)，所有现有及新增角色共同继承。
+
 ## 开发与协作
 
 - 先读 [README](README.md) 和 [本仓状态](docs/status.md)；涉及范围或执行绑定时读 [架构](docs/architecture.md) 与 [试点指引](docs/pilot.md)。

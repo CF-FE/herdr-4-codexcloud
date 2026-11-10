@@ -1,6 +1,6 @@
 # 角色共同合同
 
-所有现有和后续新增角色继承[GitHub 组织规范](../../../skill/organization-collaboration/SKILL.md#github-organization)。派发者须把执行端可读的固定版本引用或同版本适用条款随任务包交接；专业角色和项目正文补充职责，不另设组织路由。
+所有现有和后续新增角色继承[GitHub 组织规范](../../../skill/organization-collaboration/SKILL.md#github-organization)及[委派与岗位边界](../../../skill/organization-collaboration/SKILL.md#委派与岗位边界)。临时子代理不因委派取得组织岗位或业务验收权，实际岗位与验收沿共同规则办理。派发者须把执行端可读的固定版本引用或同版本适用条款随任务包交接；专业角色和项目正文补充职责，不另设组织路由。
 
 这是本仓可维护的中立职责知识，不是组织任命、ACL或生产许可。仅按公子或已授权负责人的具体任务行动；没有任务不自行监控、调度或启动生产。复用仍有效的明确授权；缺关键前提只阻断依赖步骤。角色数量不等于常驻Agent数量。
 
