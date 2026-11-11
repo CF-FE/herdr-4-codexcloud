@@ -2,12 +2,83 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from scripts import herdr_role_contact as contact
 from scripts.project_coordinator import Coordinator
+
+
+class NativeCommandTests(unittest.TestCase):
+    prompt = ("agent", "prompt", "w1:p2", "check original followup")
+    blocked = (b'{"id":"cli:agent:prompt","error":{"code":"agent_blocked",'
+               b'"message":"agent w1:p2 is blocked and requires interactive input"}}\n')
+
+    def test_prompt_blocked_before_send_preserves_legacy_error_and_native_details(self):
+        failure = subprocess.CompletedProcess([], 1, stdout=b"", stderr=self.blocked)
+        with patch.object(contact.subprocess, "run", return_value=failure):
+            with self.assertRaisesRegex(ValueError, "^NATIVE_LOOKUP_UNCONFIRMED$") as caught:
+                contact.native("test-session", *self.prompt)
+        error = caught.exception
+        self.assertIsInstance(error, contact.NativeCommandError)
+        self.assertEqual(error.code, "agent_blocked")
+        self.assertIs(error.not_sent, True)
+        self.assertEqual(error.__cause__.stderr, self.blocked)
+
+    def test_only_matching_native_prompt_rejection_proves_no_send(self):
+        samples = (
+            (self.prompt, 1, b"", b"agent_blocked", None),
+            (self.prompt, 1, self.blocked, b"", None),
+            (self.prompt, 2, b"", self.blocked, None),
+            (self.prompt, 1, b'{"result":{}}', self.blocked, None),
+            (self.prompt, 1, b"", self.blocked.replace(b"cli:agent:prompt", b"cli:agent:get"), "agent_blocked"),
+            (("agent", "get", "w1:p2"), 1, b"", self.blocked, "agent_blocked"),
+            (self.prompt, 1, b"", self.blocked.replace(b"agent_blocked", b"agent_prompt_failed"), "agent_prompt_failed"),
+            (self.prompt, 1, b"", self.blocked.replace(b"agent_blocked", b"timeout"), "timeout"),
+            (self.prompt, 1, b"", self.blocked.replace(b'"code":', b'"code":"timeout","code":'), None),
+            (self.prompt, 1, b"", b'{"id":"cli:agent:prompt","error":{"code":"agent_blocked"}}', None),
+        )
+        for command, returncode, stdout, stderr, expected_code in samples:
+            with self.subTest(command=command, returncode=returncode, stdout=stdout, stderr=stderr):
+                result = subprocess.CompletedProcess([], returncode, stdout=stdout, stderr=stderr)
+                with patch.object(contact.subprocess, "run", return_value=result):
+                    with self.assertRaises(contact.NativeCommandError) as caught:
+                        contact.native("test-session", *command)
+                self.assertEqual(caught.exception.code, expected_code)
+                self.assertIs(caught.exception.not_sent, False)
+
+    def test_timeout_or_transport_failure_leaves_prompt_result_unknown(self):
+        failures = (subprocess.TimeoutExpired(self.prompt, 8, stderr=self.blocked), OSError("transport closed"))
+        for failure in failures:
+            with self.subTest(failure=type(failure)):
+                with patch.object(contact.subprocess, "run", side_effect=failure):
+                    with self.assertRaises(contact.NativeCommandError) as caught:
+                        contact.native("test-session", *self.prompt)
+                self.assertIsNone(caught.exception.code)
+                self.assertIs(caught.exception.not_sent, False)
+                self.assertIs(caught.exception.__cause__, failure)
+
+    def test_unparseable_prompt_reply_leaves_result_unknown(self):
+        replies = (b"truncated", b'{"id":"cli:agent:prompt","result":null}', self.blocked)
+        for stdout in replies:
+            with self.subTest(stdout=stdout):
+                result = subprocess.CompletedProcess([], 0, stdout=stdout, stderr=b"")
+                with patch.object(contact.subprocess, "run", return_value=result):
+                    with self.assertRaises(contact.NativeCommandError) as caught:
+                        contact.native("test-session", *self.prompt)
+                self.assertIsNone(caught.exception.code)
+                self.assertIs(caught.exception.not_sent, False)
+
+    def test_success_returns_the_unmodified_native_result(self):
+        payload = {"type": "agent_prompted", "agent": {"pane_id": "w1:p2", "agent_status": "blocked"}}
+        stdout = json.dumps({"id": "cli:agent:prompt", "result": payload}).encode()
+        result = subprocess.CompletedProcess([], 0, stdout=stdout, stderr=b"")
+        with patch.object(contact.subprocess, "run", return_value=result) as run:
+            self.assertEqual(contact.native("test-session", *self.prompt), payload)
+        run.assert_called_once_with([str(contact.HERDR), "--session", "test-session", *self.prompt],
+                                    capture_output=True, timeout=8)
 
 
 class RoleContactTests(unittest.TestCase):
