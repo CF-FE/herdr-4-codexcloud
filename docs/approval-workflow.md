@@ -231,6 +231,12 @@ python3 -I -B /fixed/release/scripts/coordinator_approval_intake.py --state-dir 
 
 原桥的固定 argv 指向同一安装根的 `coordinator_approval_hook.py` 与同一 policy；原 Herdr watcher 的 `--root` 也必须指向该安装根，才会在既有轮次消费同一来源／游标。其他安装若未加载固定发布或未核 watcher 实际承接，不能宣称答复可在用户离线后自动接回。
 
+**App 升级或主控交接后先核来源。** 固定摘要不匹配会先报 `NATIVE_BINARY_CHANGED`，其后仍可能有旧 thread／元数据文件不可读等独立缺口，不能只换摘要。先核新二进制来源、当前真实 thread／cwd／元数据、允许项目及公子的实际交接授权，并在实际运行宿主执行只读 `probe`。只读 RPC 子进程启动仍需初始化 Codex 自有状态；受限执行环境若阻止其打开 SQLite，可能表现为 `NATIVE_READER_EXITED`，应保留原启动错误，不能仅据此判定原生接口不兼容，也不直接修改 Codex 内部数据。
+
+不同来源的游标不能移植。先对账原审批与未决决定；有在途审批时逐项保留原 route 和接回责任，不能整库改绑。原审批为空且已核交接时，成对归档旧 policy／审批游标，为新来源从当前 EOF 建新锚点；核新旧 policy hash，并在既有审批来源锁内切换。保留独立的 `native-followup-source.json`。`bind` 遇旧 hash 会拒绝，不能只改游标内 hash 绕过。桥 hook 与 watcher 均采用原根的新绑定，修后分别回读 `probe`、收件和原驱动自然轮次；空台账成功不代表真实提示、用户答复和业务接续已验，应沿下一件自然审批验证。
+
+独立原生 reader 可能把桌面仍在运行的回合暂报为 `interrupted`／`failed`。收件器须保留同回合已绑定的非空 EOF item 锚点，待完成后只读取其后的回执；其他终断回合仍跳过，不阻塞后续正常回合。回归覆盖“绑定前已有有效回执 → 暂报终断 → 同回合新答复并完成”，只能采纳绑定后的回执。不得把临时状态变化当成扩大历史读取范围的依据。
+
 受信记录者在核人、核明确原范围后，发一条独立单行回执；原用户无需填写下列字段：
 
 ```text

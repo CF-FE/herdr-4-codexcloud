@@ -157,7 +157,9 @@ Win OMP Worker 承担规划或动态判断时，可按职责配备 Decision Serv
 
 本项按 `BOUNDARY_NOTE` 实施：只扩展现有恢复合同，角色、项目归属、负责人代次、线程和任务状态的所有者不变。迁移前核原线程已空闲并交还，沿原线程恢复；旧只读绑定继续可用。在途工作保留原唯一派发者，新任务按负责人明确的任务分工登记派发者，不把新工具能力当成已有预算或主机维护审批。通过负责人实际读取技能、核对 Herdr 身份和既有 Worker 的回执验收能力，不重跑生产。
 
-外部开发窗口向正在 Herdr 中运行的角色转达消息时，复用已授权的真实维护终端；App 的 `active writer` 表示原生进程持有线程，应转回 Herdr 路径。维护者可从真实 PTY 附着原命名 session，再在已有 driver 内核身份、定向投递并读接手回执；临时暂停的提醒程序须在维护后恢复。不伪造 Herdr 环境，也不从 App 并行恢复同一角色。
+外部开发窗口向正在 Herdr 中运行的角色转达消息时，复用已授权的真实维护终端；App 的 `active writer` 表示原生进程持有线程，应转回 Herdr 路径。Mac／Linux 优先从真实 PTY 用 `herdr --session <原会话> terminal attach <已核实的driver终端ID>` 直接附着已有专用终端，再核其真实 Herdr 身份、定向投递并读接手回执。省略 `--takeover`，已有直接附着者或目标不存在时先对账；用 `Ctrl+B q` 退出本客户端。临时暂停的提醒程序须在维护后恢复。不伪造 Herdr 环境，也不从 App 并行恢复同一角色。
+
+完整 TUI 即使指定本地 `--session`，仍可自动连接已启用的 saved machine；`HERDR_CONFIG_PATH` 不替换独立的 endpoint 清单。仅为本地联络时，直接终端入口跳过该清单、重载和后台远程连接，连接失败也不补启 server。2026-11-12 已在原维护 driver 完成真实定向联络并退出，原 watcher 随后恢复。[固定 0.9.5 文档](https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/docs/next/website/src/content/docs/persistence-remote.mdx#L113-L151) · [入口分支](https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/src/client/mod.rs#L175-L255)。此入口只解决本次联络的连接范围，不证明既有远端 bridge 已退出或所有客户端静止。
 
 **Codex Cloud。** 当前提交接口缺少 `model` 和 `effort` 字段，白名单模型与推理强度约束为 `unsupported`。要求强制该配置的单元报告缺口，独立获准的 Mac／Win 工作继续。其他已获准的 Cloud 作业由唯一路由执行者核原任务、已发布环境、创建权限和未决意图后创建一次。保存原生任务 ID，沿原 ID 收回状态与产物并交本单接收者。合并、应用变更与发布各按本单授权办理。
 

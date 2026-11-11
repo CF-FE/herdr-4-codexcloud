@@ -113,6 +113,29 @@ class NativeApprovalIntakeTests(unittest.TestCase):
         self.assertEqual(collect(self.core, self.policy, reader=self.reader)["accepted"], 1)
         self.assertTrue(set(self.calls) <= {"thread/read", "thread/turns/list", "thread/items/list"})
 
+    def test_terminal_reports_for_bound_turn_do_not_reimport_a_pre_bind_relay(self):
+        self.answer()
+        bound_turn = self.turns[-1]
+        bound_turn["status"] = "inProgress"
+        bound = bind(self.core, self.policy, reader=self.reader)
+        self.assertEqual(bound["anchor"], {"turn_id": "answer-turn", "item_id": "relay"})
+
+        for status in ("interrupted", "failed"):
+            bound_turn["status"] = status
+            self.assertEqual(collect(self.core, self.policy, reader=self.reader)["accepted"], 0)
+
+        bound_turn["items"].extend([
+            {"id": "new-answer", "type": "userMessage", "content": [{"type": "text", "text": "确认原范围"}]},
+            {"id": "new-relay", "type": "agentMessage", "text": self.marker(user_item="new-answer")},
+        ])
+        bound_turn["status"] = "completed"
+        result = collect(self.core, self.policy, reader=self.reader)
+        self.assertEqual((result["accepted"], result["rejected"]), (1, 0))
+        decision = self.core.manage("approval_list", self.key)["items"][0]["progress"]["decision"]
+        self.assertEqual(decision["status"], "APPROVED")
+        self.assertIn("answer-turn/new-answer", decision["source_ref"])
+        self.assertIn("answer-turn/new-relay", decision["source_ref"])
+
     def test_user_and_tool_messages_or_tool_citations_cannot_grant_authority(self):
         bind(self.core, self.policy, reader=self.reader)
         self.answer()
@@ -229,7 +252,9 @@ class NativeApprovalIntakeTests(unittest.TestCase):
         self.assertEqual(collect(self.core, self.policy, reader=self.reader)["accepted"], 1)
 
     def test_terminal_turns_do_not_block_a_later_completed_approval_receipt(self):
+        self.turns[0]["status"] = "inProgress"
         bind(self.core, self.policy, reader=self.reader)
+        self.turns[0]["status"] = "interrupted"
         for status in ("interrupted", "failed"):
             self.turns.append({"id": status + "-turn", "status": status, "items": [
                 {"id": status + "-partial", "type": "agentMessage", "text": "Interrupted output"},
