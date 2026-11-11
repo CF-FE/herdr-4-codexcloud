@@ -1,8 +1,16 @@
 # 本仓当前状态
 
-本页维护 Herdr 项目的当前采用摘要。**2026-11-09** 已纳入 Decision Service 部署、消费者工程闭环及 Win 召回排序补丁的原回执；2026-11-05 共享记忆部署对齐、协调员与 Mac 桥的既有记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
+本页维护 Herdr 项目的当前采用摘要。**2026-11-11** 已纳入原任务跟进机制部署与凡人现场验证、组织技能和角色库读回；此前 Decision Service、共享记忆及 Mac 桥记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
 
 ## 当前结论
+
+**2026-11-11，Mac 原任务跟进已采用固定提交 `cabdf5ce`。** 原 waits、bridge-pump 和真实 Herdr driver 已切换，18 个发布文件核符，SQLite 与原收件游标保留。旧台账副本迁移保留 14 张表原记录。431 项全仓测试中 427 项通过、4 项既有条件跳过。独立复审修复了保留截止被复查推迟、迟到处理回执过期丢失两条路径。[PR #21](https://github.com/CF-FE/herdr-4-codexcloud/pull/21) · [证据／截止触发与恢复合同](project-coordinator.md#native-followups)
+
+凡人原任务已由原协调员登记真实事件源，连续两个同证据周期没有新增意图或模型提醒；随后真实状态变化产生原键提醒，已发动作等待原生处理时不重投。两条经公子明确批准的历史进度已由独立记录会话发布并精确回读，原记录均为 `RECORDED`。[原安排](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6800099082) · [负责人历史处置](https://github.com/CF-FE/fanren-work/issues/2#issuecomment-6800131653)。同案有限宿主补件有真实接手、执行和负责人限定 STOP 裁定；C001 控制来源、实际听审与素材许可仍有缺口，不据此放行维护或生产。截止与异常投递路径的隔离回归和现场自然事件分别记录。
+
+原审批来源 policy 的宿主 CLI 摘要已不匹配，当前报 `NATIVE_BINARY_CHANGED`，旧固定版也可复现。此次保留 policy 与原审批游标，该故障不抑制独立跟进；审批来源重新核绑定及自然审批回流仍待单独恢复，不声称所有工作流通道均已通过。
+
+**2026-11-11，组织技能及角色库已完成 Mac／Win 读回。** Mac 标准消费者与独立发布目录固定 `36d3b54`，30 个运行文件和 12 个组织技能文件核符；组织协议 2.3.2、角色库 1.0.3、共同规则 1.0.2 已由协调员、负责人和三位原 Worker 实读。Win OMP 原生技能发现与 34 文件角色库检查通过。Cloud 新版源码就绪，公子决定把实际加载验证留到下一次真实 Cloud 任务；未新建验证作业。
 
 **2026-11-09，Decision Service 已在 VPS 部署，HTTP（程序）与 MCP（Agent）共用判断核心、身份范围和持久 SQLite。** 本轮文档依据服务主仓固定版本 [`2e5ff940`](https://github.com/CF-FE/decision-service/tree/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs) 的[当前交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)及原交接回执，不重跑运行验证。Mac 插件 `0.1.1` 的原生 OAuth 与工具读回、云端 Decision Service Cloud `1.0.2` 的 OAuth、同记录查询及 Skill 显式加载已有确认；不代表所有旧会话已刷新。插件与 Skill 主源归 Decision Service 仓，本仓维护消费者。
 
@@ -10,7 +18,9 @@
 | --- | --- |
 | Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
 | VPS release `07cf3d34` | Decision Service 当前运行发布，公网 HTTP/MCP 读回原决定与反馈；凡人单 bank 试点版 `c38f58e` 保留作回退 |
-| Herdr `5d666fcb` | Mac 当前标准消费者，凡人可显式绑定独立发布器 |
+| Herdr `cabdf5ce` | Mac 原任务跟进固定发布，含可选证据／截止触发及投递分类 |
+| Herdr `36d3b54` | Mac 当前标准消费者和组织技能／角色库发布 |
+| Herdr `5d666fcb` | 此前消费者发布，凡人可显式绑定独立发布器，旧目录保留 |
 | Herdr `3e90b459` | 此前的组织角色受控创建及 Win OMP Worker 适配版，原目录保留作回退 |
 | Herdr `701cd01` | 此前接入 Mac Codex 工作流 `new-unit` 白名单的发布，原目录独立保留作回退 |
 | Herdr `8612a9a` | 此前的 Mac 合成工程闭环版本，原安装目录独立保留作回退 |

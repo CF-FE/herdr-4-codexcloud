@@ -29,6 +29,15 @@ HERDR = Path.home() / ".local/bin/herdr"
 CODEX = Path.home() / ".local/bin/codex"
 
 
+class NativeCommandError(ValueError):
+    """Native failure with a verified error code when available."""
+
+    def __init__(self, code: str | None = None, *, not_sent: bool = False):
+        super().__init__("NATIVE_LOOKUP_UNCONFIRMED")
+        self.code = code
+        self.not_sent = not_sent
+
+
 def require(ok, reason):
     if not ok:
         raise ValueError(reason)
@@ -85,10 +94,49 @@ def read_route(root, project):
     return path, route, caller, followups
 
 
+def _native_reply(raw):
+    def unique(pairs):
+        result = dict(pairs)
+        require(len(result) == len(pairs), "DUPLICATE_NATIVE_REPLY_KEY")
+        return result
+
+    reply = json.loads(raw, object_pairs_hook=unique)
+    require(isinstance(reply, dict), "INVALID_NATIVE_REPLY")
+    return reply
+
+
 def native(session, *command):
-    result = subprocess.run([str(HERDR), "--session", session, *command], capture_output=True, timeout=8)
-    require(result.returncode == 0, "NATIVE_LOOKUP_UNCONFIRMED")
-    return json.loads(result.stdout)["result"]
+    try:
+        process = subprocess.run([str(HERDR), "--session", session, *command], capture_output=True, timeout=8)
+        process.check_returncode()
+    except subprocess.CalledProcessError as error:
+        request_id = code = None
+        # Herdr 0.9.5 writes the error envelope to stderr and exits 1.
+        # https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/src/cli.rs#L745-L753
+        if error.returncode == 1 and not error.stdout:
+            try:
+                reply = _native_reply(error.stderr)
+            except (ValueError, RecursionError):
+                reply = {}
+            body = reply.get("error")
+            if ("result" not in reply and isinstance(reply.get("id"), str) and reply["id"]
+                    and isinstance(body, dict) and isinstance(body.get("code"), str) and body["code"]
+                    and isinstance(body.get("message"), str)):
+                request_id, code = reply["id"], body["code"]
+        # This prompt rejection is generated before any terminal input is queued.
+        # https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/src/app/api/agents.rs#L139-L177
+        not_sent = (command[:2] == ("agent", "prompt") and request_id == "cli:agent:prompt"
+                    and code == "agent_blocked")
+        raise NativeCommandError(code, not_sent=not_sent) from error
+    except (OSError, subprocess.SubprocessError) as error:
+        raise NativeCommandError() from error
+
+    try:
+        reply = _native_reply(process.stdout)
+        require("error" not in reply and isinstance(reply.get("result"), dict), "INVALID_NATIVE_REPLY")
+    except (ValueError, RecursionError) as error:
+        raise NativeCommandError() from error
+    return reply["result"]
 
 
 def same_pane(observed, locator, cwd):

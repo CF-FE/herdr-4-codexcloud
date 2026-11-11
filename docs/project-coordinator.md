@@ -414,6 +414,12 @@ python3 "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" githu
 | `put` | `project_id, followup_key, generation, task_ref, receipt_ref, next_action, action_owner, next_check_at`。同一原任务里的同一动作使用稳定键，时间须带时区。每个不同的决定可单列下一项。 |
 | `record` | `project_id, followup_key, generation, expected_revision, outcome, evidence_ref`。读原项取当前修订号。已有对应决定或办结回执用 `CLOSED`；接到提醒后仍需等条件，用 `RECHECK` 并给新的处置依据和未来 `next_check_at`；尚未发提醒可用 `DEFER` 调整检查点。投递结果未知先在原线程对账。 |
 
+**有实际输入条件的待办可采用证据或截止触发。** `put` 可附 `trigger`，包含 `task_id`、任务内 JSON 相对 `path`、顶层实质字段名列表 `fields`、这些字段规范化 JSON 的 `baseline_sha256`（尚无原件可为 `null`），以及可选的 `deadline_at`。来源限本机 `ProjectWorkflowTools/state/<project_id>/<task_id>/` 内的有界普通 JSON 文件。只选实际接收者有权维护的原件或最小可信投影，字段应关联原生回执、决定或材料版本；观察时间、轮询次数和自身 RECHECK 记录不作为触发证据。固定历史文件可用于回放，不能冒充将来会更新的收件入口。
+
+`next_check_at` 是程序下一次可检查的时间，`deadline_at` 是已约定需要处置的截止。程序可以每分钟读取，但只有实质指纹变化或截止到达才预留提醒意图。同证据不会重复唤醒模型；来源缺失或不可读保留原因，到约定截止仍提醒协调员处置。扫描按页继续，首项等待证据不阻止独立项目。真实接收人、可验证通道、等待事件、承诺与到期动作仍须由协调员沿原任务落实，增加字段不代表对方已接单。
+
+处理提醒的 `record` 应保留提醒内的 `action_id`。同一动作的迟到原生回执只对账该动作；已过期的同动作 `RECHECK` 检查时间仍可入账为到期项。`RECHECK` 消耗当时预留的证据指纹，保留之后新到的证据，下一程序检查不会晚于仍有效的原截止。截止已处置后不自动续期，确有新的约定才附新的 `deadline_at`。明确原生发送前拒绝记为 `NOT_SENT`，发送后失联或结果不明保留 `UNKNOWN`；两者均不消耗证据。原生 `agent_blocked` 的判别依据见[投递适配器](../scripts/herdr_role_contact.py)，自动程序不通过终端输入绕过等待中的批准或问题界面。
+
 协调员读待办和定位现任负责人时，用**当前观察器同一发布目录**内的工具。Mac 可从已加载的 `~/Library/LaunchAgents/io.projectcoordinator.waits.plist` 的 `ProgramArguments` 找到脚本目录。仅看到提醒或 GitHub 评论不结单，保留原项目的生产授权、唯一写者与验收责任。逾期但已送达的提醒仍在未结列表；下一次提醒须有明确复查决定。
 
 **安装与恢复。** 固定发布包含[收件器](../scripts/coordinator_followup_intake.py)和[原生提醒程序](../scripts/coordinator_followup_wake.py)。维护者先用 `coordinator_followup_intake.py bind-source --root "$APP" --transcript "$ORIGINAL"` 绑定已核的协调员原线程文件；首次从启用位置起读，再次绑定同一文件保留游标。只消费该原线程中新产生的显式动作。以前的未结事项由协调员按原回执补登。随后在原 Herdr 会话的专用空闲 shell 前台运行以下命令：
@@ -429,5 +435,7 @@ python3 -I -B "$RELEASE/scripts/coordinator_followup_wake.py" watch --root "$APP
 1. 暂停新准入与外部发送，核现有动作／写者和已发布结果。已加载的本机定时器用 `launchctl bootout "gui/$(id -u)/io.projectcoordinator.waits"` 停止；该命令只停等待观察器，须分别确认实际调用端与发送端已停写。保存 SQLite 一致性备份、各项目最高代次和未决关联到已批准的私有落点。
 2. 用新固定提交安装另一版本目录，在私有副本先运行 `tick` 和状态查询，核旧请求、代次和事件可读，再切换观察器。`recover` 是停止原发送者后的显式恢复动作，需输入 `evidence_ref`，将未定意图转入 UNKNOWN，继续对账原生动作。
 3. 回滚时先停止新版，核旧版与当前数据结构兼容，把登录 plist 换回已验证版本并从该文件重新加载。首次安装需要撤回时，卸载该 label，将其登录 plist 移入私有备份目录，保留台账与收据。若需恢复旧数据，先对照原生动作和已知最高代次。尚不能对齐时只做只读检查。
+
+带证据触发的未结待办不能直接交旧版 watcher 运行。旧版会把它们视为纯时间提醒，重新产生无材料唤醒。此类回滚先停原生 watcher，保留原台账、动作和游标，沿原协调员核清未决项并安排明确接续；不得用删除字段或恢复旧数据库抹去已发动作。旧格式条目仍可由新版恢复，固定发布须覆盖实际入口及全部导入文件。
 
 2026-11-03 北京时间 16:55 在 Mac 上回读固定实现 `6252cf39fffd08b80d82ee1150a9b56e895fa479`。全仓 90 项测试通过，包含原有 61 项以及协调核心 10 项、端口联调 18 项、安装升级 1 项。另用该固定 Git 对象作独立私有安装，核对四个文件摘要及 plist 语法，按 plist 中的真实解释器和完整参数成功执行一次 `tick`，空台账处理 0 项。定时器为可启用配置，长期运行、原桥生产端口、业务负责人答复与云端Dot精确读回仍待实地验收。[本机事务和并发](../tests/test_project_coordinator.py) · [隔离端口联调](../tests/test_coordinator_transport.py) · [安装与升级](../tests/test_coordinator_install.py)

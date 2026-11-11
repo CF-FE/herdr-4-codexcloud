@@ -35,8 +35,8 @@ class RoleFollowupTests(unittest.TestCase):
     def put(self, **changes):
         return self.core.manage("role_followup_put", {**self.original, **changes})
 
-    def claim(self, revision=0):
-        return self.core.manage("role_followup_claim", dict(self.key, expected_revision=revision))
+    def claim(self, revision=0, **observation):
+        return self.core.manage("role_followup_claim", dict(self.key, expected_revision=revision, **observation))
 
     def record(self, revision, outcome, ref, **extra):
         return self.core.manage("role_followup_record", dict(self.key, expected_revision=revision, outcome=outcome,
@@ -87,6 +87,8 @@ class RoleFollowupTests(unittest.TestCase):
     def test_defer_and_confirmed_not_sent_advance_checkpoint_without_duplicate_sends(self):
         self.put()
         future = "2026-11-05T11:00:00Z"
+        with self.assertRaisesRegex(CoordinatorError, "INVALID_CHECKPOINT"):
+            self.record(0, "DEFER", "owner:working", next_check_at=self.original["next_check_at"])
         later = self.record(0, "DEFER", "owner:working", next_check_at=future)
         self.assertEqual(self.record(0, "DEFER", "owner:working", next_check_at=future), later)
         self.assertFalse(self.listing(due_only=True))
@@ -94,6 +96,9 @@ class RoleFollowupTests(unittest.TestCase):
         self.core.clock = lambda: datetime(2026, 11, 6, tzinfo=timezone.utc)
         claimed = self.claim(1)
         self.assertTrue(claimed["send"])
+        with self.assertRaisesRegex(CoordinatorError, "INVALID_CHECKPOINT"):
+            self.record(2, "NOT_SENT", "native:closed-without-send", action_id=claimed["action_id"],
+                        next_check_at=future)
         next_time = "2026-11-07T11:00:00Z"
         self.record(2, "NOT_SENT", "native:closed-without-send", action_id=claimed["action_id"], next_check_at=next_time)
         self.core.clock = lambda: datetime(2026, 11, 8, tzinfo=timezone.utc)
@@ -126,6 +131,8 @@ class RoleFollowupTests(unittest.TestCase):
         with self.assertRaisesRegex(CoordinatorError, "FOLLOWUP_STATE_CONFLICT"):
             self.record(2, "RECHECK", "native:owner-still-busy", **future)
         self.record(2, "SUBMITTED", "transport:reconciled", action_id=old_action)
+        with self.assertRaisesRegex(CoordinatorError, "INVALID_CHECKPOINT"):
+            self.record(3, "RECHECK", "native:handled-owner-still-busy", next_check_at=self.original["next_check_at"])
         for existing in ("native:original", "transport:reconciled", old_action):
             with self.assertRaisesRegex(CoordinatorError, "HANDLING_RECEIPT_REQUIRED"):
                 self.record(3, "RECHECK", existing, **future)
@@ -159,6 +166,96 @@ class RoleFollowupTests(unittest.TestCase):
         page = self.core.manage("role_followup_list", {"limit": 2, "due_only": True})
         self.assertTrue(page["more"])
         self.assertEqual([r["followup_key"] for r in self.listing(due_only=True, after=page["next_after"])], ["item-2"])
+
+    def test_old_schema_and_original_registration_survive_upgrade(self):
+        registered = self.put()
+        self.claim()
+        with sqlite3.connect(self.core.path) as db:
+            db.execute("ALTER TABLE role_followups DROP COLUMN trigger_spec")
+            db.execute("ALTER TABLE role_followups DROP COLUMN last_trigger")
+        legacy = Coordinator(self.state, clock=self.clock, read_only=True)
+        before = legacy.manage("role_followup_list", self.key)["items"][0]
+        with sqlite3.connect(self.core.path) as db:
+            self.assertNotIn("trigger_spec", {row[1] for row in db.execute("PRAGMA table_info(role_followups)")})
+        self.core = Coordinator(self.state, clock=self.clock)
+        self.assertEqual(self.put(), before)
+        self.assertEqual(before["revision"], registered["revision"] + 1)
+        self.assertFalse(self.claim(before["revision"])["send"])
+
+    def test_trigger_claim_is_atomic_and_recheck_consumes_only_claimed_fingerprint(self):
+        spec = {"task_id": "original-task", "path": "original/decision.json", "fields": ["decision", "id"],
+                "baseline_sha256": "a" * 64, "deadline_at": "2026-11-05T12:00:00Z"}
+        first = self.put(trigger=spec)
+        self.assertEqual(first, self.put(trigger={**spec, "fields": ["id", "decision"],
+                                                  "deadline_at": "2026-11-05T20:00:00+08:00"}))
+        self.assertFalse(self.claim(evidence_sha256="a" * 64)["send"])
+        self.assertFalse(self.claim(source_reason="EVIDENCE_MISSING")["send"])
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            claims = list(pool.map(lambda _: self.claim(evidence_sha256="b" * 64), range(4)))
+        self.assertEqual(sum(item["send"] for item in claims), 1)
+        action = claims[0]["action_id"]
+        self.assertEqual(claims[0]["last_trigger"], {"kind": "EVIDENCE_CHANGED", "evidence_sha256": "b" * 64})
+        self.record(1, "UNKNOWN", "transport:lost", action_id=action)
+        self.record(2, "SUBMITTED", "transport:reconciled", action_id=action)
+        self.assertFalse(self.claim(3, evidence_sha256="c" * 64)["send"])
+        with self.assertRaisesRegex(CoordinatorError, "ACTION_MISMATCH"):
+            self.record(1, "RECHECK", "native:handled", action_id="wrong", next_check_at="2026-11-04T14:00:00Z")
+        with self.assertRaisesRegex(CoordinatorError, "FOLLOWUP_STATE_CONFLICT"):
+            self.record(0, "RECHECK", "native:handled", action_id=action, next_check_at="2026-11-04T14:00:00Z")
+        recheck = {"action_id": action, "next_check_at": "2026-11-04T14:00:00Z"}
+        updated = self.record(1, "RECHECK", "native:handled", **recheck)
+        self.assertEqual(updated, self.record(1, "RECHECK", "native:handled", **recheck))
+        self.assertEqual(updated["revision"], 4)
+        self.assertEqual(updated["trigger"]["baseline_sha256"], "b" * 64)
+        self.core = Coordinator(self.state, clock=lambda: datetime(2026, 11, 4, 15, tzinfo=timezone.utc))
+        self.assertFalse(self.claim(4, evidence_sha256="b" * 64)["send"])
+        self.assertTrue(self.claim(4, evidence_sha256="c" * 64)["send"])
+
+    def test_trigger_source_is_an_explicit_scoped_json_path(self):
+        spec = {"task_id": "task", "path": "decision.json", "fields": ["decision"], "baseline_sha256": None}
+        for bad in ({"task_id": "../other"}, {"path": "/tmp/decision.json"}, {"path": "dir/../decision.json"},
+                    {"path": "dir//decision.json"}, {"fields": ["decision", "decision"]},
+                    {"baseline_sha256": "not-a-hash"}, {"deadline_at": "2026-11-04T12:58:59Z"}):
+            with self.subTest(bad=bad), self.assertRaises(CoordinatorError):
+                self.put(trigger={**spec, **bad})
+        self.assertEqual(self.listing(), [])
+
+    def test_evidence_recheck_cannot_postpone_the_unconsumed_deadline(self):
+        deadline = "2026-11-04T13:05:00+00:00"
+        spec = {"task_id": "task", "path": "decision.json", "fields": ["decision"],
+                "baseline_sha256": "a" * 64, "deadline_at": deadline}
+        self.put(trigger=spec)
+        claim = self.claim(evidence_sha256="b" * 64)
+        self.assertEqual(claim["last_trigger"]["kind"], "EVIDENCE_CHANGED")
+        action = claim["action_id"]
+        self.record(1, "SUBMITTED", "transport:known", action_id=action)
+        pending = self.record(2, "RECHECK", "native:handled", action_id=action,
+                              next_check_at="2026-11-04T16:00:00Z")
+        self.assertEqual(pending["next_check_at"], deadline)
+        self.assertEqual(pending["trigger"]["deadline_at"], deadline)
+        self.assertEqual(self.listing(due_only=True), [])
+        self.core.clock = lambda: datetime(2026, 11, 4, 13, 6, tzinfo=timezone.utc)
+        self.assertEqual(self.listing(due_only=True), [pending])
+        due = self.claim(3, evidence_sha256="b" * 64)
+        self.assertTrue(due["send"])
+        self.assertEqual(due["last_trigger"]["kind"], "DEADLINE")
+        after_backoff = self.record(4, "NOT_SENT", "native:presend-rejected", action_id=due["action_id"],
+                                    next_check_at="2026-11-04T13:07:00Z")
+        self.assertEqual(after_backoff["trigger"]["deadline_at"], deadline)
+        self.assertEqual(self.listing(due_only=True), [])
+
+    def test_legacy_driver_intent_for_trigger_item_requires_exact_receipt_to_rearm(self):
+        spec = {"task_id": "task", "path": "decision.json", "fields": ["decision"], "baseline_sha256": None}
+        self.put(trigger=spec)
+        action = self.claim(evidence_sha256="b" * 64)["action_id"]
+        self.record(1, "SUBMITTED", "transport:known", action_id=action)
+        with sqlite3.connect(self.core.path) as db:
+            db.execute("UPDATE role_followups SET last_trigger=NULL")
+        self.assertEqual(self.listing()[0]["blocked_reason"], "FOLLOWUP_TRIGGER_RECEIPT_MISSING")
+        extra = {"next_check_at": "2026-11-04T14:00:00Z"}
+        with self.assertRaisesRegex(CoordinatorError, "FOLLOWUP_STATE_CONFLICT"):
+            self.record(2, "RECHECK", "native:handled", **extra)
+        self.assertEqual(self.record(2, "RECHECK", "native:handled", action_id=action, **extra)["trigger"], spec)
 
 
 if __name__ == "__main__":
