@@ -300,11 +300,13 @@ def collect(coordinator, policy, cursorpath=None, *, reader=native_reader, timeo
             if status == "inProgress":
                 pending = True
                 break  # The original watcher will collect after TurnComplete.
-            if status in {"interrupted", "failed"}:
-                source["anchor"] = {"turn_id": turn_id, "item_id": None}
-                save_cursor(path, source)  # Skip partial output; later receipts remain reachable.
-                continue
             after = anchor["item_id"] if anchor and turn_id == anchor["turn_id"] else None
+            if status in {"interrupted", "failed"}:
+                # A separate reader may temporarily report the anchored turn as terminal.
+                if after is None:
+                    source["anchor"] = {"turn_id": turn_id, "item_id": None}
+                    save_cursor(path, source)  # Skip partial output; later receipts remain reachable.
+                continue
             for item in _items(call, policy, turn_id, after=after):
                 require(time.monotonic() < deadline, "NATIVE_READ_TIMEOUT")
                 if consumed >= 128:
