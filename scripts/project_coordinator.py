@@ -204,7 +204,7 @@ CREATE TABLE IF NOT EXISTS role_followups(
  generation INTEGER NOT NULL, owner_principal TEXT NOT NULL, task_ref TEXT NOT NULL, receipt_ref TEXT NOT NULL,
  next_action TEXT NOT NULL, action_owner TEXT NOT NULL, next_check_at TEXT NOT NULL, input_hash TEXT NOT NULL,
  state TEXT NOT NULL DEFAULT 'PENDING', revision INTEGER NOT NULL DEFAULT 0, action_id TEXT,
- evidence_ref TEXT, last_report_hash TEXT, UNIQUE(project_id,followup_key));
+ evidence_ref TEXT, last_report_hash TEXT, trigger_spec TEXT, last_trigger TEXT, UNIQUE(project_id,followup_key));
 CREATE INDEX IF NOT EXISTS role_followups_due ON role_followups(next_check_at,seq) WHERE state='PENDING';
 CREATE TABLE IF NOT EXISTS approvals(
  seq INTEGER PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects, approval_id TEXT NOT NULL,
@@ -234,7 +234,40 @@ def _role_followup_item(row):
     item = dict(row)
     del item["input_hash"], item["last_report_hash"]
     item["generation_current"] = bool(item["generation_current"])
+    trigger = item.pop("trigger_spec", None)
+    last_trigger = item.pop("last_trigger", None)
+    if trigger is not None:
+        item["trigger"] = json.loads(trigger)
+        item["last_trigger"] = json.loads(last_trigger) if last_trigger is not None else None
+    if not item["generation_current"] and item["state"] != "CLOSED":
+        item["blocked_reason"] = "STALE_GENERATION"
+    elif trigger is not None and last_trigger is None and item["state"] in ("INTENT", "UNKNOWN", "SUBMITTED"):
+        item["blocked_reason"] = "FOLLOWUP_TRIGGER_RECEIPT_MISSING"
     return item
+
+
+def _evidence_sha256(value):
+    require(isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value), "INVALID_EVIDENCE_HASH")
+    return value
+
+
+def _followup_trigger(value):
+    fields(value, "task_id path fields baseline_sha256", "deadline_at")
+    identifier(value["task_id"])
+    path = text(value["path"], 512)
+    parts = path.split("/")
+    require(len(parts) <= 8 and path.endswith(".json"), "INVALID_EVIDENCE_PATH")
+    for part in parts:
+        identifier(part)
+    keys = value["fields"]
+    require(isinstance(keys, list) and 1 <= len(keys) <= 16, "INVALID_EVIDENCE_FIELDS")
+    for key in keys:
+        identifier(key)
+    require(len(keys) == len(set(keys)), "INVALID_EVIDENCE_FIELDS")
+    if value["baseline_sha256"] is not None:
+        _evidence_sha256(value["baseline_sha256"])
+    return {**value, "fields": sorted(keys),
+            **({"deadline_at": timestamp(value["deadline_at"]).isoformat()} if "deadline_at" in value else {})}
 
 
 def role_followup_page(db, data, now=None):
@@ -314,6 +347,10 @@ class Coordinator:
                     db.execute(statement)
             if "reason" not in {row["name"] for row in db.execute("PRAGMA table_info(contacts)")}:
                 db.execute("ALTER TABLE contacts ADD COLUMN reason TEXT")
+            followup_columns = {row["name"] for row in db.execute("PRAGMA table_info(role_followups)")}
+            for column in ("trigger_spec", "last_trigger"):
+                if column not in followup_columns:
+                    db.execute(f"ALTER TABLE role_followups ADD COLUMN {column} TEXT")
             if not had_schedule:
                 # Only on initial schema creation/upgrade, preserve existing waiting responsibilities.
                 for row in db.execute("SELECT project_id,request_id,waiting FROM requests"):
@@ -1102,14 +1139,18 @@ class Coordinator:
         return row
 
     def _admin_role_followup_put(self, db, data):
-        fields(data, "project_id followup_key generation task_ref receipt_ref next_action action_owner next_check_at")
+        fields(data, "project_id followup_key generation task_ref receipt_ref next_action action_owner next_check_at",
+               "trigger")
         project = self._project(db, identifier(data["project_id"]))
         key, generation = identifier(data["followup_key"]), _generation(data["generation"])
         for field in ("task_ref", "receipt_ref", "action_owner"):
             require(canonical_ref(text(data[field])), "INVALID_FOLLOWUP_REFERENCE")
         text(data["next_action"])
         due = timestamp(data["next_check_at"]).isoformat()
-        digest = canonical_hash({**data, "next_check_at": due})
+        trigger = _followup_trigger(data["trigger"]) if "trigger" in data else None
+        if trigger is not None and "deadline_at" in trigger:
+            require(due <= trigger["deadline_at"], "INVALID_CHECKPOINT")
+        digest = canonical_hash({**data, "next_check_at": due, **({"trigger": trigger} if trigger is not None else {})})
         existing = db.execute("SELECT input_hash FROM role_followups WHERE project_id=? AND followup_key=?",
                               (project["project_id"], key)).fetchone()
         if existing:
@@ -1118,9 +1159,11 @@ class Coordinator:
             require(project["assignment_state"] == "BOUND" and project["generation"] == generation
                     and project["owner_principal"], "STALE_GENERATION")
             db.execute("INSERT INTO role_followups(project_id,followup_key,generation,owner_principal,task_ref,"
-                       "receipt_ref,next_action,action_owner,next_check_at,input_hash) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                       "receipt_ref,next_action,action_owner,next_check_at,input_hash,trigger_spec)"
+                       " VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                        (project["project_id"], key, generation, project["owner_principal"], data["task_ref"],
-                        data["receipt_ref"], data["next_action"], data["action_owner"], due, digest))
+                        data["receipt_ref"], data["next_action"], data["action_owner"], due, digest,
+                        canonical(trigger).decode() if trigger is not None else None))
             self._event(db, project["project_id"], None, "ROLE_FOLLOWUP_REGISTERED", "local:coordinator",
                         {"followup_key": key, "generation": generation, "input_hash": digest})
         return _role_followup_item(self._followup_row(db, data))
@@ -1130,19 +1173,37 @@ class Coordinator:
 
     def _admin_role_followup_claim(self, db, data):
         """Reserve one reminder for the local coordinator; it is never an owner/production dispatch."""
-        fields(data, "project_id followup_key generation expected_revision")
+        fields(data, "project_id followup_key generation expected_revision", "evidence_sha256 source_reason")
         row = self._followup_row(db, data)
         revision = _generation(data["expected_revision"])
         require(row["generation_current"], "STALE_GENERATION")
-        if (row["state"] != "PENDING" or row["revision"] != revision
-                or timestamp(row["next_check_at"]) > self._now()):
+        now = self._now()
+        if row["state"] != "PENDING" or row["revision"] != revision or timestamp(row["next_check_at"]) > now:
             return {**_role_followup_item(row), "send": False}
+        observed = None
+        if row["trigger_spec"] is not None:
+            trigger = json.loads(row["trigger_spec"])
+            fingerprint = _evidence_sha256(data["evidence_sha256"]) if "evidence_sha256" in data else None
+            deadline = trigger.get("deadline_at")
+            if deadline is not None and deadline <= now.isoformat():
+                kind = "DEADLINE"
+            elif fingerprint is not None and fingerprint != trigger["baseline_sha256"]:
+                kind = "EVIDENCE_CHANGED"
+            else:
+                return {**_role_followup_item(row), "send": False}
+            observed = {"kind": kind, "evidence_sha256": fingerprint}
+            if "source_reason" in data:
+                require(fingerprint is None, "CONFLICTING_EVIDENCE_OBSERVATION")
+                observed["source_reason"] = identifier(data["source_reason"])
+        else:
+            require("evidence_sha256" not in data and "source_reason" not in data, "FOLLOWUP_TRIGGER_REQUIRED")
         action = "reminder-" + uuid.uuid4().hex
-        db.execute("UPDATE role_followups SET state='INTENT',action_id=?,revision=revision+1,last_report_hash=NULL"
-                   " WHERE seq=?", (action, row["seq"]))
+        db.execute("UPDATE role_followups SET state='INTENT',action_id=?,revision=revision+1,last_report_hash=NULL,"
+                   "last_trigger=? WHERE seq=?", (action, canonical(observed).decode() if observed else None, row["seq"]))
         self._event(db, row["project_id"], None, "ROLE_FOLLOWUP_INTENT", "local:coordinator",
                     {"followup_key": row["followup_key"], "generation": row["generation"],
-                     "revision": revision + 1, "action_id": action})
+                     "revision": revision + 1, "action_id": action,
+                     **({"trigger": observed} if observed is not None else {})})
         return {**_role_followup_item(self._followup_row(db, data)), "send": True}
 
     def _admin_role_followup_record(self, db, data):
@@ -1150,27 +1211,46 @@ class Coordinator:
         transitions = {
             "DEFER": (("PENDING",), "PENDING", "next_check_at"),
             "NOT_SENT": (("INTENT", "UNKNOWN"), "PENDING", "action_id next_check_at"),
-            "RECHECK": (("SUBMITTED",), "PENDING", "next_check_at"),
+            "RECHECK": (("INTENT", "UNKNOWN", "SUBMITTED"), "PENDING", "next_check_at"),
             "SUBMITTED": (("INTENT", "UNKNOWN"), "SUBMITTED", "action_id"),
             "UNKNOWN": (("INTENT",), "UNKNOWN", "action_id"),
             "CLOSED": (("PENDING", "INTENT", "SUBMITTED", "UNKNOWN"), "CLOSED", ""),
         }
         require(isinstance(outcome, str) and outcome in transitions, "INVALID_FOLLOWUP_OUTCOME")
         allowed, state, extra = transitions[outcome]
-        fields(data, "project_id followup_key generation expected_revision outcome evidence_ref " + extra)
+        optional = "action_id deadline_at" if outcome == "RECHECK" else "action_id" if outcome == "CLOSED" else ""
+        fields(data, "project_id followup_key generation expected_revision outcome evidence_ref " + extra, optional)
         row = self._followup_row(db, data)
         revision, evidence = _generation(data["expected_revision"]), text(data["evidence_ref"])
         require(canonical_ref(evidence), "INVALID_FOLLOWUP_REFERENCE")
         digest = canonical_hash(data)
         if row["last_report_hash"] == digest:
             return _role_followup_item(row)
-        require(row["revision"] == revision and row["state"] in allowed, "FOLLOWUP_STATE_CONFLICT")
+        require(row["state"] in allowed, "FOLLOWUP_STATE_CONFLICT")
+        if outcome == "RECHECK" and (row["state"] != "SUBMITTED"
+                or (row["trigger_spec"] is not None and row["last_trigger"] is None)):
+            require("action_id" in data, "FOLLOWUP_STATE_CONFLICT")
         if "action_id" in data:
             require(row["action_id"] == identifier(data["action_id"]), "ACTION_MISMATCH")
+        if row["revision"] != revision:
+            # A late handling decision may refer to an earlier delivery state of
+            # this exact action. Other state changes still require the current revision.
+            require(outcome in ("CLOSED", "RECHECK") and "action_id" in data
+                    and row["state"] in ("UNKNOWN", "SUBMITTED") and revision < row["revision"],
+                    "FOLLOWUP_STATE_CONFLICT")
+            original = db.execute("SELECT 1 FROM events WHERE project_id=?"
+                                  " AND kind IN ('ROLE_FOLLOWUP_INTENT','ROLE_FOLLOWUP_UNKNOWN','ROLE_FOLLOWUP_SUBMITTED')"
+                                  " AND json_extract(body,'$.followup_key')=? AND json_extract(body,'$.action_id')=?"
+                                  " AND json_extract(body,'$.revision')=? LIMIT 1",
+                                  (row["project_id"], row["followup_key"], row["action_id"], revision)).fetchone()
+            require(original, "FOLLOWUP_STATE_CONFLICT")
         next_check = row["next_check_at"]
         if "next_check_at" in data:
             at = timestamp(data["next_check_at"])
-            require(at > self._now(), "INVALID_CHECKPOINT")
+            # A handling receipt can reach intake after its requested recheck.
+            # The action and its revision were verified above.
+            if outcome != "RECHECK" or "action_id" not in data:
+                require(at > self._now(), "INVALID_CHECKPOINT")
             next_check = at.isoformat()
         if outcome in ("CLOSED", "RECHECK"):
             # The trusted recorder verifies a distinct native handling receipt. Enqueue/send is not handling.
@@ -1180,11 +1260,30 @@ class Coordinator:
                               " OR json_extract(body,'$.action_id')=?) LIMIT 1",
                               (row["project_id"], row["followup_key"], evidence, evidence)).fetchone()
             require(evidence != row["receipt_ref"] and not used, "HANDLING_RECEIPT_REQUIRED")
+        trigger_spec = row["trigger_spec"]
+        if outcome == "RECHECK":
+            if trigger_spec is not None:
+                trigger = json.loads(trigger_spec)
+                observed = json.loads(row["last_trigger"]) if row["last_trigger"] is not None else None
+                if observed is not None and observed["evidence_sha256"] is not None:
+                    trigger["baseline_sha256"] = observed["evidence_sha256"]
+                if observed is not None and observed["kind"] == "DEADLINE":
+                    del trigger["deadline_at"]
+                if "deadline_at" in data:
+                    deadline = timestamp(data["deadline_at"]).isoformat()
+                    require(next_check <= deadline, "INVALID_CHECKPOINT")
+                    trigger["deadline_at"] = deadline
+                elif "deadline_at" in trigger:
+                    next_check = min(next_check, trigger["deadline_at"])
+                trigger_spec = canonical(trigger).decode()
+            else:
+                require("deadline_at" not in data, "FOLLOWUP_TRIGGER_REQUIRED")
         db.execute("UPDATE role_followups SET state=?,revision=revision+1,evidence_ref=?,next_check_at=?,"
-                   "action_id=?,last_report_hash=? WHERE seq=?",
-                   (state, evidence, next_check, None if state == "PENDING" else row["action_id"], digest, row["seq"]))
+                   "action_id=?,last_report_hash=?,trigger_spec=?,last_trigger=? WHERE seq=?",
+                   (state, evidence, next_check, None if state == "PENDING" else row["action_id"], digest,
+                    trigger_spec, None if state == "PENDING" else row["last_trigger"], row["seq"]))
         self._event(db, row["project_id"], None, "ROLE_FOLLOWUP_" + outcome, "local:coordinator",
-                    {**data, "revision": revision + 1})
+                    {**data, "revision": row["revision"] + 1})
         return _role_followup_item(self._followup_row(db, data))
 
     def _github_row(self, db, data):

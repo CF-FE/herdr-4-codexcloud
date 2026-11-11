@@ -1,4 +1,5 @@
 """Exercise the native transcript boundary with an isolated source, cursor and real SQLite core."""
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 import tempfile
@@ -119,6 +120,34 @@ class FollowupIntakeTests(unittest.TestCase):
         result = self.collect()
         self.assertEqual(set(self.rows()), {"commentary", "final"})
         self.assertEqual((result["accepted"], result["rejected"]), (2, 0))
+
+    def test_late_native_handling_at_prior_intent_revision_is_retained_for_same_action(self):
+        self.bind()
+        self.core.clock = lambda: datetime(2026, 11, 4, 13, tzinfo=timezone.utc)
+        put = self.put("late")
+        trigger = {"task_id": "original", "path": "evidence.json", "fields": ["decision"], "baseline_sha256": None}
+        self.append(self.decision({**put, "next_check_at": "2020-11-04T12:00:00Z", "trigger": trigger}))
+        self.assertEqual(self.collect()["accepted"], 1)
+        key = {field: put[field] for field in ("project_id", "followup_key", "generation")}
+        intent = self.core.manage("role_followup_claim", {**key, "expected_revision": 0, "evidence_sha256": "a" * 64})
+        late = {**key, "op": "record", "expected_revision": intent["revision"], "outcome": "RECHECK",
+                "action_id": intent["action_id"], "evidence_ref": "native:confirmed-late",
+                "next_check_at": "2026-11-04T13:01:00Z"}
+        self.append(self.decision({**late, "action_id": "another-action"}))
+        self.append(self.decision(late))
+        self.core.manage("role_followup_record", {**key, "expected_revision": intent["revision"],
+                         "outcome": "SUBMITTED", "action_id": intent["action_id"], "evidence_ref": "native:delivery"})
+        self.core.clock = lambda: datetime(2026, 11, 4, 13, 2, tzinfo=timezone.utc)
+        receipt = self.collect()
+        self.assertEqual((receipt["accepted"], receipt["rejected"]), (2, 1))
+        self.assertEqual(receipt["last_rejection"]["code"], "ACTION_MISMATCH")
+        rearmed = self.rows()["late"]
+        self.assertEqual((rearmed["state"], rearmed["revision"]), ("PENDING", 3))
+        self.assertEqual(rearmed["trigger"]["baseline_sha256"], "a" * 64)
+        self.assertEqual(rearmed["next_check_at"], "2026-11-04T13:01:00+00:00")
+        self.assertEqual(self.rows(due_only=True), {"late": rearmed})
+        self.assertFalse(self.core.manage("role_followup_claim", {**key, "expected_revision": 3,
+                                         "evidence_sha256": "a" * 64})["send"])
 
     def test_oversized_row_cannot_smuggle_a_marker_and_next_round_reaches_later_work(self):
         self.bind()
