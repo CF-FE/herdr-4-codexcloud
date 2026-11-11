@@ -10,6 +10,8 @@
 
 **2026-11-12，原审批来源读取入口已恢复。** 根因同时包括固定 CLI 摘要过期和旧主控／元数据文件不可读；旧固定版同样报 `NATIVE_BINARY_CHANGED`。当前签名 CLI 与真实主控只读 probe 通过，受限 shell 中的额外 probe 失败则定位到 CLI 初始化自有 SQLite 被执行环境阻止；配置修复未直接编辑 Codex 内部数据库。原审批台账为 0，按公子新授权保全旧 policy／审批游标，为当前来源建新 EOF；原 followup 游标保留，hook 指向同 `cabdf5ce` 发布。修后原 watcher 连续两轮收件均为 accepted=0、rejected=0、backlog=false。自然审批提示、答复与原检查点接续仍待真实事项验证。[来源恢复规则](approval-workflow.md#受信记录者绑定与回执)
 
+同日复审发现独立 reader 暂报终断会清空同回合 EOF item 的缺陷，隔离回归复现了绑定前回执重收；本次现场原审批行与独立回执均为 0，没有发生历史审批导入。[修补 #22](https://github.com/CF-FE/herdr-4-codexcloud/pull/22) 已合并，固定 `4caa5ef4a387b72c4e95e0d2c8eae5041539aa01` 的 18 个安装文件核符，两个 launchd、桥 hook 与原 Herdr watcher 已切换。保全受影响游标后，在来源锁内恢复精确的原 staged EOF，policy 和独立 followup 保持；退出维护客户端后的自然轮次继续正常收件，非空 item 锚点保持。修补运行 432 项测试，428 通过、4 项既有可选检查跳过；结构和角色库检查通过。此修补不替代下一件自然审批的全链验证。
+
 **2026-11-11，组织技能及角色库已完成 Mac／Win 读回。** Mac 标准消费者与独立发布目录固定 `36d3b54`，30 个运行文件和 12 个组织技能文件核符；组织协议 2.3.2、角色库 1.0.3、共同规则 1.0.2 已由协调员、负责人和三位原 Worker 实读。Win OMP 原生技能发现与 34 文件角色库检查通过。Cloud 新版源码就绪，公子决定把实际加载验证留到下一次真实 Cloud 任务；未新建验证作业。
 
 **2026-11-09，Decision Service 已在 VPS 部署，HTTP（程序）与 MCP（Agent）共用判断核心、身份范围和持久 SQLite。** 本轮文档依据服务主仓固定版本 [`2e5ff940`](https://github.com/CF-FE/decision-service/tree/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs) 的[当前交付边界](https://github.com/CF-FE/decision-service/blob/2e5ff94021d76b89c3bce30c8df38c8702ba0a9e/docs/evidence-and-open-questions.md#当前交付边界)及原交接回执，不重跑运行验证。Mac 插件 `0.1.1` 的原生 OAuth 与工具读回、云端 Decision Service Cloud `1.0.2` 的 OAuth、同记录查询及 Skill 显式加载已有确认；不代表所有旧会话已刷新。插件与 Skill 主源归 Decision Service 仓，本仓维护消费者。
