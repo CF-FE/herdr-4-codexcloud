@@ -400,6 +400,41 @@ python3 "$RELEASE/scripts/project_coordinator.py" --state-dir "$APP/state" githu
 
 安装时用 `install_project_coordinator.py --revision "$SHA" --github-inbox "$INBOX"` 将已有的、由当前用户拥有的 0700 私有目录交给等待观察器。启用新版观察器按下文的固定版本切换流程办理。回滚时保留本地草稿和 SQLite 队列；恢复带收件功能的观察器后沿原键继续。
 
+<a id="directed-coordinator-contact"></a>
+
+### 从原任务单次联系本机协调员
+
+受信维护者从已确认的原任务保存本次动作。下例的 `intent.json` 和 `prompt.txt` 位于同一原任务私有目录（目录 0700，文件 0600）。维护者核原 Issue、交接和动作授权，程序核 Issue URL 的登记仓库与项目当前代次。driver 与目标 terminal ID 取自本次已核实的原生定位。动作 ID 在原任务内稳定，复查时沿原动作查询。`prompt_sha256` 是 `prompt.txt` 原始 UTF-8 字节的 SHA-256。程序为正文添加 `HANDOFF_REF`、`CONTACT_ACTION_ID` 和 `TASK_REF`。
+
+```json
+{
+  "version": 1,
+  "project_id": "example",
+  "task_ref": "https://github.com/CF-FE/example/issues/2",
+  "handoff_ref": "confirmed-handoff",
+  "action_id": "approved-contact-1",
+  "generation": 1,
+  "driver_pane": "w1:p1",
+  "driver_terminal_id": "term_example_driver",
+  "target_terminal_id": "term_example_target",
+  "prompt_file": "prompt.txt",
+  "prompt_sha256": "<prompt.txt 的 SHA-256>"
+}
+```
+
+```sh
+python3 -I -S -B "$RELEASE/scripts/herdr_directed_contact.py" plan "$ABSOLUTE_INTENT_PATH"
+# 在真实 PTY 执行 plan 返回的 attach_command；在附着的 driver 中运行下列 send。
+python3 -I -S -B "$RELEASE/scripts/herdr_directed_contact.py" send "$ABSOLUTE_INTENT_PATH" --plan-sha256 "$PLAN_SHA256"
+python3 -I -S -B "$RELEASE/scripts/herdr_directed_contact.py" status "$ORIGINAL_ISSUE_URL" "$ACTION_ID"
+```
+
+`plan` 读取当前协调员绑定、受信接手凭据和项目代次，输出固定本机终端附着命令及 `plan_sha256`。附着约束见[原生实例操作](agent-hosts.md#从原任务找到实例并收回结果)。`send` 需要该 driver 的真实前台进程和 stdin TTY，复核 driver 终端、协调员原生线程和终端、就绪状态及当前绑定。前置条件变化或忙碌时停在 `STOP`。
+
+显式投递前会在本机协调器私有 `state/` 按原 Issue 和动作 ID 固定保存 `UNKNOWN`，同动作的重复调用返回已有记录，输入或计划不同则报告冲突。意图落盘后再次核对协调员的原生线程、终端和就绪状态，失败时明确未调用 `prompt`，记 `NOT_SENT`。Herdr 的 `prompt` 只接受窗格目标，身份读取与发送是两个原生请求，维护期间仍依赖已授权的独占 driver 窗口。[Herdr 0.9.5 投递实现](https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/src/app/api/agents.rs#L139-L209)
+
+调用 `prompt` 后，原生目标一致的 `agent_prompted` 记 `SUBMITTED`，同请求明确 `agent_blocked` 记 `NOT_SENT`。超时、异常及回执失配保留 `UNKNOWN`，沿原动作和现任协调员线程核效果。`status` 读取本入口回执，`NO_RECORD` 仅表示该入口无记录。`SUBMITTED` 表示原生输入已提交，处理回执与业务验收沿原任务保留。`send` 在 `SUBMITTED` 时退出 0，`UNKNOWN` 或 `NOT_SENT` 时退出 1，预检或输入 `STOP` 时退出 2。
+
 <a id="native-followups"></a>
 ### 日常 Herdr 原任务待办
 

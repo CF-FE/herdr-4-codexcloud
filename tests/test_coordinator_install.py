@@ -32,6 +32,7 @@ class CoordinatorInstallation(unittest.TestCase):
             dest = Path(tmp) / 'private-app'
             prepared = installer.install(first, dest, repository=repo)
             self.assertNotIn(installer.GOAL_TOOLS, prepared['files'])
+            self.assertNotIn(installer.DIRECTED_CONTACT, prepared['files'])
             self.assertEqual(installer.install(first, dest, repository=repo), prepared)
             (repo / installer.GOAL_TOOLS).parent.mkdir(parents=True)
             (repo / installer.GOAL_TOOLS).write_bytes((ROOT / installer.GOAL_TOOLS).read_bytes())
@@ -41,6 +42,15 @@ class CoordinatorInstallation(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'complete coordinator release'):
                 installer.install(second, dest, repository=repo)
             self.assertFalse((dest / 'releases' / second).exists())
+
+            git('rm', '--quiet', '--', installer.GOAL_TOOLS)
+            (repo / installer.DIRECTED_CONTACT).write_text('# Directed contact entry point\n')
+            git('add', '--', installer.DIRECTED_CONTACT)
+            git('commit', '--quiet', '-m', 'directed contact without native dependencies')
+            third = git('rev-parse', 'HEAD')
+            with self.assertRaisesRegex(ValueError, 'complete native followup release'):
+                installer.install(third, dest, repository=repo)
+            self.assertFalse((dest / 'releases' / third).exists())
 
     def test_fixed_release_and_timer_preserve_state_across_upgrade_and_reject_corruption(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -90,6 +100,11 @@ class CoordinatorInstallation(unittest.TestCase):
             contact_help = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
                 str(release / installer.ROLE_CONTACT), '--help'], cwd=tmp, timeout=10, text=True)
             self.assertIn('resolve', contact_help)
+            self.assertIn(installer.DIRECTED_CONTACT, prepared['files'])
+            directed_help = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
+                str(release / installer.DIRECTED_CONTACT), '--help'], cwd=tmp, timeout=10, text=True)
+            for action in ('plan', 'send', 'status'):
+                self.assertRegex(directed_help, rf'\b{action}\b')
             for directory in ('mcp', 'mcp/project-coordinator-tools'):
                 self.assertEqual((release / directory).stat().st_mode & 0o777, 0o700)
             state = dest / 'state' / 'project-coordinator.sqlite3'
