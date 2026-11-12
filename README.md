@@ -8,6 +8,7 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | --- | --- |
 | 查已交付、已部署和未验范围 | [当前结论](docs/status.md#当前结论) · [后续缺口](docs/status.md#后续缺口) |
 | 决定云端Dot直派还是协调层承接 | [分工与取舍](docs/coordination-policy.md#1-默认分工与取舍) · [小迭代边界](docs/coordination-policy.md#3-云端dot小迭代直派) · [协调员指挥 Cloud 的目标合同](docs/coordination-policy.md#4-协调员指挥-cloud-路由) |
+| G8 收到阻塞回执，调查根因并提报方案 | [主动排查与执行审批](docs/coordination-policy.md#g8-阻塞主动排查与执行审批) |
 | 核对角色称呼 | [云端Dot与历史称呼](docs/coordination-policy.md#全局角色名称映射) |
 | 查角色由谁决定创建、谁办理、在哪里接手 | [创建职责与载体](docs/agent-hosts.md#role-creation-responsibility) · [原生调用示例](docs/agent-hosts.md) |
 | 项目接手、建主仓、维护工作流 | [项目主仓与项目级规范](docs/coordination-policy.md#项目主仓与项目级规范) · [工作流开发与验收](docs/project-workflow-development.md) |
