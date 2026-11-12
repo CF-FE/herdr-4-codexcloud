@@ -61,7 +61,8 @@ class NativeCommandTests(unittest.TestCase):
                 self.assertIs(caught.exception.__cause__, failure)
 
     def test_unparseable_prompt_reply_leaves_result_unknown(self):
-        replies = (b"truncated", b'{"id":"cli:agent:prompt","result":null}', self.blocked)
+        replies = (b"truncated", b'{"id":"cli:agent:prompt","result":null}', self.blocked,
+                   b'{"id":"cli:agent:get","result":{"type":"agent_prompted"}}')
         for stdout in replies:
             with self.subTest(stdout=stdout):
                 result = subprocess.CompletedProcess([], 0, stdout=stdout, stderr=b"")

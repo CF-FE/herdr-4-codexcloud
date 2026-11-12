@@ -134,6 +134,8 @@ def native(session, *command):
     try:
         reply = _native_reply(process.stdout)
         require("error" not in reply and isinstance(reply.get("result"), dict), "INVALID_NATIVE_REPLY")
+        if command[:2] == ("agent", "prompt"):
+            require(reply.get("id") == "cli:agent:prompt", "INVALID_NATIVE_REPLY")
     except (ValueError, RecursionError) as error:
         raise NativeCommandError() from error
     return reply["result"]

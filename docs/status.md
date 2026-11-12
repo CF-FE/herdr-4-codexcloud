@@ -1,12 +1,14 @@
 # 本仓当前状态
 
-本页维护 Herdr 项目的当前采用摘要。**2026-11-12** 已纳入审批来源恢复和定向本地联络入口；此前原任务跟进、组织技能、Decision Service、共享记忆及 Mac 桥记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
+本页维护 Herdr 项目的当前采用摘要。**2026-11-12** 已纳入审批来源恢复、定向联络程序与凡人离线校验的限定采用；此前原任务跟进、组织技能、Decision Service、共享记忆及 Mac 桥记录分别保留。各组件的版本、工具计数和健康状态均以对应观测时点为准。具体任务沿原 Issue／Project 跟踪，逐项验收见所属规范。[状态沿革](history/status-through-2026-11-03.md)保留此前记录。
 
 ## 当前结论
 
-**2026-11-12，G8（云端 Dot）阻塞调查规则文档候选。** 按公子更正，维护目标为本仓，而非旧环境仓。基于最新 main `1962b68060fef1e84ae492a6c8511c4b32ff94a2` 更新现有 checkout 并读取启动规范、组织协议 2.3.2、相关岗位与排障约束；协作约定升为 1.8，新增[主动调查与执行审批](coordination-policy.md#g8-阻塞主动排查与执行审批)，明确身份、只读限定派查、辩证方案、新增修复批准及单次计划边界。AGENTS 与 README 导航同一正文，不改通用技能或原生设置。
+**2026-11-12，G8（云端 Dot）阻塞调查规则与复核。** 协作约定 1.8 的[主动调查与执行审批](coordination-policy.md#g8-阻塞主动排查与执行审批)由 [PR #24](https://github.com/CF-FE/herdr-4-codexcloud/pull/24) 维护：主动只读调查、区分证据与假设、比较方案，新增修复或推进先请公子审查批准；明确授权且无需等待阻塞解除的既有工作可在原条件内继续。AGENTS 与 README 导航同一正文，现任岗位、唯一派发、UNKNOWN 对账及单次计划的更严格限制保持。公子已授权本轮优化与合并；实际会话读取、原生设置和定时计划采用仍须分别取证。作者原测试异常及本机复核见[本地检查](#g8-pr24-verification)，不据文档合并声明目标环境已采用。
 
-本轮作者自检：Worker 库检查、仓库结构与 diff 检查通过。432 项 unittest 中 412 项通过、4 项跳过、15 项因本环境禁止 Unix socket 创建而错误；另 1 项深层 JSON 的错误码断言失败（实际 `INVALID_ALLOWLIST`，预期 `INVALID_JSON`），相关测试与程序未修改，原因尚未进一步验证。不得称全套通过；修复这些运行／测试问题不在本次文档改动范围。候选通过 Draft PR 交审查，未合并、部署或声称其他任务已加载；原定时计划与旧仓 PR 均未改变。
+**2026-11-12，定向联络程序已部署到原 Mac 协调环境。** [PR #25](https://github.com/CF-FE/herdr-4-codexcloud/pull/25) 固定 `bb932d71ce0b4bc4527a2a59cdb5e7e212d4273a`，19 个安装文件及其中 16 个源码文件核符；原 watcher、两个 launchd 和审批 hook 同版，原策略、游标与已有台账保留。`plan / send / status` 沿原 Issue／动作保存一次投递，未知结果保留原动作。凡人原任务已于北京时间 09:52 完成真实交付，同意图复读返回 `duplicate=true`，协调员只有一条对应输入并明确原生接手；维护客户端退出后 watcher 自然续行。全仓 441 项中 437 通过、4 项既有可选检查跳过。独立复审复现并修复了预约落盘期间同窗格换绑的误投路径；Herdr 身份读取与发送仍非原子，操作沿已授权的独占维护窗口。[使用与状态合同](project-coordinator.md#directed-coordinator-contact)
+
+同案的 [凡人离线证据校验 #16](https://github.com/CF-FE/fanren-work/pull/16) 由项目独立维护，固定 `3813a1ff14b8b51447541028de641dda975d79d4` 的三文件闭包已安装。主控实际核验 17 份封存元数据，派生报告及说明与复审样本逐字一致，22 份源文件和既有成果保持。原 QA 完成只读复核，现任负责人对精确 A／B 版本及本次产物作限定 `adopt`；旧已完成单元不重开。时码范围、音频字节身份与封存关联各自核验，合法时码或结构 `MATCHED` 不作为听审通过；实际听审仍为 0/3，原音、许可和 C001 准入缺口另沿业务原单处理。其他输入通用性和未来现场运行继续按实际任务取证。
 
 **2026-11-11，Mac 原任务跟进已采用固定提交 `cabdf5ce`。** 原 waits、bridge-pump 和真实 Herdr driver 已切换，18 个发布文件核符，SQLite 与原收件游标保留。旧台账副本迁移保留 14 张表原记录。431 项全仓测试中 427 项通过、4 项既有条件跳过。独立复审修复了保留截止被复查推迟、迟到处理回执过期丢失两条路径。[PR #21](https://github.com/CF-FE/herdr-4-codexcloud/pull/21) · [证据／截止触发与恢复合同](project-coordinator.md#native-followups)
 
@@ -24,7 +26,7 @@
 | --- | --- |
 | Decision Service 文档 `2e5ff940` | 当前职责、接口和交付边界；不是新的服务发布号 |
 | VPS release `07cf3d34` | Decision Service 当前运行发布，公网 HTTP/MCP 读回原决定与反馈；凡人单 bank 试点版 `c38f58e` 保留作回退 |
-| Herdr `cabdf5ce` | Mac 原任务跟进固定发布，含可选证据／截止触发及投递分类 |
+| Herdr `bb932d71` | Mac 当前协调固定发布，保留证据／截止触发与审批 EOF 修补，新增显式定向联络入口 |
 | Herdr `36d3b54` | Mac 当前标准消费者和组织技能／角色库发布 |
 | Herdr `5d666fcb` | 此前消费者发布，凡人可显式绑定独立发布器，旧目录保留 |
 | Herdr `3e90b459` | 此前的组织角色受控创建及 Win OMP Worker 适配版，原目录保留作回退 |
@@ -195,6 +197,29 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 5. **目标工具与恢复**：Worker 自身 Projects／Space 工具、权限、资源读取，技能原生发现，主机重启、未来版本兼容及所依赖的网络拒绝用例分别待核。只限制依赖这些条件的动作，不重做已经通过的独立切片。
 
 ## 本地检查
+
+<a id="g8-pr24-verification"></a>
+
+### 2026-11-12：G8 规则 PR #24 复核
+
+原审查范围为基线 `1962b68060fef1e84ae492a6c8511c4b32ff94a2` 至 HEAD `908e5d36ce5be1c59ace97af35d8575879512e88`，仅四份文档变化；`scripts/`、`tests/`、`mcp/` 和 `skill/` 的 Git 树逐一相同。复核在两份固定源码快照中分别运行 `python3 -B -m unittest discover -s tests -v`；以下本机结果来自 macOS 14.8.9，CPython 3.11.3 为 arm64，3.13.1 为 x86_64，不代替作者原环境记录。
+
+| 来源与范围 | 通过 | 跳过 | 失败 | 错误 |
+| --- | ---: | ---: | ---: | ---: |
+| 原作者报告，原 HEAD，解释器与原始 traceback 未取得 | 412 | 4 | 1 | 15 |
+| 本机原 HEAD，CPython 3.11.3 | 428 | 4 | 0 | 0 |
+| 本机原基线，CPython 3.13.1 | 426 | 4 | 1 | 1 |
+| 本机原 HEAD，CPython 3.13.1 | 426 | 4 | 1 | 1 |
+
+- **Unix socket：** `test_coordinator_bridge.py` 与 `test_coordinator_goal_bridge.py` 共 15 项共享真实 `UnixStreamServer` 初始化。两份快照在本机 3.11.3 各通过 15 项，真实 socket 创建、绑定、监听与收发探针也通过。作者报告环境禁止 socket，但原 errno、失败系统调用与 traceback 未取得，因此该原因仍未独立核实；本机通过不把原 15 项 ERROR 改记为通过。
+- **深层 JSON：** `test_allowlists.AllowlistTests.test_malformed_and_duplicate_key_json_are_rejected` 的深层子用例在两份快照的 3.13.1 均复现 `INVALID_ALLOWLIST`，3.11.3 默认递归限制下为 `INVALID_JSON`。输入语法合法，前者解析后被业务结构校验拒绝，后者触发解析递归错误；两者均退出 2。调整 3.11.3 的递归限制也能复现前者，支持既有断言依赖解析器递归行为的归因。后续可独立修订该子用例，保留拒绝输入、退出码与无 traceback 的检查，不在本次文档 PR 中修改程序或测试。
+- **额外诊断输出错误：** 两份快照在 3.13.1 全套运行时，`test_coordinator_followup_wake.WakeTests.test_native_driver_error_without_a_verified_code_has_a_diagnostic` 均报 stderr JSON 解析错误；四组源码／解释器组合单独运行该项均通过。未关闭 SQLite 连接被回收时的 `ResourceWarning` 混入 stderr，可在两份快照复现同症状，显式关闭连接后正常；原全量运行未保存捕获字符串，故警告污染仅是已复现的候选机制，不能视为原失败根因已闭环。后续应独立修复 fixture 资源关闭并复验，不全局屏蔽警告或据此修改生产诊断逻辑。
+
+这些异常通过基线对照和最小探针分别定位，不以“仅改文档”直接判为无关；原 socket 现场原因与诊断输出全量失败的具体来源仍待补证。
+
+**合入 main `82b454278e1fec0f813288ecc7f2e15ff7c0d38b` 后的独立检查：** 最终差异仍仅为四份文档，main 中 PR #25／#26 的部署段落逐字保留；仓库结构、Worker 库、变更链接／锚点及 diff 检查通过，文档独立复审通过。同机 CPython 3.11.3 首轮 441 项为 436 通过、4 跳过、1 错误：`test_default_native_reader_uses_only_read_only_json_rpc_methods` 在初始化读取阶段报 `NATIVE_READ_TIMEOUT`。该项单独复验通过，随后不改代码、测试或超时设置再次完整运行，441 项中 437 通过、4 项既有可选检查跳过。首轮超时记录保留，具体原因未证，不宣称已修复偶发性；本轮结果与原 432 项分开，不代表 Python 3.13 异常或目标环境采用已解决。
+
+### 此前本地检查
 
 检查命令见 [README](../README.md#本地检查)。2026-11-03 文档整理时，结构检查、Worker 库检查和 61 项测试通过，仓内链接／锚点及来源摘要核对通过；冻结历史与整理前原件字节一致，当轮源码、复制技能、来源清单与角色定义未变。
 

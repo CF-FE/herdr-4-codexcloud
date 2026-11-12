@@ -72,12 +72,17 @@ def ready(route, query):
     require(len(foreground) == 1 and foreground[0].get("argv")
             and Path(foreground[0]["argv"][0]).name == "codex"
             and "--no-daemon" in foreground[0]["argv"], "TARGET_NOT_FOREGROUND")
+    return ready_agent(route, query)
+
+
+def ready_agent(route, query):
     agent = query(route["session"], "agent", "get", route["pane"])["agent"]
     check_identity(agent, route)
     # "focused" can remain set for the dedicated agent even while this separate driver owns input.
     # The bound role and foreground readiness, not layout focus, select the recipient.
     require(agent.get("agent_status") in ("idle", "done") and agent.get("interactive_ready") is True
             and agent.get("launch_pending", False) is False, "TARGET_BUSY_OR_UNCONFIRMED")
+    return agent
 
 
 def evidence_fingerprint(row):
