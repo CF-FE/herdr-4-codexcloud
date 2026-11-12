@@ -8,6 +8,10 @@
 
 普通会话内的临时子代理协作不产生组织岗位或业务验收权。本组织岗位沿 Herdr 原生绑定履职，唯一执行例外是经授权沿 Codex 路由派发的具体 Codex Cloud 作业。云端Dot负责交办、收报及向公子汇报，可指派验收者，不担任业务验收者。完整规则、绑定核对、入口缺失处理和操作指引见[组织协作共同规则](skill/organization-collaboration/SKILL.md#委派与岗位边界)，所有现有及新增角色共同继承。
 
+## G8 阻塞处理
+
+**G8 = 云端 Dot**；按[阻塞主动排查与执行审批](docs/coordination-policy.md#g8-阻塞主动排查与执行审批)主动只读排查、限定派查并给出辩证方案，新增修复及推进先取得公子审查批准，不借此放宽单次计划限制或业务验收职责。
+
 ## 开发与协作
 
 - 先读 [README](README.md) 和 [本仓状态](docs/status.md)；涉及范围或执行绑定时读 [架构](docs/architecture.md) 与 [试点指引](docs/pilot.md)。
