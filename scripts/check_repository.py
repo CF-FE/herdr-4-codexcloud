@@ -6,6 +6,8 @@ import re
 import sys
 from pathlib import Path
 
+from sync_native_skill import check_native_skill
+
 
 ENTRYPOINTS = {"mcp": "README.md", "skill": "SKILL.md", "plugin": "README.md"}
 ENTRY_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -59,6 +61,7 @@ def check_repository(root: Path) -> tuple[list[str], dict[str, int]]:
                 check_document(entry / entrypoint)
         except OSError:
             report(directory, "无法读取分类目录")
+    errors.extend(check_native_skill(root))
     return errors, counts
 
 
