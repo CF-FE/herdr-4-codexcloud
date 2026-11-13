@@ -2,7 +2,7 @@
 
 | 技能 | 当前源码版本 | 用途 |
 | --- | --- | --- |
-| [organization-collaboration](organization-collaboration/SKILL.md) | 2.2.0 | 组织岗位与原生宿主、项目主仓、任务关联、Cloud 路由与有界直派、可达汇报、人工介入清单及验收 |
+| [organization-collaboration](organization-collaboration/SKILL.md) | 2.3.3 | 组织岗位与原生宿主、项目主仓、任务关联、Cloud 路由与有界直派、可达汇报、人工介入清单、验收及工作流改进提案入口 |
 | [github-projects-operations](github-projects-operations/SKILL.md) | 1.1.0 | Projects 查询、限定写入、回读与 UNKNOWN 对账 |
 | [hindsight-memory](hindsight-memory/SKILL.md) | 1.0.0 | 同项目跨端记忆、显式 bank、带来源经验、异步确认与非阻塞弱连接 |
 | [allowlist-management](allowlist-management/SKILL.md) | 1.1.0 | 场景白名单维护、离线校验与受控创建导航 |
