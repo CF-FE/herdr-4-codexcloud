@@ -1,11 +1,11 @@
 ---
 name: organization-collaboration
-description: 在组织或项目协作中确认岗位、责任与汇报路径，规划分配任务、追溯过程回执、复核验收及交接；也用于流程审计和维护任职关系。与专业角色库分开，不为普通独立问答建立组织流程。
+description: 在组织或项目协作中确认岗位、责任与汇报路径，规划分配任务、追溯过程回执、复核验收及交接；也用于流程审计、维护任职关系和工作流改进提案。与专业角色库分开，不为普通独立问答建立组织流程。
 ---
 
 # 组织协作
 
-组织协议版本：2.3.2。
+组织协议版本：2.3.3。
 
 先回答本次任务的三个问题：**我对谁负责、结果交给谁、沿哪个实际通道和任务关联沟通。** 组织岗位、专业能力、运行执行器分别识别；岗位名、创建者或机器名不能代替任职记录、权限和真实工具。
 
@@ -52,6 +52,8 @@ description: 在组织或项目协作中确认岗位、责任与汇报路径，�
 | `auditor` | [流程审计者](references/auditor.md)：跨来源核对遗漏、追溯和整改，不接管业务验收 |
 
 只读当前岗位及实际缺项所需参考。多步骤、局部阻塞、并行或共享容量安排读[规划与进度](references/planning-and-progress.md)；首次绑定、汇报或接管读[上下文与汇报](references/context-and-reporting.md)；新增／更新／撤换岗位、角色或任职关系读[维护规则](references/maintenance.md)。没有该岗位定义时报告具体缺口，不自行套用相近岗位。专业方法按需另选，不加载全角色库。
+
+本组织处理工作流阻塞、阶段／结束复盘或改进提案时，按需读取[工作流规范 1.0.0](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/workflow-governance.md)和[六组提案模板](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/templates/workflow-improvement-proposal.md)。需要边界示例时读[已批准恢复单](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/examples/workflow-improvement/approved-recovery.md)或[凡人离线 QA](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/examples/workflow-improvement/fanren-offline-qa.md)。以上入口固定到已审阅提交，正文仍由 Herdr 仓维护；目标端已有该提交时也可按同路径本地读取并核对版本。读取受限时报告具体缺项，已有输入齐备的独立工作继续，不把历史回放当作当前执行授权或业务验收。
 
 涉及产物质量与交付时，按[产物就地复核](references/execution-and-review.md#产物就地复核)检查明确版本，并使用[验收回执](references/context-and-reporting.md#产物复核与验收回执)。需要人作判断时，在原任务单列[成品人工介入清单](references/context-and-reporting.md#成品人工介入清单)，按已可用的范围交付。项目成果默认由项目负责人验收，非项目成果须另行指定验收者。云端Dot的[任务发起与验收分工](references/organization-lead.md#任务发起与业务验收)适用于两类成果。
 
