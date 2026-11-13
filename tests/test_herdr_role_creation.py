@@ -161,6 +161,45 @@ class RoleCreationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "original task unit has a launch"):
             self.call("prepare")
 
+    def test_astra_request_or_codex_override_cannot_reach_native_start(self):
+        cases = (
+            (["gpt-6.1-sol", "openai/GPT-6-ASTRA"], []),
+            (None, ["-m", "openai/gpt-6.1-astra:latest"]),
+            (None, ["-mgpt-6.1-astra"]),
+            (None, ["--model=local-gpt:astra"]),
+            (None, ["--model=gpt-4-proxy:astra"]),
+            (None, ["-c", 'model="openai/gpt-6-astra"']),
+            (None, ["--config=profiles.example.model='astra-high'"]),
+        )
+        for models, args in cases:
+            with self.subTest(models=models, args=args):
+                self.binding["selection"]["requirements"] = {} if models is None else {"models": models}
+                self.binding["agent_args"] = ["--no-daemon", *args]
+                self.write_binding()
+                with self.assertRaisesRegex(ValueError, "Astra"):
+                    self.call("prepare")
+                self.assertEqual(self.native.calls, [])
+
+    def test_win_rejects_explicit_astra_during_shared_selection(self):
+        self.bind_win()
+        self.binding["selection"]["requirements"] = {"models": ["cli-proxy-responses/Astra"]}
+        self.write_binding()
+        with patch.object(win, "native") as native:
+            with self.assertRaisesRegex(ValueError, "Astra"):
+                operate("prepare", self.binding_path, root=self.root)
+            native.assert_not_called()
+
+    def test_launch_defaults_to_sol_and_keeps_explicit_other_allowed_model(self):
+        first = self.binding["selection"]["capabilities"][0]
+        self.binding["selection"]["capabilities"].append({**first, "model": "gpt-5.6-sol"})
+        self.write_binding()
+        plan = self.call("prepare")
+        self.assertEqual(plan["launch_model"]["model"], "gpt-6.1-sol")
+        self.binding["selection"]["requirements"]["models"] = ["gpt-5.6-sol"]
+        self.write_binding()
+        self.assertEqual(self.start()["launch_model"]["model"], "gpt-5.6-sol")
+        self.assertEqual(self.native.argv[self.native.argv.index("-m") + 1], "gpt-5.6-sol")
+
     def test_coordinator_first_start_blocks_existing_binding_even_if_invalid(self):
         self.binding["role"] = "project_coordinator"
         del self.binding["dispatch_ref"], self.binding["input_sha256"]

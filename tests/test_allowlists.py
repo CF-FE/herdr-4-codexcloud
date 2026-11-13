@@ -78,6 +78,23 @@ class AllowlistTests(AllowlistFixture):
         self.assertEqual(data["entry_count"], 1)
         self.assertEqual(data["policy_sha256"], hashlib.sha256(self.policy_path.read_bytes()).hexdigest())
 
+    def test_herdr_astra_policy_entry_is_rejected(self):
+        self.entry["model"] = "proxy/OpenAI/GPT-6-ASTRA"
+        result, data = self.run_cli()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Astra", data["error"]["message"])
+        self.entry.update(environment_id="codex-cloud", worker_id="codex-cloud",
+                          backend_id="existing-environment")
+        result, data = self.run_cli()
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_herdr_astra_default_is_rejected(self):
+        self.policy.update(default_environment_id="mac-work", default_reasoning_effort="high",
+                           default_model="openai/gpt-6-astra:latest")
+        result, data = self.run_cli()
+        self.assertEqual(result.returncode, 2)
+        self.assertIn("Astra", data["error"]["message"])
+
     def test_preview_matches_exact_tuple_but_draft_is_not_enabled(self):
         result, data = self.run_cli("preview")
         self.assertEqual(result.returncode, 0, result.stderr)

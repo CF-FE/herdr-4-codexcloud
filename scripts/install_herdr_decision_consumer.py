@@ -14,6 +14,7 @@ import tempfile
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SESSION_MODEL = "scripts/herdr_session_model.py"
 FILES = (
     "scripts/project_workflow.py",
     "scripts/project_workflow_template.py",
@@ -21,6 +22,7 @@ FILES = (
     "scripts/project_workflow_decision.py",
     "scripts/herdr_model_selection.py",
     "scripts/herdr_agent_creation.py",
+    SESSION_MODEL,
     "scripts/herdr_role_creation.py",
     "scripts/herdr_win_creation.py",
     "scripts/project_coordinator.py",
@@ -53,7 +55,9 @@ def install(revision, destination, *, repository=ROOT):
                 or ".." in PurePosixPath(name).parts):
             raise ValueError(f"Expected an ordinary release file: {name}")
         payload[f"app/{name}"] = git("cat-file", "blob", object_id)
-    missing = {f"app/{name}" for name in FILES} - payload.keys()
+    # Older fixed commits predate the shared module. For newer commits the
+    # packaged allowlist import below also verifies that dependency.
+    missing = {f"app/{name}" for name in FILES if name != SESSION_MODEL} - payload.keys()
     if missing:
         raise ValueError(f"Fixed commit is missing release files: {', '.join(sorted(missing))}")
 

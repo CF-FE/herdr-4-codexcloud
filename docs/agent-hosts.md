@@ -22,6 +22,8 @@
 
 先核现任绑定、在途工作和未决创建，再决定复用、恢复或新建。任务讨论、模型推荐和技术启动都不会自行产生任命。
 
+新建或恢复 Herdr 模型会话前，按[会话模型规则](../config/allowlists/README.md#herdr-session-model-policy)核对有效型号与所用入口，接手后读回原生回合。
+
 | 对象 | 谁决定职责和是否创建 | 谁实际办理 | 运行载体与接手证据 |
 | --- | --- | --- | --- |
 | 项目协调员 | 有效任命方确定职责、范围和开通／恢复授权；云端Dot可沿原入口转达 | 业务协调员之外的受信宿主管理入口，由已指定的宿主管理者初始化或恢复，核唯一登记、原台账和当前写者 | Mac Herdr 的实际 session／pane／Agent；绑定、原生身份与接手答复分别核实，云端Dot沿自己的入口核往返 |
@@ -78,7 +80,7 @@ Agent 策略以 Mac 为默认基准，未配置覆盖的环境继承期望值。
 | --- | --- | --- |
 | `worker_library.py select / prepare` | 按 Worker 能力／宿主筛选，准备稿透传后端 `agent_args`，不启动；不是完整模型／强度目录 | 构造实际模型与强度候选，记录能力来源、候选版本及选择结果 |
 | `herdr_model_selection.py` 与原 Herdr 创建者 | 对下一 handoff 单元在已分配的空 shell pane 启动 Mac Codex，并沿原目标对账 | 只映射本次新启动的模型／强度；专用合成任务已实测，推荐、启动、实际读回三层分别记录 |
-| `herdr_role_contact.py` | 沿固定 `resume_argv` 与摘要恢复原线程；履职 profile 控制工具和沙箱 | 选型结果不能改写现有恢复摘要；需要换配置时沿宿主支持的空闲／下一任务单元交接办理 |
+| `herdr_role_contact.py` | 沿固定 `resume_argv` 与摘要准备恢复原线程；履职 profile 控制工具和沙箱 | 恢复准备核冻结参数中的明确型号；需要换配置时沿[原会话接续步骤](../config/allowlists/README.md#发布与原会话接续)办理 |
 | `coordinator_goal_channel.py` | 按冻结 capability manifest 创建／恢复受限目标 | 当前无动态 model／effort 接口；所需配置适配由本仓维护，原权限保持独立 |
 | Codex Cloud 路由 | 沿原环境和实际任务 ID 提交／回收 | 只暴露已核可配置项；未核模型／强度参数不进入可自动应用候选 |
 
@@ -134,7 +136,7 @@ Agent 策略以 Mac 为默认基准，未配置覆盖的环境继承期望值。
 | --- | --- |
 | 共通授权 | `role`、`project_id`、`task_ref`、`unit_id`、`creation_id`、`authorization_ref` |
 | 原生目标与路由 | `target` 中的 session、Agent、工作目录及 workspace／tab／pane／terminal ID。Win 另填 `machine` 和本次专用的 Windows 绝对 OMP 会话目录 `session_dir`。`route` 绑定环境、Worker、后端与供应商 |
-| 模型选择和启动 | `selection` 提供任务要求及已核能力记录。省略显式型号或档位时按环境默认值解析。`prepare` 要求结果恰好为一个允许组合。Mac Codex 的 `agent_args` 保留已获准的非模型配置与 `--no-daemon`。Win OMP 使用 `cli-proxy-responses`，`agent_args` 为空，由适配器映射模型、档位和会话目录 |
+| 模型选择和启动 | `selection` 提供任务要求及已核能力记录，按[会话模型规则](../config/allowlists/README.md#herdr-session-model-policy)解析显式型号或默认值。`prepare` 要求结果恰好为一个允许组合。Mac Codex 的 `agent_args` 保留已获准的非模型配置与 `--no-daemon`。Win OMP 使用 `cli-proxy-responses`，`agent_args` 为空，由适配器映射模型、档位和会话目录 |
 | 岗位专属凭据 | Mac 协调员 `project_coordinator` 提供 `initialization_ref`，沿原初始化入口。Mac 负责人 `project_owner` 提供 `owner_creation` 下的 `expected_generation`、`vacancy_ref`、`release_ref`。Mac 或 Win Worker 用 `executor`，提供 `dispatch_ref` 与 `input_sha256` |
 
 从已核发布中取脚本绝对路径 `ROLE_CREATION`，用原绑定文件 `CREATION_BINDING`。核对 `prepare` 返回的目标、配置、策略修订和摘要，取 `prepared_sha256` 作为 `PREPARED_SHA256`。三条命令按原任务状态分别调用。

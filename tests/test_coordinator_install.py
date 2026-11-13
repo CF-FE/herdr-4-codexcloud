@@ -72,6 +72,10 @@ class CoordinatorInstallation(unittest.TestCase):
             prepared = installer.install(first, dest, repository=repo)
             release = Path(prepared['release'])
             self.assertTrue(set(installer.APPROVAL_FILES) <= prepared['files'].keys())
+            self.assertIn(installer.HERDR_SESSION_MODEL, prepared['files'])
+            contact_help = subprocess.check_output([prepared['python'], '-I', '-S', '-B',
+                str(release / installer.ROLE_CONTACT), '--help'], cwd=tmp, timeout=10, text=True)
+            self.assertIn('prepare-resume', contact_help)
             plist = plistlib.loads((release / 'observer.plist').read_bytes())
             outcome = json.loads(subprocess.check_output(plist['ProgramArguments'], cwd=tmp, timeout=10))
             self.assertIsInstance(outcome, dict)

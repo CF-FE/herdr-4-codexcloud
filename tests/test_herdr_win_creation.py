@@ -40,6 +40,8 @@ class WinCreationTests(unittest.TestCase):
         self.assertEqual(win.launch_argv(binding, SELECTED),
                          ["--model", "cli-proxy-responses/gpt-6.1-sol", "--thinking", "high",
                           "--session-dir", TARGET["session_dir"]])
+        self.assertEqual(win.launch_argv(binding, {**SELECTED, "model": "gpt-5.6-sol"})[1],
+                         "cli-proxy-responses/gpt-5.6-sol")
         for changes in ({"provider": "cli-proxy-chat"}, {"reasoning_effort": "ultra"},
                         {"model": "another/provider"}):
             with self.subTest(changes=changes), self.assertRaises(ValueError):

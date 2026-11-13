@@ -96,7 +96,8 @@ class RoleContactTests(unittest.TestCase):
                        "pane": "w1:p1", "tab": "w1:t1", "agent": "coordinator", "agent_session": self.ref}
         self.loc = {"workspace_id": "w1", "tab_id": "w1:t1", "pane_id": "w1:p2", "terminal_id": "term_a"}
         self.cwd = str(self.root)
-        self.args = ["--no-daemon", "-a", "never", "-s", "read-only", "-C", self.cwd, "resume", self.thread]
+        self.args = ["--no-daemon", "-a", "never", "-s", "read-only", "-C", self.cwd,
+                     "-m", "gpt-6.1-sol", "resume", self.thread]
         digest = contact.hashlib.sha256(b"test").hexdigest()
         route = {"version": 1, "role": "project_owner", "project_id": "test", "generation": 1,
                  "thread_id": self.thread, "owner_principal": "owner:test", "agent": "owner",
@@ -255,7 +256,7 @@ class RoleContactTests(unittest.TestCase):
         item = self.core.manage("role_followup_put", dict(key, task_ref="issue:1", receipt_ref="native:prior",
                                 next_action="collect existing worker", action_owner="coordinator",
                                 next_check_at="2026-11-05T15:00:00Z"))
-        route = self.owner_runtime()
+        route = self.owner_runtime(("--model", "astra-proxy:gpt-5.6-sol"))
         self.shell(self.loc["pane_id"])
         plan = self.run_op("prepare-resume")
         self.assertEqual(plan["runtime_profile"], "project-owner-v1")
@@ -264,6 +265,35 @@ class RoleContactTests(unittest.TestCase):
                          (self.thread, 1, "owner:test"))
         self.assertEqual(plan["role_followups"]["items"], [item])
         self.assertEqual(json.loads(self.route_file.read_bytes()), route)
+        self.assertNotIn("start", {word for cmd in self.calls for word in cmd})
+
+    def test_resume_with_missing_or_astra_model_leaves_original_binding_available(self):
+        cases = (
+            ((), "RESUME_MODEL_REQUIRED"),
+            (("-c", '"model"="gpt-6.1-sol"'), "RESUME_MODEL_REQUIRED"),
+            (("--model=OpenAI/GPT-6-ASTRA:latest",), "Astra"),
+            (("-mgpt-6.1-astra",), "Astra"),
+            (("--model=openai/UNKNOWN:latest",), "explicit Herdr model identity"),
+            (("-m", "gpt-6.1-sol", "-c", "model='proxy:astra'"), "Astra"),
+            (("-m", "gpt-6.1-sol", "-c", "model='gpt-5.6-sol'"), "RESUME_MODEL_AMBIGUOUS"),
+        )
+        for args, error in cases:
+            with self.subTest(args=args):
+                route = self.owner_runtime(args)
+                self.assertEqual(self.run_op("show")["thread_id"], self.thread)
+                self.shell(self.loc["pane_id"])
+                with self.assertRaisesRegex(ValueError, error):
+                    self.run_op("prepare-resume")
+                self.assertEqual(json.loads(self.route_file.read_bytes()), route)
+                self.assertNotIn("start", {word for cmd in self.calls for word in cmd})
+
+    def test_resume_does_not_count_model_after_option_terminator(self):
+        route = json.loads(self.route_file.read_bytes())
+        route["resume_argv"][7:7] = ["--"]
+        self.route_file.write_text(json.dumps(route))
+        self.shell(self.loc["pane_id"])
+        with self.assertRaisesRegex(ValueError, "RESUME_MODEL_OPTIONS_INVALID"):
+            self.run_op("prepare-resume")
         self.assertNotIn("start", {word for cmd in self.calls for word in cmd})
 
     def test_project_owner_identity_does_not_hide_a_running_legacy_process(self):

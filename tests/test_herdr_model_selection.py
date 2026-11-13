@@ -225,6 +225,19 @@ class HerdrModelSelectionTests(unittest.TestCase):
         capability["supported_efforts"] = [None]
         self.assertIsNone(candidates(selection, "openai", policy, ref, library)[0]["parameters"]["reasoning_effort"])
 
+    def test_legacy_policy_without_default_model_selects_sol_only_with_capability(self):
+        policy, ref, library = read_active_agent_policy(DEFAULT_FILE, DEFAULT_ROOT)
+        del policy["default_environment_id"], policy["default_model"]
+        entries = [row for row in policy["entries"] if row["environment_id"] == "mac-work"
+                   and row["reasoning_effort"] == "high"]
+        capabilities = [dict(row, supported_efforts=["high"], tools=[], modalities=[], context_window=2048)
+                        for row in entries]
+        selection = {"requirements": {}, "capabilities": capabilities}
+        result = candidates(selection, "openai", policy, ref, library)
+        self.assertEqual([row["parameters"]["model"] for row in result], ["gpt-6.1-sol"])
+        selection["capabilities"] = [row for row in capabilities if row["model"] == "gpt-5.6-sol"]
+        self.assertEqual(candidates(selection, "openai", policy, ref, library), [])
+
     def test_disabled_or_unreadable_policy_blocks_without_decision_or_native_start(self):
         checkpoint = example_checkpoint(self)
         http = ServiceDouble(self)
