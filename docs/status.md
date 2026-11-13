@@ -4,6 +4,8 @@
 
 ## 当前结论
 
+**2026-11-13，工作流规范、提案模板及两例历史回放完成本地整合。** [工作流规范 1.0.0](workflow-governance.md)统一阻塞处置和阶段／结束复盘入口，按项目级、通用级工作流及编排器分派维护归属；[六组提案模板](templates/workflow-improvement-proposal.md)复用原任务和原审批，实质变化影响原批准前提时重核受影响整体。[已批准 Win 恢复](examples/workflow-improvement/approved-recovery.md)验证既有批准不重批、缺失原决定引用先回查；[凡人离线 QA](examples/workflow-improvement/fanren-offline-qa.md)验证工程核验、限定采用与历史听审 0/3 分开记录。两例验证了文档表达与证据分层，原始批准及限定采用决定原件仍未取得，不能据回放放行恢复、听审或生产。三独立会话交付经主控复审和独立终审；本机 CPython 3.11.3 全仓 441 项中 437 通过、4 项既有可选检查跳过，结构、Worker 库及仓内链接／锚点检查通过。当前交付为仓库文档，新的提案发布、送审接续和目标环境采用仍须沿实际获准任务取证。
+
 **2026-11-12，G8（云端 Dot）阻塞调查规则与复核。** 协作约定 1.8 的[主动调查与执行审批](coordination-policy.md#g8-阻塞主动排查与执行审批)由 [PR #24](https://github.com/CF-FE/herdr-4-codexcloud/pull/24) 维护：主动只读调查、区分证据与假设、比较方案，新增修复或推进先请公子审查批准；明确授权且无需等待阻塞解除的既有工作可在原条件内继续。AGENTS 与 README 导航同一正文，现任岗位、唯一派发、UNKNOWN 对账及单次计划的更严格限制保持。公子已授权本轮优化与合并；实际会话读取、原生设置和定时计划采用仍须分别取证。作者原测试异常及本机复核见[本地检查](#g8-pr24-verification)，不据文档合并声明目标环境已采用。
 
 **2026-11-12，定向联络程序已部署到原 Mac 协调环境。** [PR #25](https://github.com/CF-FE/herdr-4-codexcloud/pull/25) 固定 `bb932d71ce0b4bc4527a2a59cdb5e7e212d4273a`，19 个安装文件及其中 16 个源码文件核符；原 watcher、两个 launchd 和审批 hook 同版，原策略、游标与已有台账保留。`plan / send / status` 沿原 Issue／动作保存一次投递，未知结果保留原动作。凡人原任务已于北京时间 09:52 完成真实交付，同意图复读返回 `duplicate=true`，协调员只有一条对应输入并明确原生接手；维护客户端退出后 watcher 自然续行。全仓 441 项中 437 通过、4 项既有可选检查跳过。独立复审复现并修复了预约落盘期间同窗格换绑的误投路径；Herdr 身份读取与发送仍非原子，操作沿已授权的独占维护窗口。[使用与状态合同](project-coordinator.md#directed-coordinator-contact)
@@ -176,6 +178,7 @@ Mac 原生 Herdr 查询 Win 时返回 `agents=[]`，只说明该次识别快照�
 | 协调员、负责人、Worker 的生效、交接、恢复与退出 | [生命周期设计依据](project-coordinator.md#agent-lifecycle)，各运行端的 [hooks 与证据边界](project-coordinator.md#lifecycle-hooks) |
 | 网络、SSH、服务恢复 | [网络指引](networking-plan.md)；VPS 特有事项见[专项指引](vps-control-pilot.md) |
 | 多项目合同与分阶段路线 | [迭代指引](collaboration-iteration-guide.md) |
+| 工作流规范入口、复盘与改进提案 | [工作流规范](workflow-governance.md)；生成与运行合同仍归[开发文档](project-workflow-development.md)，审批机制仍归[审批工作流](approval-workflow.md) |
 | 通用执行准备、UNKNOWN 与退出 | [试点指引](pilot.md)及[任务模板](templates/pilot-task.md) |
 | 显式适配器接口与验收 | [执行规范](herdr-executor.md) |
 | Worker／角色定义与版本 | [双库入口](worker-library/README.md)，原始来源见其[source-manifest](worker-library/source-manifest.json) |
