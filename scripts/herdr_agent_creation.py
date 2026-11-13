@@ -8,6 +8,7 @@ import stat
 import subprocess
 
 from allowlists import DEFAULT_ROOT, LibraryError, preview_agent, read_active_agent_policy, resolve_agent_default
+from herdr_session_model import DEFAULT_MODEL, codex_model_override, codex_option, require_session_model
 from project_workflow_template import digest, require
 
 
@@ -48,7 +49,7 @@ def non_model_args(argv, cwd, provider):
     index = 0
     while index < len(argv):
         arg = argv[index]
-        key, separator, value = arg.partition("=")
+        key, separator, value = codex_option(arg)
         if key in switches and not separator:
             retained.append(arg)
             index += 1
@@ -64,6 +65,7 @@ def non_model_args(argv, cwd, provider):
             index += 2
         if key in {"-C", "--cd"}:
             require(value == cwd, "Codex working directory differs from the authorized pane")
+        codex_model_override(key, value)
         if key in {"-m", "--model"}:
             continue
         if key in {"-c", "--config"}:
@@ -92,7 +94,9 @@ def matching_candidates(selection, route, policy, policy_ref, library):
         require(key not in needs or isinstance(needs[key], list), "task capability requirements must be arrays")
     environment = route["environment_id"]
     defaults = resolve_agent_default(policy, environment)
-    models = needs.get("models", [defaults["model"]] if defaults["model"] is not None else [])
+    models = needs.get("models", [defaults["model"] or DEFAULT_MODEL])
+    for model in models:
+        require_session_model(model)
     efforts = needs.get("efforts", [defaults["reasoning_effort"]] if defaults["reasoning_effort"] is not None else [])
     capabilities = []
     for row in selection["capabilities"]:

@@ -48,9 +48,30 @@ environment_id + worker_id + backend_id + provider
 
 `reasoning_effort: null` 只表达明确不适用。未知值、缺失字段或能力列表为空均不能代替不适用，也不表示任意强度。能力证据中只有显式列出 `null` 才能与该组合匹配。
 
+<a id="herdr-session-model-policy"></a>
+
+### Herdr 会话模型规则
+
+Herdr 启动的模型会话禁用 Astra 系列。未指定型号时默认使用 `gpt-6.1-sol`，现行 Agent 策略的默认强度为 `high`。明确指定的其他型号仍可使用已获准且目标宿主支持的组合。启动前核实际供应商、别名映射和型号，接手时沿原生回合读回实际型号与强度。宿主不支持默认组合或缺少能力证据时，报告该缺口并暂缓受影响的启动。无模型的 shell pane 以及独立的 Codex App、Codex Cloud、Decision Service 和 Hindsight 调用各沿自己的入口。
+
+| 入口 | 校验与证据 |
+| --- | --- |
+| Mac Codex 受控角色创建、Decision Service `new-unit`、Win OMP 受控 Worker 创建 | 共享候选校验拒绝显式 Astra 请求，涵盖常见供应商前缀、大小写和 Astra 型号别名。供应商与型号标签有歧义时，先核宿主映射，使用宿主支持的明确型号或 `provider/model` 形式。Mac Codex 启动绑定中的显式 Astra 覆盖也在启动前拒绝。当前默认从 Agent 策略取 `gpt-6.1-sol / high`。旧策略未配置型号时，创建端以 `gpt-6.1-sol` 筛候选，仍须命中白名单与已核宿主能力。 |
+| Mac 负责人 `prepare-resume` | 沿原任职、原线程、已审运行配置和冻结 `argv`，要求唯一一致的显式型号并检查 Astra。型号支持仍由原宿主审核，创建候选白名单适用于新建。旧绑定没有明确型号时停在恢复准备，沿原权限补齐已审配置及摘要。`show`、`resolve` 和原单对账继续沿现有绑定办理。 |
+| 原生 TUI、裸 `herdr agent start`、第三方 Harness 和 Herdr 自动恢复 | 这些路径由宿主自身处理。经办者在启动前核定本次参数与别名指向。无法确认型号、默认组合或宿主支持时，记录缺口并暂停受影响的启动。自动恢复由宿主会话集成配置执行，其实际约束待核。[Herdr 0.9.5 原生恢复](https://github.com/herdrdev/herdr/blob/2ecf19a92fc3a7fff75b6ce3655ef04f4625ec01/docs/next/website/src/content/docs/session-state.mdx#L75-L115) |
+
+2026-11-13 的 Mac 只读盘点看到全局 Codex 默认指向 Astra。已核六个角色的最近原生回合中，QA、post、assets 和原写者使用 Astra，协调员和项目负责人使用 Sol。记录证明对应回合实际使用的型号，当前在线及写者状态须另查。负责人现有冻结 `argv` 缺少显式型号，且绑定记录的配置摘要与当前文件不符，恢复前须处理这两项。Win 的实际回合型号保留 `UNKNOWN`。本次交付为源码与离线验证，目标宿主采用待验证。
+
+#### 发布与原会话接续
+
+1. 原主线程复审通过并合入 `main` 后，从固定提交旁路准备 Mac 消费者与 Mac 协调员两份发布包。分别用 `scripts/install_herdr_decision_consumer.py` 和 `scripts/install_project_coordinator.py`，保留原状态目录。核各自安装收据中的提交、文件摘要、校验模块及启动或恢复入口能导入。消费者有标准入口和项目独立固定发布路径，逐个核实际调用方。[消费者安装步骤](#mac-固定发布) · [协调员发布步骤](../../docs/project-coordinator.md#7-本机交付与运行)
+2. 在获准的切换窗口确认对应入口无在途调用，保留原发布包和绑定，再采用已核新包。若回退到未执行本规则的版本，暂停受影响的新建及恢复，保留原单查询与对账。Win OMP 受控启动的校验在 Mac 驱动端，保留 Win 的现有连接和 server 进程。
+3. 对盘点发现的 Astra 或未知会话，先核原角色、线程、在途任务和实际写者。等原生回合到安全交接点并由原写者交还。已有批准仍适用时直接沿用，变更影响原批准前提时按原入口核准。维护者复核并更新获准的显式模型参数、配置来源和冻结摘要，沿同一任职及线程接续。无法保留原线程或找不到旧执行效果时，沿原单报告缺口并对账。
+4. 采用时以实际下一原生回合记录启动路径、型号和强度，核角色接手及原写权。按 Mac、Win 和各启动路径分别记采用结果。对自动恢复保留未验证，等待自然恢复事件或单独获准的验证机会。
+
 ### 环境默认值
 
-修订 4 沿用 `default_environment_id=mac-work` 作为基准归属，统一默认值为 `default_model=gpt-6.1-sol`、`default_reasoning_effort=high`。这是版本化的策略值，读取它无需访问 Mac 主机配置。
+修订 5 继承修订 4 的 `default_environment_id=mac-work`、`default_model=gpt-6.1-sol` 和 `default_reasoning_effort=high`。这是版本化的策略值，读取它无需访问 Mac 主机配置。
 
 - 其他环境可在 `environment_defaults` 中以环境 ID 指定 `model`、`reasoning_effort` 或两者。每个字段先取该环境的显式值，缺项继承 `mac-work` 基准。修改共享基准字段时，所有未覆盖的环境和字段都会取得新值。基准环境自身只通过共享字段调整。
 - 当前 `win-work`、`codex-cloud` 和示例 `linux-herdr` 均从 `mac-work` 取得 `gpt-6.1-sol / high`。后续新增环境在没有覆盖项时同样继承。继承范围只有型号与推理强度，Worker、后端、供应商、模型类别、认证和能力证据分别核对。
@@ -148,7 +169,7 @@ python3 scripts/allowlists.py preview --file config/allowlists/image-models.json
 
 ## Mac Codex 新工作单元
 
-原创建者调用 [herdr_model_selection.py](../../scripts/herdr_model_selection.py) 的 `apply`，沿原工作流检查点、授权绑定及当前宿主能力文件接入。绑定中的旧型号与档位参数由本次选型替换。显式要求填写 `selection.requirements.models` 和 `selection.requirements.efforts`，缺少的字段分别使用环境默认值。程序把所需工具、模态、上下文、环境、Worker、后端、供应商和型号档位与已确认的完整条目求交，只有剩余组合进入 Decision Service。默认或显式组合不可用时返回 `unavailable`。程序将获准的供应商映射到原生参数，绑定中冲突的显式供应商覆盖会拒绝。
+原创建者调用 [herdr_model_selection.py](../../scripts/herdr_model_selection.py) 的 `apply`，沿原工作流检查点、授权绑定及当前宿主能力文件接入。先按[Herdr 会话模型规则](#herdr-session-model-policy)核对启动绑定，再由本次选型替换可接受的旧型号与档位参数。显式要求填写 `selection.requirements.models` 和 `selection.requirements.efforts`，缺少的字段分别按模型规则和环境默认值处理。程序把所需工具、模态、上下文、环境、Worker、后端、供应商和型号档位与已确认的完整条目求交，只有剩余组合进入 Decision Service。默认或显式组合不可用时返回 `unavailable`。程序将获准的供应商映射到原生参数，绑定中冲突的显式供应商覆盖会拒绝。
 
 决策请求与启动意图各保存 `model_policy`，包含 `policy_id`、`revision` 和原文件 `policy_sha256`。目标就绪后、持久化启动意图前，程序从发布目录重新读取策略，核对冻结摘要及精确组合。策略变动或无法读取时返回 `stale` 和 `launch_outcome=not_started`。开始选型时缺少可用的 `active` 策略则返回 `policy_blocked`。已有启动意图的工作单元沿原绑定和冻结记录对账，原生启动、实际回合模型和业务验收分别取证。
 

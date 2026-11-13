@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 import sys
 
+from herdr_session_model import is_astra_model
 from worker_library import (
     DEFAULT_ROOT, LibraryError, Parser, load_library, parse_json, read_json, read_json_bytes, require,
 )
@@ -98,10 +99,14 @@ def read_active_agent_policy(path, library_root):
 def validate_agent_policy(policy, library):
     code = "INVALID_ALLOWLIST"
     seen = set()
+    herdr_environments = set()
     for row in policy["entries"]:
         require(isinstance(row, dict) and set(row) == ENTRY_FIELDS,
                 "Each entry must declare one complete model/effort combination", code)
-        check_agent_record(row, library, code)
+        worker = check_agent_record(row, library, code)
+        if worker is not None and worker["runtime"] == "herdr-agent":
+            require(not is_astra_model(row["model"]), "Astra models are prohibited for Herdr sessions", code)
+            herdr_environments.add(row["environment_id"])
         if row["reasoning_effort"] is not None:
             identity(row["reasoning_effort"], "reasoning_effort", code)
         key = tuple(row[field] for field in COMBINATION_FIELDS)
@@ -129,6 +134,9 @@ def validate_agent_policy(policy, library):
                     "An environment override must specify model, reasoning_effort, or both", code)
             for field, value in values.items():
                 identity(value, f"environment_defaults.{environment}.{field}", code)
+        for environment in herdr_environments:
+            require(not is_astra_model(resolve_agent_default(policy, environment)["model"]),
+                    f"{environment}: Astra cannot be the Herdr model default", code)
 
 
 def resolve_agent_default(policy, environment):

@@ -29,7 +29,7 @@ Dot自身的原生Mac任务路径使用[专门评估](dot-mac-herdr-evaluation.m
 
 - 原项目／任务、正式入口、唯一派发者、当前写者、报告接收者与验收者。
 - 固定输入、允许动作与目录、产物、检查标准、调用／时间预算和停止条件。
-- 实际宿主、目录、Agent可执行文件、参数、供应商／模型／认证／权限；凭证只保留安全位置引用。
+- 实际宿主、目录、Agent可执行文件、参数、供应商／模型／认证／权限。启动或恢复模型会话前核对[Herdr 会话模型规则](../config/allowlists/README.md#herdr-session-model-policy)。凭证只保留安全位置引用。
 - 本地目标或准确saved-machine／session／pane／Agent；远端另核SSH身份、host key与客户端／运行中server兼容性。
 - 当前活动、未决请求、共享资源和报告拉取责任；无冲突才放行依赖动作。
 

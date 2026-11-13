@@ -376,7 +376,7 @@ python3 "$RELEASE/scripts/herdr_role_contact.py" resolve "$PROJECT_ID"
 python3 "$RELEASE/scripts/herdr_role_contact.py" prepare-resume "$PROJECT_ID"
 ```
 
-`show` 提供登记资料。`resolve` 定向核验原生入口。目标可用时协调员即可沿原联系传话。需要恢复时，先读指定的原线程和末次回合，核目标文件的占用与未决投递，再执行 `prepare-resume` 给出的原配置启动命令，并用 `resolve` 复核。原窗格已退出且已有分配窗格的权限时，可在同一 Herdr 环境准备专用空窗格，以 `--replacement-pane <pane-id>` 取得本次恢复命令。若同一负责人已在替换窗格就绪，`resolve` 会核验并返回新地址，可先转交，再由有权的宿主维护者用 `bind-replacement` 更新持久定位。启动结果未知时沿原窗格和原线程对账。业务接手或收件由接收者的原生答复证明。
+`show` 提供登记资料。`resolve` 定向核验原生入口。目标可用时协调员即可沿原联系传话。需要恢复时，先读指定的原线程和末次回合，核目标文件的占用与未决投递。按[会话模型规则](../config/allowlists/README.md#herdr-session-model-policy)核对冻结参数及恢复资格。`prepare-resume` 给出原配置启动命令后，沿获准入口执行并用 `resolve` 复核。原窗格已退出且已有分配窗格的权限时，可在同一 Herdr 环境准备专用空窗格，以 `--replacement-pane <pane-id>` 取得本次恢复命令。若同一负责人已在替换窗格就绪，`resolve` 会核验并返回新地址，可先转交，再由有权的宿主维护者用 `bind-replacement` 更新持久定位。启动结果未知时沿原窗格和原线程对账。业务接手或收件由接收者的原生答复证明。
 
 首次投递前在原私有任务保存联系编号和发送意图。仅当 `resolve` 返回 `READY_FOR_CONTACT` 且原意图尚未投递，才以该结果中的 `session` 和 `agent` 调用一次 `herdr --session "$SESSION" agent prompt "$AGENT" "$MESSAGE"`。要求回执时，核对应原生回合及实际答复。
 

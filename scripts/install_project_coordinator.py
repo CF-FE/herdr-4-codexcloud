@@ -20,6 +20,7 @@ BRIDGE = 'scripts/coordinator_bridge.py'
 GOAL_CHANNEL = 'scripts/coordinator_goal_channel.py'
 GOAL_TOOLS = 'mcp/project-coordinator-tools/server.py'
 ROLE_CONTACT = 'scripts/herdr_role_contact.py'
+HERDR_SESSION_MODEL = 'scripts/herdr_session_model.py'
 COMMENT_INTAKE = 'scripts/coordinator_comment_intake.py'
 FOLLOWUP_INTAKE = 'scripts/coordinator_followup_intake.py'
 FOLLOWUP_WAKE = 'scripts/coordinator_followup_wake.py'
@@ -27,7 +28,7 @@ DIRECTED_CONTACT = 'scripts/herdr_directed_contact.py'
 APPROVAL_FILES = ('scripts/coordinator_approvals.py', 'scripts/coordinator_approval_channel.py',
                   'scripts/coordinator_approval_workflow.py', 'scripts/coordinator_approval_notice.py',
                   'scripts/coordinator_approval_intake.py', 'scripts/coordinator_approval_hook.py')
-FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS, ROLE_CONTACT, COMMENT_INTAKE,
+FILES = (*CORE_FILES, BRIDGE, GOAL_CHANNEL, GOAL_TOOLS, ROLE_CONTACT, HERDR_SESSION_MODEL, COMMENT_INTAKE,
          FOLLOWUP_INTAKE, FOLLOWUP_WAKE, DIRECTED_CONTACT, *APPROVAL_FILES)
 LABEL = 'io.projectcoordinator.waits'
 DEFAULT_ROOT = Path.home() / 'Library/Application Support/ProjectCoordinator'
@@ -60,6 +61,8 @@ def install(revision, destination, *, repository=ROOT, github_inbox=None):
         selected += (GOAL_TOOLS,)
     if git('ls-tree', revision, '--', ROLE_CONTACT).strip():
         selected += (ROLE_CONTACT,)
+        if git('ls-tree', revision, '--', HERDR_SESSION_MODEL).strip():
+            selected += (HERDR_SESSION_MODEL,)
     if git('ls-tree', revision, '--', COMMENT_INTAKE).strip():
         selected += (COMMENT_INTAKE,)
     if git('ls-tree', revision, '--', FOLLOWUP_WAKE).strip():

@@ -19,8 +19,10 @@ import uuid
 
 if not __package__:
     sys.path.insert(0, str(Path(__file__).resolve().parent))  # fixed release sibling under python -I
+    from herdr_session_model import require_resume_model
     from project_coordinator import role_followup_page
 else:
+    from .herdr_session_model import require_resume_model
     from .project_coordinator import role_followup_page
 
 
@@ -239,6 +241,7 @@ def operate(action, project, *, replacement=None, root=ROOT, query=native):
             os.close(directory_fd)
         return dict(result, **proof, locator_updated=True)
     require(action == "prepare-resume", "INVALID_ACTION")
+    require_resume_model(route["resume_argv"][7:-2])
     agents = query(route["session"], "agent", "list")["agents"]
     require(all(a.get("name") != route["agent"] and a.get("pane_id") != chosen and
                 (a.get("agent_session") or {}).get("value") != route["thread_id"] for a in agents),
