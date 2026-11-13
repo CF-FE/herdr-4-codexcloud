@@ -1,4 +1,5 @@
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -16,6 +17,8 @@ class RepositoryChecksTests(unittest.TestCase):
         self.root.mkdir()
         for name in ("README.md", "AGENTS.md", "mcp/README.md", "skill/README.md", "plugin/README.md"):
             self.write(name, "# Documentation\n")
+        for prefix in ("skill", ".agents/skills"):
+            self.write(f"{prefix}/organization-collaboration/SKILL.md", "# Organization\n")
 
     def write(self, name, content):
         target = self.root / name
@@ -32,10 +35,10 @@ class RepositoryChecksTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def test_empty_collection_passes_and_does_not_claim_runtime_readiness(self):
+    def test_minimal_repository_passes_and_does_not_claim_runtime_readiness(self):
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("mcp=0 skill=0 plugin=0", result.stdout)
+        self.assertIn("mcp=0 skill=1 plugin=0", result.stdout)
         self.assertIn("仅结构检查，不代表运行可用", result.stdout)
 
     def test_valid_entries_are_counted_from_an_unrelated_working_directory(self):
@@ -44,7 +47,7 @@ class RepositoryChecksTests(unittest.TestCase):
         self.write("plugin/review-bundle/README.md", "# Bundle\n")
         result = self.run_check()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("mcp=1 skill=1 plugin=1", result.stdout)
+        self.assertIn("mcp=1 skill=2 plugin=1", result.stdout)
 
     def test_missing_skill_entrypoint_fails_with_its_path(self):
         (self.root / "skill" / "incomplete").mkdir()
@@ -85,8 +88,7 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertIn("plugin/external/README.md", result.stderr)
 
     def test_missing_category_and_multiple_missing_files_are_reported_together(self):
-        (self.root / "skill" / "README.md").unlink()
-        (self.root / "skill").rmdir()
+        shutil.rmtree(self.root / "skill")
         (self.root / "README.md").unlink()
         (self.root / "AGENTS.md").unlink()
         result = self.run_check()

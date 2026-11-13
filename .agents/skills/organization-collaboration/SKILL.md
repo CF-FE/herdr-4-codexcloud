@@ -1,0 +1,77 @@
+---
+name: organization-collaboration
+description: 在组织或项目协作中确认岗位、责任与汇报路径，规划分配任务、追溯过程回执、复核验收及交接；也用于流程审计、维护任职关系和工作流改进提案。与专业角色库分开，不为普通独立问答建立组织流程。
+---
+
+# 组织协作
+
+组织协议版本：2.3.3。
+
+先回答本次任务的三个问题：**我对谁负责、结果交给谁、沿哪个实际通道和任务关联沟通。** 组织岗位、专业能力、运行执行器分别识别；岗位名、创建者或机器名不能代替任职记录、权限和真实工具。
+
+本技能不依赖Lody、Codex Cloud、Python或专业角色库。总负责人及具体入口由当前有效组织记录和用户指派确定；本组织已确认的云端Dot分工在任务包中交接，不作为所有用户的默认。
+
+本组织任务包沿用云端Dot的参与者关联，避免因历史称呼重复任命、派发或汇报。每次实际调用仍须核验原生身份和权限。其他组织按自己的有效关系记录确定角色称呼。
+
+## 先绑定本次上下文
+
+首次接单、切换项目、接管或责任关系变化时，核对当前参与者、岗位ID、项目／任务、业务责任人、汇报对象、实际通道、派发者、验收者、正式状态入口，以及所据协议／岗位／关系版本。复用已有有效任务包；缺项或冲突按[上下文与汇报](references/context-and-reporting.md)只补所需信息，未知保留`UNKNOWN`。
+
+缺关系、输入或授权只暂停依赖它的派发、写入或外发，继续已有明确授权且不依赖缺口的工作。普通跟进沿准确原生引用，不重扫组织、不重建任务或重复确认有效授权。本技能本身不授予发消息、创建任务或修改配置的权限。
+
+项目负责人按[项目主仓与项目级规范](references/project-owner.md#项目主仓与项目级规范)维护项目约束、执行和验收标准。各岗位优先以正式看板及其关联任务、当前版本和有效回执作为接单、跟进、交接和下一步的统一入口；未切换项目沿原正式入口。聊天是提报，缺项／滞后／冲突按[看板优先与事实来源](references/task-traceability.md#看板优先与事实来源)核源并补写，不用旧看板值抹掉实际执行事实。
+
+## 委派与岗位边界
+
+普通会话内可按任务需要进行有界的临时协作，子代理不因委派取得组织岗位或业务验收权。
+
+本组织的协调员、项目负责人和 Worker 等岗位实际履职时，沿 [Herdr 原生绑定](references/context-and-reporting.md#组织-agent-的原生宿主)创建、恢复或交接。唯一执行例外是经授权沿 Codex 路由派发的具体 Codex Cloud 作业；岗位绑定与验收归属不变。创建、重建或恢复前核对角色绑定和在途工作，以原生执行回执确认接手。Codex App 聊天、信箱和台账用于沟通或记录；缺少获准入口时，报告具体缺口并只暂停依赖它的动作。角色模板按需启用。操作遵循本技能及 [Herdr Skill 与操作入口](https://github.com/CF-FE/herdr-4-codexcloud/blob/main/docs/pilot.md#官方操作技能与外部协调)。各岗位、Worker 与 Cloud 作业的创建和调用方式见[角色宿主与调用指南](https://github.com/CF-FE/herdr-4-codexcloud/blob/main/docs/agent-hosts.md)。
+
+本组织的云端Dot沿自身原生入口交办和收报，可指定验收者并向公子汇报，不担任交付成果的业务验收者。项目默认由现任项目负责人验收，非项目成果在交办时另行指定验收者。见[任务发起与业务验收](references/organization-lead.md#任务发起与业务验收)。
+
+## GitHub Organization
+
+本组织所有现有及后续新增岗位、专业角色与受委派 Agent 共同遵循本节，包含协调员、项目负责人、Worker、审查／审计角色及获准的 Cloud 作业。岗位正文和任务包继承共同规则；各岗位的任职、建仓权限和验收职责仍按原分工办理。
+
+- 自有项目的 GitHub 默认组织固定为 `CF-FE`；各项目使用各自的仓库，不把所有项目集中到同一仓库。
+- 创建或维护仓库、Issue、PR 和 Projects 前，先核对实际 owner、项目归属与原任务引用；个人账号、工作目录和部署副本不能替代组织路由。项目代码、文档、项目级规范、Skill、插件和配置模板在所属仓库维护。
+- 立项或接手 `CF-FE` 正式项目时，[现任项目负责人](references/project-owner.md)查重确认缺少主仓，且具备常设授权和账号建仓权限，可自主创建。按项目的可见性约定办理，未约定则设为私有；其他组织沿其已批准的归属与建仓政策办理。
+- 用户明确指定其他目标时按当次有效指令处理；已有外部资料或历史任务引用保留原归属，不自动迁移或重派。
+
+## 按本次岗位读取
+
+下表是组织岗位ID到职责正文的唯一导航；各岗位继承本技能共同规则，正文只补充岗位差异。新增或替换按[维护规则](references/maintenance.md)更新，不从专业角色名推断岗位。
+
+| 岗位ID | 本次职责入口 |
+| --- | --- |
+| `organization_lead` | [总负责人](references/organization-lead.md)：用户沟通与跨项目协调 |
+| `project_coordinator` | [项目协调员](references/project-coordinator.md)：承接总负责人的目标，协调项目负责人、跨项目资源和执行路线 |
+| `project_owner` | [项目负责人](references/project-owner.md)：全部项目需求的审阅、规划、分配与验收 |
+| `executor` | [执行者](references/execution-and-review.md#执行者)：范围内实施、自检和交证据 |
+| `reviewer` | [审查者](references/execution-and-review.md#审查者)：按要求独立核验明确版本 |
+| `auditor` | [流程审计者](references/auditor.md)：跨来源核对遗漏、追溯和整改，不接管业务验收 |
+
+只读当前岗位及实际缺项所需参考。多步骤、局部阻塞、并行或共享容量安排读[规划与进度](references/planning-and-progress.md)；首次绑定、汇报或接管读[上下文与汇报](references/context-and-reporting.md)；新增／更新／撤换岗位、角色或任职关系读[维护规则](references/maintenance.md)。没有该岗位定义时报告具体缺口，不自行套用相近岗位。专业方法按需另选，不加载全角色库。
+
+本组织处理工作流阻塞、阶段／结束复盘或改进提案时，按需读取[工作流规范 1.0.0](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/workflow-governance.md)和[六组提案模板](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/templates/workflow-improvement-proposal.md)。需要边界示例时读[已批准恢复单](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/examples/workflow-improvement/approved-recovery.md)或[凡人离线 QA](https://github.com/CF-FE/herdr-4-codexcloud/blob/754538756a63bea63cc2a27b972f6ad6f5f4d3af/docs/examples/workflow-improvement/fanren-offline-qa.md)。以上入口固定到已审阅提交，正文仍由 Herdr 仓维护；目标端已有该提交时也可按同路径本地读取并核对版本。读取受限时报告具体缺项，已有输入齐备的独立工作继续，不把历史回放当作当前执行授权或业务验收。
+
+涉及产物质量与交付时，按[产物就地复核](references/execution-and-review.md#产物就地复核)检查明确版本，并使用[验收回执](references/context-and-reporting.md#产物复核与验收回执)。需要人作判断时，在原任务单列[成品人工介入清单](references/context-and-reporting.md#成品人工介入清单)，按已可用的范围交付。项目成果默认由项目负责人验收，非项目成果须另行指定验收者。云端Dot的[任务发起与验收分工](references/organization-lead.md#任务发起与业务验收)适用于两类成果。
+
+安排项目资产归档、用途副本、交付或恢复时，按需读[资产归档](references/asset-archiving.md)；它只补资产事实和证据，不授权实际上传、迁移或执行，也不建立第二套正式状态。
+
+查询或代录任务、看板时，按[授权记录者职责](references/authorized-recording.md)核访问与回传范围、当前记录冲突和决定来源。GitHub 评论和回填按[独立通道同步](references/authorized-recording.md#github-评论与回填)办理。请求方可经记录者取得证据而不持有直接凭证；服务故障时按既有授权落实代办与回读。记录者不取得业务决策或验收权。
+
+派发、记录项目重要变化、恢复登记或补历史时，读[任务与事件追溯](references/task-traceability.md)。它与原上下文／产物回执互相引用，不要求每轮加载全部参考；审计者另读自身岗位，其他角色仅在收到审计发现时读整改段。
+
+## 共同边界
+
+- 项目需求和交付保持对应负责人的业务归属与集成责任，验收按原任务安排办理；默认由其审阅、规划、分配，小任务可同回合处理。用户明确授权的独立小迭代可按[直接委派边界](references/organization-lead.md#使用直接委派能力)简化派发，不扩大生产写权或转移项目验收。已有任务包内的读取与实现步骤沿原计划，不逐条新建任务。
+- 每次独立委派关联唯一任务和可定位的执行记录，先核记录与前置再派发；回填失败补写原记录，不重建执行。项目重要事件关联受影响任务，遗留有明确承接。
+- 派发时按[可达汇报约定](references/context-and-reporting.md#派发时约定可达汇报)明确交付位置、验证过的通道；无推送由派发者落实拉取责任与检查点，发送、受理、实际读取、采用和写权交还分别取证。
+- 协调层与执行层所有角色均按[共同汇报规则](references/context-and-reporting.md#回报与证据)主动暴露成果、问题和风险，沿已绑定上游逐级报告；未受理或超时有明确升级，实质变化去重，不等待追问、不以例行噪声代替证据。
+- 任一层能在自身权限内解决问题时，按[就地处置规则](references/context-and-reporting.md#权限内解决与向上汇报)承担解决和验证，向上报告方案与结果，沿[问题处置记录](references/task-traceability.md#问题处置闭环记录)留痕；不把可解决事项继续推上去，也不隐瞒重大风险、越权结案或绕过用户必须作出的决定。
+- 每项资产一个当前写者，每项任务一个明确派发／续发协调者。业务责任、实际派发、汇报对象和验收分别记录；通信中转不改变业务责任。
+- 依赖、输入版本、权限、资源和验收条件满足时放行独立工作；局部阻塞只限制受影响范围，排障有预算、停止与承接。403等阻塞按[独立会话分流](references/planning-and-progress.md#403等局部阻塞的独立会话分流)隔离处理并向本次主协调者回报，不绕过访问拒绝。共享容量按已采用范围协调，上游变化只重核受影响分支。
+- 沿原生任务／回合和产物版本报告；`UNKNOWN`先对账，不自动重发、改成功或以新任务替代查询。
+- 作者自检不冒充独立QA。各方报告证据，负责人取得约定的验收结论和交付证据后关闭；ACK、进程退出或子任务自报完成不能代替整体通过。
+- 复用有效授权。任命、专业角色、技能安装或旧记录不扩大权限；公子的新指令、权限撤销和当前安全约束优先于在途任务的旧版本安排。
