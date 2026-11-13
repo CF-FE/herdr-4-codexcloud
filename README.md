@@ -12,6 +12,7 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 核对角色称呼 | [云端Dot与历史称呼](docs/coordination-policy.md#全局角色名称映射) |
 | 查角色由谁决定创建、谁办理、在哪里接手 | [创建职责与载体](docs/agent-hosts.md#role-creation-responsibility) · [原生调用示例](docs/agent-hosts.md) |
 | 项目接手、建主仓、维护工作流 | [项目主仓与项目级规范](docs/coordination-policy.md#项目主仓与项目级规范) · [工作流开发与验收](docs/project-workflow-development.md) |
+| 从阻塞或结果复盘提出工作流改进 | [工作流规范](docs/workflow-governance.md) · [提案模板](docs/templates/workflow-improvement-proposal.md) |
 | 用 Decision Service 选择动作／模型并收回结果 | [判断、执行与数据归属](docs/architecture.md#decision-service) · [消费者反馈](docs/project-workflow-development.md#decision-feedback) · [服务与插件主仓](https://github.com/CF-FE/decision-service) |
 | 云端Dot、Cloud 与本地 Agent 共享项目记忆 | [Hindsight 接入与实施](docs/hindsight-memory-integration.md) · [Codex 本地插件](plugin/hindsight-memory/README.md) · [本项目 bank](docs/project-memory.md) |
 | 按需查看和配置 Win Hindsight | [Web 管理端：前台启动与关闭](mcp/hindsight-memory/control-plane/README.md) |
