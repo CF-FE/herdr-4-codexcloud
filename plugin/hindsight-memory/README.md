@@ -1,5 +1,7 @@
 # Hindsight 项目记忆插件 · 1.0.0
 
+**历史分发说明。** 本仓 marketplace 已退役。以下版本、命令和验证保留为原分发记录。
+
 供 Mac Codex App 与 Codex CLI 使用的本地插件，包含 Hindsight Skill 1.0.0 和 stdio 启动器。来源组件版本为 1.0.1；三个版本分别维护，固定复制来源及 SHA-256 见 [SOURCE.json](SOURCE.json)。
 
 ## 运行前提

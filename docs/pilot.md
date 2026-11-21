@@ -80,6 +80,6 @@ herdr --machine "$PROFILE_ID" agent list
 
 发生明确拒绝、目标冲突、越界动作、预算耗尽或结果无法归属时，停止受影响分支，保留证据、未决资源与下一责任人。其他无依赖且已获准的工作可继续。清理仅限本次有明确原生ID的资源；活动／UNKNOWN未对账时不能靠强制关闭掩盖效果。
 
-试点结论绑定任务、机器、版本和实际覆盖范围。由原项目负责人决定后续哪些新任务采用；旧Lody／VPS任务沿原入口收尾。正式写回使用[Projects技能](../skill/github-projects-operations/SKILL.md)，不因为一次试点自动迁移看板或生产写控制。
+试点结论绑定任务、机器、版本和实际覆盖范围。由原项目负责人决定后续哪些新任务采用；旧Lody／VPS任务沿原入口收尾。正式写回使用[Projects技能](https://github.com/CF-FE/herdr-4-codexcloud/blob/742ab342355b32b70e2bac5ab8cc64290d56e23b/skill/github-projects-operations/SKILL.md)，不因为一次试点自动迁移看板或生产写控制。
 
 本页原生命令来源于2026-10-29至11-02核对，本次文档整理未重新验证外部版本：[机器选择](https://herdr.dev/docs/cli-reference/#saved-ssh-machines)、[连接副作用](https://herdr.dev/tui/docs/connecting-machines/)、[状态与等待](https://herdr.dev/docs/agent-automation/#choose-the-control-surface)、[生命周期](https://herdr.dev/docs/session-state/)。历史实测见[冻结记录](history/status-through-2026-11-03.md)，当前结果只在其权威入口更新。

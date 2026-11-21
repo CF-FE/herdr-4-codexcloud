@@ -6,9 +6,6 @@ import re
 import sys
 from pathlib import Path
 
-from sync_native_skill import check_native_skill
-
-
 ENTRYPOINTS = {"mcp": "README.md", "skill": "SKILL.md", "plugin": "README.md"}
 ENTRY_ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
@@ -61,7 +58,10 @@ def check_repository(root: Path) -> tuple[list[str], dict[str, int]]:
                 check_document(entry / entrypoint)
         except OSError:
             report(directory, "无法读取分类目录")
-    errors.extend(check_native_skill(root))
+    for active_path in ("skills", ".agents/skills", "plugin/.agents/plugins/marketplace.json"):
+        target = root / active_path
+        if target.is_symlink() or (target.is_file() or (target.is_dir() and any(target.iterdir()))):
+            report(target, "历史仓库不可提供技能发现或插件分发入口")
     return errors, counts
 
 

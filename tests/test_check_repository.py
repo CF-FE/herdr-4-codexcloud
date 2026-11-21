@@ -17,8 +17,7 @@ class RepositoryChecksTests(unittest.TestCase):
         self.root.mkdir()
         for name in ("README.md", "AGENTS.md", "mcp/README.md", "skill/README.md", "plugin/README.md"):
             self.write(name, "# Documentation\n")
-        for prefix in ("skill", ".agents/skills"):
-            self.write(f"{prefix}/organization-collaboration/SKILL.md", "# Organization\n")
+        self.write("skill/organization-collaboration/SKILL.md", "# Organization\n")
 
     def write(self, name, content):
         target = self.root / name
@@ -55,12 +54,15 @@ class RepositoryChecksTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("skill/incomplete/SKILL.md", result.stderr)
 
-    def test_plugin_marketplace_metadata_is_not_counted_as_a_plugin(self):
-        self.write("plugin/.agents/plugins/marketplace.json", '{"name":"local","plugins":[]}')
-        self.write("plugin/example/README.md", "# Plugin\n")
+    def test_archived_workspace_rejects_skill_discovery_and_marketplace(self):
+        paths = ("skills", ".agents/skills", "plugin/.agents/plugins/marketplace.json")
+        (self.root / paths[0]).symlink_to("skill", target_is_directory=True)
+        self.write(f"{paths[1]}/example/SKILL.md", "# Example\n")
+        self.write(paths[2], '{"name":"local","plugins":[]}')
         result = self.run_check()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("plugin=1", result.stdout)
+        self.assertNotEqual(result.returncode, 0)
+        for path in paths:
+            self.assertIn(path, result.stderr)
 
     def test_invalid_entry_id_fails_with_its_path(self):
         self.write("mcp/Bad Name/README.md", "# Server\n")

@@ -1,8 +1,10 @@
 # herdr-4-codexcloud
 
+**历史方案 · 2026-11-21 退役。** 此仓仅保存 Herdr 旧方案、实现与验收证据。现行任务、进度和验收在 Multica 项目及其关联任务维护。 [现行协作入口](https://github.com/CF-FE/multica-4-dot/blob/main/skills/workspace-coordination/SKILL.md)。以下导航和命令记录历史采用范围。
+
 Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协调层和 Worker 执行层。云端Dot交办和汇报，项目负责人或另行指定的验收者决定成果是否放行。[全局架构图](docs/architecture.md#整套协作分工) · [协作规范](docs/coordination-policy.md#1-默认分工与取舍)
 
-## 使用入口
+## 历史资料索引
 
 | 要做什么 | 直接阅读 |
 | --- | --- |
@@ -28,13 +30,13 @@ Super-Agent 的需求入口由公子与云端Dot组成，下游分为项目协�
 | 准备任务与安排多项目工作 | [试点绑定](docs/pilot.md#启动前绑定) · [任务模板](docs/templates/pilot-task.md) · [迭代路线](docs/collaboration-iteration-guide.md#4-分阶段迭代) |
 | 查网络、SSH 与 VPS | [网络运维](docs/networking-plan.md#日常核对与恢复入口) · [VPS 专项指引](docs/vps-control-pilot.md) |
 | 核对能力与通信入口 | [能力盘点](docs/local-agent-inventory.md) · [Dot 评估](docs/dot-mac-herdr-evaluation.md) · [通信选型](docs/agent-communication.md#1-当前建议与理由) |
-| 明确协作责任、操作看板 | [组织协作技能](skill/organization-collaboration/SKILL.md) · [Projects 技能](skill/github-projects-operations/SKILL.md) · [离线评测资料](docs/organization-collaboration/README.md) |
+| 明确协作责任、操作看板 | [组织协作技能](skill/organization-collaboration/SKILL.md) · [Projects 技能](https://github.com/CF-FE/herdr-4-codexcloud/blob/742ab342355b32b70e2bac5ab8cc64290d56e23b/skill/github-projects-operations/SKILL.md) · [离线评测资料](docs/organization-collaboration/README.md) |
 | 制作分享 PPT | [16:9 总架构、任务闭环、工作流与记忆拓扑图](docs/share-doc/README.md) |
 | 核对来源与历史 | [初始清单](docs/copy-manifest.json) · [增量记录](docs/copy-updates.json) · [状态沿革](docs/history/status-through-2026-11-03.md) |
 
 Task Mailbox 与 Mac 协调桥由 [CF-FE/task-mailbox-mcp](https://github.com/CF-FE/task-mailbox-mcp) 独立维护；服务运行证据见其[验证记录](https://github.com/CF-FE/task-mailbox-mcp/blob/main/docs/verification.md)。本仓不共享其他仓库的运行目录。
 
-## 本地检查
+## 历史源码检查
 
 已有 Python 3.10+ 即可，仅使用标准库，在仓库根运行：
 
